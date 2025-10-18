@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pos/Screens/customers/customer_screen.dart';
 import 'package:pos/Screens/dashboard/inventory/inventory_screen.dart';
+import 'package:pos/Screens/expenses/expenses_screen.dart';
 import 'package:pos/Screens/newSales/new_sales_screen.dart';
+import 'package:pos/Screens/notification/notification_screen.dart';
+import 'package:pos/Screens/report/report_screen.dart';
+import 'package:pos/Screens/suppliers/suppliers_screen.dart';
+import 'package:pos/Screens/userManagement/user_management.dart';
 import 'package:pos/Services/Controllers/favourites_screen_controller.dart';
 import 'package:pos/widgets/action_card.dart';
 import 'package:pos/widgets/sales_card.dart';
@@ -13,7 +18,8 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final FavoritesController favoritesController = Get.put(FavoritesController());
+    final FavoritesController favoritesController =
+        Get.put(FavoritesController());
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isTablet = screenWidth > 600;
@@ -25,20 +31,52 @@ class DashboardScreen extends StatelessWidget {
     };
 
     final allQuickActions = [
-      {'title': 'New Sale', 'icon': Icons.add_shopping_cart, 'color': Colors.indigo},
+      {
+        'title': 'New Sale',
+        'icon': Icons.add_shopping_cart,
+        'color': Colors.indigo
+      },
       {'title': 'Inventory', 'icon': Icons.inventory, 'color': Colors.teal},
       {'title': 'Customers', 'icon': Icons.group, 'color': Colors.blue},
       {'title': 'Suppliers', 'icon': Icons.store, 'color': Colors.deepPurple},
-      {'title': 'Purchases', 'icon': Icons.shopping_bag, 'color': Colors.orange},
+      {
+        'title': 'Purchases',
+        'icon': Icons.shopping_bag,
+        'color': Colors.orange
+      },
       {'title': 'Expenses', 'icon': Icons.money_off, 'color': Colors.redAccent},
-      {'title': 'Sales Report', 'icon': Icons.bar_chart, 'color': Colors.purple},
-      {'title': 'Stock Report', 'icon': Icons.inventory_2, 'color': Colors.amber},
+      {
+        'title': 'Sales Report',
+        'icon': Icons.bar_chart,
+        'color': Colors.purple
+      },
+      {
+        'title': 'Stock Report',
+        'icon': Icons.inventory_2,
+        'color': Colors.amber
+      },
       {'title': 'Analytics', 'icon': Icons.analytics, 'color': Colors.green},
       {'title': 'Settings', 'icon': Icons.settings, 'color': Colors.grey},
-      {'title': 'Backup & Restore', 'icon': Icons.cloud_upload, 'color': Colors.cyan},
-      {'title': 'Notifications', 'icon': Icons.notifications, 'color': Colors.pinkAccent},
-      {'title': 'User Management', 'icon': Icons.supervisor_account, 'color': Colors.blueGrey},
-      {'title': 'Loyalty Program', 'icon': Icons.card_giftcard, 'color': Colors.deepOrangeAccent},
+      {
+        'title': 'Backup & Restore',
+        'icon': Icons.cloud_upload,
+        'color': Colors.cyan
+      },
+      {
+        'title': 'Notifications',
+        'icon': Icons.notifications,
+        'color': Colors.pinkAccent
+      },
+      {
+        'title': 'User Management',
+        'icon': Icons.supervisor_account,
+        'color': Colors.blueGrey
+      },
+      {
+        'title': 'Loyalty Program',
+        'icon': Icons.card_giftcard,
+        'color': Colors.deepOrangeAccent
+      },
       {'title': 'Support', 'icon': Icons.headset_mic, 'color': Colors.brown},
     ];
 
@@ -57,7 +95,9 @@ class DashboardScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none, color: Colors.white),
-            onPressed: () {},
+            onPressed: () {
+              Get.to(NotificationScreen());
+            },
           ),
           const Padding(
             padding: EdgeInsets.only(right: 16),
@@ -98,7 +138,6 @@ class DashboardScreen extends StatelessWidget {
                         color: Colors.black87,
                       ),
                 ),
-            
               ],
             ),
 
@@ -107,8 +146,8 @@ class DashboardScreen extends StatelessWidget {
             ///  Quick Actions Grid or Empty State
             Obx(() {
               final favoriteActions = allQuickActions
-                  .where((action) =>
-                      favoritesController.favoriteActions.contains(action['title']))
+                  .where((action) => favoritesController.favoriteActions
+                      .contains(action['title']))
                   .toList();
 
               if (favoriteActions.isEmpty) {
@@ -119,14 +158,13 @@ class DashboardScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                    
                         const Text(
                           "No favorite actions yet",
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w600),
                         ),
                         // const SizedBox(height: 8),
-                       
+
                         // const SizedBox(height: 20),
                         // ElevatedButton.icon(
                         //   style: ElevatedButton.styleFrom(
@@ -186,10 +224,20 @@ class DashboardScreen extends StatelessWidget {
                           Get.toNamed('/settings');
                           break;
                         case 'Analytics':
-                          Get.toNamed('/analytics');
+                          Get.to(ReportScreen());
                           break;
                         case 'Expenses':
-                          Get.toNamed('/expenses');
+                          Get.to(ExpensesScreen());
+                          break;
+
+                        case 'Notifications':
+                          Get.to(NotificationScreen());
+                          break;
+                        case 'Suppliers':
+                          Get.to(SuppliersScreen());
+                          break;
+                        case 'User Management':
+                          Get.to(UserManagementScreen());
                           break;
                         default:
                           ScaffoldMessenger.of(context).showSnackBar(
