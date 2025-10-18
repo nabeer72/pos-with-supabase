@@ -22,13 +22,13 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor:  Colors.deepOrangeAccent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: accent),
+          icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Get.offAll(() => BottomNavigation()),
         ),
         title: Text(
           'Profile',
           style: TextStyle(
-            color: Colors.black87,
+            color: Colors.white,
             fontSize: screenWidth * 0.05,
             fontWeight: FontWeight.w700,
           ),

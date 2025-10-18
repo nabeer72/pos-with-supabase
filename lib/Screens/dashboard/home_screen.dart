@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pos/Screens/customers/customer_screen.dart';
 import 'package:pos/Screens/dashboard/inventory/inventory_screen.dart';
@@ -14,277 +13,201 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 Status bar ka color AppBar ke color jaisa kar diya
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.deepOrangeAccent, // AppBar ka color
-        statusBarIconBrightness: Brightness.light, // Status bar ke icons white
-      ),
-    );
-
-    final FavoritesController favoritesController =
-        Get.put(FavoritesController());
-
+    final FavoritesController favoritesController = Get.put(FavoritesController());
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     final isTablet = screenWidth > 600;
     final isLargeScreen = screenWidth > 900;
 
     final salesData = {
-      'amount': 1800.75,
-      'transactionCount': 60,
+      'amount': 4250.75,
+      'transactionCount': 89,
     };
 
+    final allQuickActions = [
+      {'title': 'New Sale', 'icon': Icons.add_shopping_cart, 'color': Colors.indigo},
+      {'title': 'Inventory', 'icon': Icons.inventory, 'color': Colors.teal},
+      {'title': 'Customers', 'icon': Icons.group, 'color': Colors.blue},
+      {'title': 'Suppliers', 'icon': Icons.store, 'color': Colors.deepPurple},
+      {'title': 'Purchases', 'icon': Icons.shopping_bag, 'color': Colors.orange},
+      {'title': 'Expenses', 'icon': Icons.money_off, 'color': Colors.redAccent},
+      {'title': 'Sales Report', 'icon': Icons.bar_chart, 'color': Colors.purple},
+      {'title': 'Stock Report', 'icon': Icons.inventory_2, 'color': Colors.amber},
+      {'title': 'Analytics', 'icon': Icons.analytics, 'color': Colors.green},
+      {'title': 'Settings', 'icon': Icons.settings, 'color': Colors.grey},
+      {'title': 'Backup & Restore', 'icon': Icons.cloud_upload, 'color': Colors.cyan},
+      {'title': 'Notifications', 'icon': Icons.notifications, 'color': Colors.pinkAccent},
+      {'title': 'User Management', 'icon': Icons.supervisor_account, 'color': Colors.blueGrey},
+      {'title': 'Loyalty Program', 'icon': Icons.card_giftcard, 'color': Colors.deepOrangeAccent},
+      {'title': 'Support', 'icon': Icons.headset_mic, 'color': Colors.brown},
+    ];
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(
-          'POS Dashboard',
+        backgroundColor: Colors.deepOrangeAccent,
+        elevation: 0,
+        title: const Text(
+          "Dashboard",
           style: TextStyle(
-            fontSize:
-                (isLargeScreen ? 24.0 : screenWidth * 0.05).clamp(16.0, 26.0),
-            color: Colors.black,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.deepOrangeAccent, // ✅ direct AppBar color
-        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications, color: Colors.black),
+            icon: const Icon(Icons.notifications_none, color: Colors.white),
             onPressed: () {},
           ),
-          Padding(
-            padding:
-                EdgeInsets.only(right: (screenWidth * 0.04).clamp(8.0, 16.0)),
+          const Padding(
+            padding: EdgeInsets.only(right: 16),
             child: CircleAvatar(
-              radius:
-                  (isLargeScreen ? 20.0 : screenWidth * 0.04).clamp(14.0, 22.0),
               backgroundColor: Colors.white,
-              child: Icon(
-                Icons.person,
-                size: (isLargeScreen ? 24.0 : screenWidth * 0.045)
-                    .clamp(16.0, 26.0),
-                color: Colors.black,
-              ),
+              child: Icon(Icons.person, color: Colors.deepOrangeAccent),
             ),
           ),
         ],
       ),
-      body: Container(
-        color: Colors.grey[100],
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: (constraints.maxWidth * 0.05).toDouble(),
-                vertical: (constraints.maxHeight * 0.02).toDouble(),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SearchBarWidget(
-                    screenWidth: constraints.maxWidth,
-                    onSearchChanged: (value) {
-                      // Implement search logic here
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            /// 🔍 Search Bar
+            SearchBarWidget(screenWidth: screenWidth),
+
+            const SizedBox(height: 20),
+
+            /// 💰 Sales Summary
+            SalesAndTransactionsWidget(
+              screenWidth: screenWidth,
+              screenHeight: screenHeight,
+              salesData: salesData,
+            ),
+
+            const SizedBox(height: 24),
+
+            /// ⚡ Quick Actions Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Quick Actions",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                ),
+            
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            ///  Quick Actions Grid or Empty State
+            Obx(() {
+              final favoriteActions = allQuickActions
+                  .where((action) =>
+                      favoritesController.favoriteActions.contains(action['title']))
+                  .toList();
+
+              if (favoriteActions.isEmpty) {
+                // 🟢 Show Empty State if No Favorites
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 130),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                    
+                        const Text(
+                          "No favorite actions yet",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600),
+                        ),
+                        // const SizedBox(height: 8),
+                       
+                        // const SizedBox(height: 20),
+                        // ElevatedButton.icon(
+                        //   style: ElevatedButton.styleFrom(
+                        //     backgroundColor: Colors.deepOrangeAccent,
+                        //     shape: RoundedRectangleBorder(
+                        //       borderRadius: BorderRadius.circular(10),
+                        //     ),
+                        //     padding: const EdgeInsets.symmetric(
+                        //         horizontal: 20, vertical: 12),
+                        //   ),
+                        //   onPressed: () => Get.toNamed('/favorites'),
+                        //   icon: const Icon(Icons.add),
+                        //   label: const Text(
+                        //     "Add Favorites",
+                        //     style: TextStyle(color: Colors.white),
+                        //   ),
+                        // ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              //  Show Only Favorite Actions
+              return GridView.builder(
+                itemCount: favoriteActions.length,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: isTablet ? 4 : 3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final action = favoriteActions[index];
+                  return QuickActionCard(
+                    title: action['title'] as String,
+                    icon: action['icon'] as IconData,
+                    color: action['color'] as Color,
+                    cardSize: isLargeScreen ? 140 : 120,
+                    onTap: () {
+                      switch (action['title']) {
+                        case 'New Sale':
+                          Get.to(() => const NewSaleScreen());
+                          break;
+                        case 'Inventory':
+                          Get.to(() => const InventoryScreen());
+                          break;
+                        case 'Sales Report':
+                          Get.toNamed('/reports');
+                          break;
+                        case 'Customers':
+                          Get.to(() => const AddCustomerScreen());
+                          break;
+                        case 'Settings':
+                          Get.toNamed('/settings');
+                          break;
+                        case 'Analytics':
+                          Get.toNamed('/analytics');
+                          break;
+                        case 'Expenses':
+                          Get.toNamed('/expenses');
+                          break;
+                        default:
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "${action['title']} feature coming soon!",
+                              ),
+                            ),
+                          );
+                      }
                     },
-                  ),
-                  SizedBox(height: (constraints.maxHeight * 0.02).toDouble()),
-                  SalesAndTransactionsWidget(
-                    screenWidth: constraints.maxWidth,
-                    screenHeight: constraints.maxHeight,
-                    salesData: salesData,
-                  ),
-                  SizedBox(height: (constraints.maxHeight * 0.02).toDouble()),
-                  _buildCategoryFilter(
-                    context,
-                    constraints.maxWidth,
-                    constraints.maxHeight,
-                  ),
-                  SizedBox(height: (constraints.maxHeight * 0.02).toDouble()),
-                  _buildQuickActionsSection(
-                    context,
-                    isTablet,
-                    isLargeScreen,
-                    constraints.maxWidth,
-                    constraints.maxHeight,
-                    favoritesController,
-                  ),
-                ],
-              ),
-            );
-          },
+                  );
+                },
+              );
+            }),
+          ],
         ),
       ),
     );
-  }
-
-  Widget _buildCategoryFilter(
-      BuildContext context, double screenWidth, double screenHeight) {
-    final categories = ['All', 'Sales', 'Inventory', 'Reports', 'Settings'];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick links',
-          style: Theme.of(context).textTheme.headlineMedium ??
-              const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: (screenHeight * 0.06).clamp(40.0, 60.0),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: EdgeInsets.only(right: screenWidth * 0.03),
-                child: Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: InkWell(
-                    onTap: () {},
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Center(
-                        child: Text(
-                          categories[index],
-                          style: TextStyle(
-                            color: index == 0 ? Colors.black : Colors.black87,
-                            fontSize: (screenWidth * 0.04).clamp(12.0, 16.0),
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActionsSection(
-    BuildContext context,
-    bool isTablet,
-    bool isLargeScreen,
-    double screenWidth,
-    double screenHeight,
-    FavoritesController favoritesController,
-  ) {
-    final cardSize = (screenWidth *
-            (isLargeScreen
-                ? 0.22
-                : isTablet
-                    ? 0.28
-                    : 0.3))
-        .clamp(100.0, 200.0);
-    final spacing = (screenWidth * 0.02).clamp(8.0, 16.0);
-
-    final allQuickActions = [
-      {
-        'title': 'New Sale',
-        'icon': Icons.add_shopping_cart,
-        'color': Colors.indigo[600]!,
-      },
-      {
-        'title': 'Inventory',
-        'icon': Icons.inventory,
-        'color': Colors.teal[400]!,
-      },
-      {
-        'title': 'Reports',
-        'icon': Icons.bar_chart,
-        'color': Colors.purple[400]!,
-      },
-      {
-        'title': 'Settings',
-        'icon': Icons.settings,
-        'color': Colors.deepOrange[400]!,
-      },
-      {
-        'title': 'Customers',
-        'icon': Icons.group,
-        'color': Colors.blue[400]!,
-      },
-      {
-        'title': 'Analytics',
-        'icon': Icons.analytics,
-        'color': Colors.green[400]!,
-      },
-    ];
-
-    return Obx(() {
-      final favoriteActions = allQuickActions
-          .where((action) =>
-              favoritesController.favoriteActions.contains(action['title']))
-          .toList();
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Quick Actions',
-            style: Theme.of(context).textTheme.headlineMedium ??
-                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          favoriteActions.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No favorite actions selected. Add some from the Favorites screen!',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                )
-              : GridView.count(
-                  crossAxisCount: 3, // ✅ 3 cards per row
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: spacing,
-                  crossAxisSpacing: spacing,
-                  childAspectRatio: 1.0,
-                  children: favoriteActions.map((action) {
-                    return QuickActionCard(
-                      title: action['title'] as String,
-                      icon: action['icon'] as IconData,
-                      color: action['color'] as Color,
-                      cardSize: cardSize,
-                      onTap: () {
-                        switch (action['title']) {
-                          case 'New Sale':
-                            Get.to(() => const NewSaleScreen());
-                            break;
-                          case 'Inventory':
-                            Get.to(() => const InventoryScreen());
-                            break;
-                          case 'Reports':
-                            Get.toNamed('/reports');
-                            break;
-                          case 'Settings':
-                            Get.toNamed('/settings');
-                            break;
-                          case 'Customers':
-                            Get.to(() => const AddCustomerScreen());
-                            break;
-                          case 'Analytics':
-                            Get.toNamed('/analytics');
-                            break;
-                        }
-                      },
-                      showFavorite: false,
-                    );
-                  }).toList(),
-                ),
-        ],
-      );
-    });
   }
 }

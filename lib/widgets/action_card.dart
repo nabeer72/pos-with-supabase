@@ -7,7 +7,7 @@ class QuickActionCard extends StatelessWidget {
   final Color color;
   final double cardSize;
   final Function()? onTap;
-  final bool showFavorite; // ❤️ sirf FavoritesScreen me show hoga
+  final bool showFavorite;
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
 
@@ -27,21 +27,30 @@ class QuickActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
-            color: const Color(0xFFB3E5FC).withOpacity(0.4),
+            color: Colors.grey.withOpacity(0.2),
             width: 1,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 2,
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: InkWell(
-          onTap: showFavorite ? onFavoriteToggle : onTap, // ✅ FavoritesScreen → toggle
-          borderRadius: BorderRadius.circular(12),
+          onTap: showFavorite ? onFavoriteToggle : onTap,
+          borderRadius: BorderRadius.circular(14),
           child: Stack(
             children: [
+              // ✅ Main icon and text
               Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -56,10 +65,12 @@ class QuickActionCard extends StatelessWidget {
                       title,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
+                            color: Colors.black87,
                           ) ??
                           const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
+                            color: Colors.black87,
                           ),
                       textAlign: TextAlign.center,
                       overflow: TextOverflow.ellipsis,
@@ -79,14 +90,16 @@ class QuickActionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (showFavorite) // ✅ Sirf FavoritesScreen me show hoga
+
+              //  Favorite icon (moved to top-left)
+              if (showFavorite)
                 Positioned(
                   top: 8,
-                  right: 8,
+                  right: 8, // ✅ changed from right → left
                   child: Icon(
                     isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: isFavorite ? Colors.red : Colors.grey,
-                    size: cardSize * 0.19,
+                    color: isFavorite ? Colors.redAccent : Colors.grey,
+                    size: cardSize * 0.18,
                   ),
                 ),
             ],
