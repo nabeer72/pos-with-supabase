@@ -3,39 +3,41 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pos/Screens/button_bar.dart';
 
-
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const accent =  Colors.grey;
-    final double screenWidth = MediaQuery.sizeOf(context).width;
+    const accent = Colors.grey;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
     final double avatarRadius = screenWidth * 0.12;
     final double cardTopMargin = avatarRadius * 2.5;
     final double avatarTopPosition = avatarRadius * 1.5;
     final double spacerHeight = avatarRadius;
+    final isTablet = screenWidth > 600;
+    final isLargeScreen = screenWidth > 900;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: const Color(0xFFF8FAFC), // Match DashboardScreen
       appBar: AppBar(
-        backgroundColor:  Colors.deepOrangeAccent,
+        backgroundColor: Colors.deepOrangeAccent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Get.offAll(() => BottomNavigation()),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Get.offAll(() =>  BottomNavigation()),
         ),
         title: Text(
           'Profile',
           style: TextStyle(
+            fontSize: (isLargeScreen ? 24.0 : screenWidth * 0.05).clamp(16.0, 26.0),
             color: Colors.white,
-            fontSize: screenWidth * 0.05,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
       body: ListView(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all((screenWidth * 0.05).clamp(16.0, 24.0)),
         children: [
           Stack(
             clipBehavior: Clip.none,
@@ -45,7 +47,7 @@ class ProfileScreen extends StatelessWidget {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
-                 color: Colors.white,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -61,81 +63,59 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     SizedBox(height: spacerHeight),
                     ListTile(
-                      leading: Icon(Icons.person, color: accent, size: 24),
+                      leading: const Icon(Icons.person, color: accent, size: 24),
                       subtitle: Text(
                         'John Doe',
                         style: TextStyle(
                           color: Colors.grey[600],
-                          fontSize: 14,
+                          fontSize: isTablet ? 16 : 14,
                         ),
                       ),
                     ),
-                    Divider(
-                        height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
+                    Divider(height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
                     ListTile(
-                      leading: Icon(Icons.email, color: accent, size: 24),
+                      leading: const Icon(Icons.email, color: accent, size: 24),
                       subtitle: Text(
                         'john.doe@example.com',
                         style: TextStyle(
                           color: Colors.grey[600],
-                          fontSize: 14,
+                          fontSize: isTablet ? 16 : 14,
                         ),
                       ),
                     ),
-                    Divider(
-                        height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
+                    Divider(height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
                     ListTile(
-                      leading: Icon(Icons.phone, color: accent, size: 24),
+                      leading: const Icon(Icons.phone, color: accent, size: 24),
                       subtitle: Text(
                         '+1 234 567 8900',
                         style: TextStyle(
                           color: Colors.grey[600],
-                          fontSize: 14,
+                          fontSize: isTablet ? 16 : 14,
                         ),
                       ),
                     ),
-                    Divider(
-                        height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
+                    Divider(height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
                     ListTile(
-                      leading: Icon(Icons.badge, color: accent, size: 24),
+                      leading: const Icon(Icons.badge, color: accent, size: 24),
                       subtitle: Text(
                         '12345-6789012-3',
                         style: TextStyle(
                           color: Colors.grey[600],
-                          fontSize: 14,
+                          fontSize: isTablet ? 16 : 14,
                         ),
                       ),
                     ),
-                    Divider(
-                        height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
+                    Divider(height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
                     ListTile(
-                      leading: Icon(Icons.location_on, color: accent, size: 24),
+                      leading: const Icon(Icons.location_on, color: accent, size: 24),
                       subtitle: Text(
                         '123 Main St, City, Country',
                         style: TextStyle(
                           color: Colors.grey[600],
-                          fontSize: 14,
+                          fontSize: isTablet ? 16 : 14,
                         ),
                       ),
                     ),
-                    // Divider(
-                    //     height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
-                    // ListTile(
-                    //   leading: Icon(Icons.edit, color: accent, size: 24),
-                    //   title: Text(
-                    //     'Edit Profile',
-                    //     style: TextStyle(
-                    //       color: Colors.black87,
-                    //       fontSize: 16,
-                    //       fontWeight: FontWeight.w600,
-                    //     ),
-                    //   ),
-                    //   trailing:
-                    //       Icon(Icons.chevron_right, color: accent, size: 24),
-                    //   onTap: () {
-                    //     // Get.to(() => EditProfileScreen());
-                    //   },
-                    // ),
                   ],
                 ),
               ),
@@ -149,12 +129,12 @@ class ProfileScreen extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: screenWidth * 0.04),
+          SizedBox(height: (screenWidth * 0.05).clamp(16.0, 24.0)),
           // Settings Card
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-             color: Colors.white,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -168,48 +148,48 @@ class ProfileScreen extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: Icon(Icons.description, color: accent, size: 24),
+                  leading: const Icon(Icons.description, color: accent, size: 24),
                   title: Text(
                     'Terms & Conditions',
                     style: TextStyle(
                       color: Colors.black87,
-                      fontSize: 16,
+                      fontSize: isTablet ? 18 : 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  trailing: Icon(Icons.chevron_right, color: accent, size: 24),
+                  trailing: const Icon(Icons.chevron_right, color: accent, size: 24),
                   onTap: () {
-                    // Get.to(() => TermsAndConditionsScreen());
+                    // Get.to(() => const TermsAndConditionsScreen());
                   },
                 ),
                 Divider(height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
                 ListTile(
-                  leading: Icon(Icons.help, color: accent, size: 24),
+                  leading: const Icon(Icons.help, color: accent, size: 24),
                   title: Text(
                     'Help Center',
                     style: TextStyle(
                       color: Colors.black87,
-                      fontSize: 16,
+                      fontSize: isTablet ? 18 : 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  trailing: Icon(Icons.chevron_right, color: accent, size: 24),
+                  trailing: const Icon(Icons.chevron_right, color: accent, size: 24),
                   onTap: () {
-                    // Get.to(() => HelpCenterScreen());
+                    // Get.to(() => const HelpCenterScreen());
                   },
                 ),
                 Divider(height: 1, color: Colors.grey[300]!.withOpacity(0.5)),
                 ListTile(
-                  leading: Icon(Icons.logout, color: accent, size: 24),
+                  leading: const Icon(Icons.logout, color: accent, size: 24),
                   title: Text(
                     'Logout',
                     style: TextStyle(
                       color: Colors.black87,
-                      fontSize: 16,
+                      fontSize: isTablet ? 18 : 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  trailing: Icon(Icons.chevron_right, color: accent, size: 24),
+                  trailing: const Icon(Icons.chevron_right, color: accent, size: 24),
                   onTap: () {
                     _showLogoutDialog(context, accent);
                   },
@@ -235,10 +215,9 @@ class ProfileScreen extends StatelessWidget {
       ),
       confirm: TextButton(
         onPressed: () {
-          // Add logout logic here (clear session, navigate to login)
           Get.back();
           Get.snackbar('Logged Out', 'You have been logged out successfully');
-          // Example: Get.offAll(() => LoginScreen());
+          // Example: Get.offAll(() => const LoginScreen());
         },
         style: TextButton.styleFrom(foregroundColor: accent),
         child: const Text('Yes', style: TextStyle(fontWeight: FontWeight.w600)),

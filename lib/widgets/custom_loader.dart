@@ -7,7 +7,7 @@ class LoadingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SpinKitFadingCircle(
-      color: Colors.purple,
+      color: Colors.deepOrangeAccent, // Match app theme
       size: 50.0,
     );
   }

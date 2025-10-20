@@ -140,7 +140,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SearchBarWidget(
-            screenWidth: screenWidth,
+        
             onSearchChanged: (value) {},
           ),
           const SizedBox(height: 16),

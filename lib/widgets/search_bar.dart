@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
 
 class SearchBarWidget extends StatelessWidget {
-  final double screenWidth;
   final Function(String)? onSearchChanged;
 
   const SearchBarWidget({
     super.key,
-    required this.screenWidth,
     this.onSearchChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Get the screen width dynamically using MediaQuery
+    final double screenWidth = MediaQuery.of(context).size.width;
+
     return Container(
-      width: screenWidth,
-      constraints: const BoxConstraints(maxWidth: 600),
+      width: screenWidth, // Full width of the screen
+      constraints: const BoxConstraints(maxWidth: 600), // Max width constraint
+      margin: const EdgeInsets.symmetric(horizontal: 16), // Optional: Add margin for padding on sides
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14), // Consistent border radius
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.15),

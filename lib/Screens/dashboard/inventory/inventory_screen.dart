@@ -368,7 +368,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 children: [
                   // Search bar using SearchBarWidget
                   SearchBarWidget(
-                    screenWidth: constraints.maxWidth,
+                   
                     onSearchChanged: (value) {
                       // Implement inventory search logic here
                     },
