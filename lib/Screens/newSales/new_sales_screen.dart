@@ -75,7 +75,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  // 🔸 Customer Selection Dialog
+  //  Customer Selection Dialog
   void _showCustomerSelectionDialog(BuildContext context) {
     String? selectedCustomer;
     final List<Map<String, String>> _dummyCustomers = [
