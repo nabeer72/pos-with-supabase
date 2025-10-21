@@ -4,7 +4,7 @@ import 'package:pos/widgets/custom_textfield.dart';
 
 class AddCustomerForm extends StatefulWidget {
   final CustomerController controller;
-  final VoidCallback onCustomerAdded; // Callback to refresh the parent screen
+  final VoidCallback onCustomerAdded;
 
   const AddCustomerForm({
     super.key,
@@ -34,47 +34,50 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Add New Customer',
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             CustomTextField(
               controller: _nameController,
               hintText: 'Customer Name',
               icon: Icons.person,
               keyboardType: TextInputType.name,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             CustomTextField(
               controller: _addressController,
               hintText: 'Address',
               icon: Icons.location_on,
               keyboardType: TextInputType.streetAddress,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             CustomTextField(
               controller: _cellNumberController,
               hintText: 'Cell Number',
               icon: Icons.phone,
               keyboardType: TextInputType.phone,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             CustomTextField(
               controller: _emailController,
               hintText: 'Email',
               icon: Icons.email,
               keyboardType: TextInputType.emailAddress,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             DropdownButtonFormField<CustomerType>(
               value: _selectedType,
               decoration: InputDecoration(
@@ -93,11 +96,15 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                 ),
                 filled: true,
                 fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               items: CustomerType.values.map((type) {
                 return DropdownMenuItem(
                   value: type,
-                  child: Text(type.toString().split('.').last),
+                  child: Text(
+                    type.toString().split('.').last,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 );
               }).toList(),
               onChanged: (value) {
@@ -106,7 +113,7 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                 });
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -126,21 +133,19 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                     _emailController.clear();
                     _selectedType = CustomerType.regular;
                   });
-                  widget.onCustomerAdded(); // Trigger refresh in parent
+                  widget.onCustomerAdded();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepOrangeAccent,
-                  padding: EdgeInsets.symmetric(vertical: screenWidth * 0.04),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Text(
                   'Add Customer',
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.04,
-                    color: Colors.white,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ),
             ),
