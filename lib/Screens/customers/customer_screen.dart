@@ -1,9 +1,11 @@
+
 import 'package:flutter/material.dart';
 import 'package:pos/Services/Controllers/add_customer_controller.dart';
-import 'package:pos/widgets/customer_form.dart'; // Import the new form widget
+import 'package:pos/widgets/customer_form.dart';
 
 class AddCustomerScreen extends StatefulWidget {
   const AddCustomerScreen({super.key});
+
   @override
   State<AddCustomerScreen> createState() => _AddCustomerScreenState();
 }
@@ -19,90 +21,125 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 900;
-
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.deepOrangeAccent,
-        title: Text(
+        elevation: 0,
+        title: const Text(
           'Add Customer',
           style: TextStyle(
-            fontSize: isLargeScreen ? 24 : screenWidth * 0.05,
-            color: Colors.black,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white10,
+        actions: [
+          const Padding(
+            padding: EdgeInsets.only(right: 16),
+            child: CircleAvatar(
+              backgroundColor: Colors.white,
+              radius: 16,
+              child: Icon(Icons.person, color: Colors.deepOrangeAccent, size: 20),
+            ),
           ),
-        ),
+        ],
       ),
       body: SingleChildScrollView(
-        child: Container(
-          color: Colors.grey[100],
-          padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.05,
-            vertical: 16,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Customer Form
-              AddCustomerForm(
-                controller: _controller,
-                onCustomerAdded: () {
-                  setState(() {}); // Refresh the customer list
-                },
-              ),
-              const SizedBox(height: 24),
-              // Customer List
-              Text(
-                'Customers',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 12),
-              _controller.customers.isEmpty
-                  ? const Center(child: Text('No customers added'))
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _controller.customers.length,
-                      itemBuilder: (context, index) {
-                        final customer = _controller.customers[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          child: ListTile(
-                            title: Text(customer.name),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Type: ${customer.type.toString().split('.').last}'),
-                                if (customer.address != null) Text('Address: ${customer.address}'),
-                                if (customer.cellNumber != null) Text('Cell: ${customer.cellNumber}'),
-                                if (customer.email != null) Text('Email: ${customer.email}'),
-                                Text('Status: ${customer.isActive ? 'Active' : 'Deactive'}'),
-                              ],
-                            ),
-                            trailing: IconButton(
-                              icon: Icon(
-                                customer.isActive ? Icons.toggle_on : Icons.toggle_off,
-                                color: customer.isActive ? Colors.green : Colors.grey,
-                                size: 40,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _controller.toggleCustomerStatus(index);
-                                });
-                              },
-                            ),
-                          ),
-                        );
-                      },
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Customer Form
+            AddCustomerForm(
+              controller: _controller,
+              onCustomerAdded: () {
+                setState(() {}); // Refresh the customer list
+              },
+            ),
+            const SizedBox(height: 24),
+            // Customer List
+            Text(
+              'Customers',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            _controller.customers.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Text(
+                        'No customers added',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                      ),
                     ),
-            ],
-          ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _controller.customers.length,
+                    itemBuilder: (context, index) {
+                      final customer = _controller.customers[index];
+                      return Card(
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          title: Text(
+                            customer.name,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Type: ${customer.type.toString().split('.').last}',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              if (customer.address != null)
+                                Text(
+                                  'Address: ${customer.address}',
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              if (customer.cellNumber != null)
+                                Text(
+                                  'Cell: ${customer.cellNumber}',
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              if (customer.email != null)
+                                Text(
+                                  'Email: ${customer.email}',
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              Text(
+                                'Status: ${customer.isActive ? 'Active' : 'Deactive'}',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ],
+                          ),
+                          trailing: IconButton(
+                            icon: Icon(
+                              customer.isActive ? Icons.toggle_on : Icons.toggle_off,
+                              color: customer.isActive ? Colors.green : Colors.grey,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _controller.toggleCustomerStatus(index);
+                              });
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ],
         ),
       ),
     );
