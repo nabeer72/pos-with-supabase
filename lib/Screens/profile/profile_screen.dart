@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pos/Screens/button_bar.dart';
+import 'package:pos/Screens/helpCenter/help_center_screen.dart';
 import 'package:pos/Screens/terms_&_conditions/term&conditions_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -231,7 +232,7 @@ class ProfileScreen extends StatelessWidget {
                           size: (screenWidth * 0.06).clamp(20.0, 24.0),
                         ),
                         onTap: () {
-                          // Get.to(() => const HelpCenterScreen());
+                          Get.to(() => const HelpCenterScreen());
                         },
                       ),
                       Divider(height: 1, color: Colors.grey[300]!.withOpacity(0.5)),

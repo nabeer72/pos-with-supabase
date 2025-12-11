@@ -5,7 +5,7 @@ class TermsAndConditionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const accent = Colors.white;
+    const accent = Colors.black;
     // Get screen width for responsive sizing
     final double screenWidth = MediaQuery.sizeOf(context).width;
     // Calculate responsive sizes based on screen width
