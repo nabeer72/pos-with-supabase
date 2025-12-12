@@ -19,10 +19,10 @@ class ReportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: AppColors.gradientStart,
-      statusBarIconBrightness: Brightness.light,
-    ));
+    // SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    //   statusBarColor: AppColors.gradientStart,
+    //   statusBarIconBrightness: Brightness.light,
+    // ));
 
     final ReportController controller = Get.put(ReportController());
     final screenWidth = MediaQuery.of(context).size.width;
