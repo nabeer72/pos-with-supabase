@@ -17,27 +17,22 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final FavoritesController favoritesController =
-        Get.put(FavoritesController());
+    final FavoritesController favoritesController = Get.put(FavoritesController());
+
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isTablet = screenWidth > 600;
-    // ignore: unused_local_variable
-    final isLargeScreen = screenWidth > 900;
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
-    // Calculate card size based on screen width and orientation
     final cardSize = isTablet
-        ? (isLandscape
-            ? screenWidth / 6
-            : screenWidth / 4) // Adjust for landscape
+        ? (isLandscape ? screenWidth / 6 : screenWidth / 4)
         : (isLandscape ? screenWidth / 5 : screenWidth / 3.5);
 
     final salesData = {
       'amount': 4250.75,
       'transactionCount': 89,
     };
+
     final allQuickActions = [
       {'title': 'New Sale', 'icon': Icons.add_shopping_cart},
       {'title': 'Inventory', 'icon': Icons.inventory},
@@ -58,50 +53,47 @@ class DashboardScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-    appBar: AppBar(
-  elevation: 0,
-  backgroundColor: Colors.transparent, // transparent to show gradient
-  centerTitle: false,
-  title: const Text(
-    "Dashboard",
-    style: TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-  flexibleSpace: Container(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        colors: [
-          Color.fromRGBO(30, 58, 138, 1),
-          Color.fromRGBO(59, 130, 246, 1),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent, // یہ ضروری ہے gradient دکھانے کے لیے
+        centerTitle: false,
+        title: const Text(
+          "Dashboard",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: const SizedBox(), // اگر back button نہیں چاہیے تو خالی رکھیں، ورنہ ہٹا دیں
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none, color: Colors.white),
+            onPressed: () {
+              Get.to(() => NotificationScreen());
+            },
+          ),
         ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromRGBO(30, 58, 138, 1),
+                Color.fromRGBO(59, 130, 246, 1),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
-    ),
-  ),
-  actions: [
-    IconButton(
-      icon: const Icon(Icons.notifications_none, color: Colors.white),
-      onPressed: () {
-        Get.to(() => NotificationScreen());
-      },
-    ),
-  ],
-),
 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // /// 🔍 Search Bar
-            // SearchBarWidget(),
-
             const SizedBox(height: 20),
 
-            /// 💰 Sales Summary
             SalesAndTransactionsWidget(
               screenWidth: screenWidth,
               screenHeight: screenHeight,
@@ -110,7 +102,6 @@ class DashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            /// ⚡ Quick Actions Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -126,7 +117,6 @@ class DashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            /// Quick Actions Grid or Empty State
             Obx(() {
               final favoriteActions = allQuickActions
                   .where((action) => favoritesController.favoriteActions
@@ -134,17 +124,18 @@ class DashboardScreen extends StatelessWidget {
                   .toList();
 
               if (favoriteActions.isEmpty) {
-                // 🟢 Show Empty State if No Favorites
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 130),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
+                      children: const [
+                        Text(
                           "No favorite actions yet",
                           style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w600),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
                         ),
                       ],
                     ),
@@ -152,7 +143,6 @@ class DashboardScreen extends StatelessWidget {
                 );
               }
 
-              // Show Favorite Actions in Grid
               return GridView.builder(
                 itemCount: favoriteActions.length,
                 shrinkWrap: true,
@@ -162,16 +152,15 @@ class DashboardScreen extends StatelessWidget {
                       isTablet ? (isLandscape ? 6 : 4) : (isLandscape ? 5 : 3),
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1, // Ensure square cards
+                  childAspectRatio: 1,
                 ),
                 itemBuilder: (context, index) {
                   final action = favoriteActions[index];
                   return QuickActionCard(
                     title: action['title'] as String,
                     icon: action['icon'] as IconData,
-                    color: Color(0xFF253746),
+                    color: const Color(0xFF253746),
                     cardSize: cardSize,
-                    // Use calculated card size
                     onTap: () {
                       switch (action['title']) {
                         case 'New Sale':
@@ -185,12 +174,6 @@ class DashboardScreen extends StatelessWidget {
                           break;
                         case 'Customers':
                           Get.to(() => const AddCustomerScreen());
-                          break;
-                        case 'Settings':
-                          Get.toNamed('/settings');
-                          break;
-                        case 'Analytics':
-                          Get.to(() => ReportScreen());
                           break;
                         case 'Expenses':
                           Get.to(() => ExpensesScreen());
@@ -207,9 +190,7 @@ class DashboardScreen extends StatelessWidget {
                         default:
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(
-                                "${action['title']} feature coming soon!",
-                              ),
+                              content: Text("${action['title']} coming soon!"),
                             ),
                           );
                       }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
+
 class SuppliersScreen extends StatefulWidget {
   @override
   _SuppliersScreenState createState() => _SuppliersScreenState();
@@ -34,11 +35,26 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: Colors.white,
-        title: Text(
-          isEdit ? 'Edit Supplier' : 'Add Supplier',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+        backgroundColor: const Color(0xFFF8FAFC),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              isEdit ? 'Edit Supplier' : 'Add Supplier',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.redAccent),
+              onPressed: () => Navigator.pop(context),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -47,41 +63,50 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
               controller: nameController,
               decoration: InputDecoration(
                 hintText: 'Supplier Name',
-                hintStyle: TextStyle(color: Colors.grey[400]),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color.fromRGBO(59, 130, 246, 1), width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                hintStyle: TextStyle(color: Colors.grey[400]),
               ),
-              style: TextStyle(fontSize: 14),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 12),
             TextField(
               controller: contactController,
               decoration: InputDecoration(
-                hintText: 'Contact Info',
-                hintStyle: TextStyle(color: Colors.grey[400]),
+                hintText: 'Contact Info (Email or Phone)',
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color.fromRGBO(59, 130, 246, 1), width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                hintStyle: TextStyle(color: Colors.grey[400]),
               ),
-              style: TextStyle(fontSize: 14),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            ),
-          ),
           ElevatedButton(
             onPressed: () {
               if (nameController.text.isNotEmpty && contactController.text.isNotEmpty) {
@@ -89,7 +114,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                   final newSupplier = {
                     'name': nameController.text,
                     'contact': contactController.text,
-                    'lastOrder': isEdit ? supplier['lastOrder']! : 'Oct 18, 2025',
+                    'lastOrder': isEdit ? supplier['lastOrder']! : 'Dec 15, 2025',
                   };
                   if (isEdit) {
                     suppliers[index!] = newSupplier;
@@ -101,13 +126,13 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(isEdit ? 'Supplier updated' : 'Supplier added'),
-                    backgroundColor: Colors.deepOrangeAccent,
-                    duration: Duration(seconds: 2),
+                    backgroundColor: const Color.fromRGBO(59, 130, 246, 1),
+                    duration: const Duration(seconds: 2),
                   ),
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  const SnackBar(
                     content: Text('Please fill all fields'),
                     backgroundColor: Colors.redAccent,
                     duration: Duration(seconds: 2),
@@ -116,41 +141,43 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepOrangeAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              backgroundColor: const Color.fromRGBO(59, 130, 246, 1),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              elevation: 2,
             ),
             child: Text(
               isEdit ? 'Update' : 'Add',
-              style: TextStyle(color: Colors.white, fontSize: 14),
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ],
+        actionsPadding: const EdgeInsets.only(right: 16, bottom: 8),
       ),
     );
   }
 
-  // Function to delete a supplier
+  // Function to delete a supplier (unchanged)
   void _deleteSupplier(int index) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: Colors.white,
-        title: Text(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: const Color(0xFFF8FAFC),
+        title: const Text(
           'Delete Supplier',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
         ),
         content: Text(
           'Are you sure you want to delete ${suppliers[index]['name']}?',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 16, color: Colors.grey[700]),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              style: TextStyle(color: Colors.grey[600], fontSize: 16),
             ),
           ),
           ElevatedButton(
@@ -160,21 +187,21 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
               });
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text('Supplier deleted'),
-                  backgroundColor: Colors.deepOrangeAccent,
+                  backgroundColor: Colors.redAccent,
                   duration: Duration(seconds: 2),
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            child: Text(
+            child: const Text(
               'Delete',
-              style: TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -187,12 +214,33 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          'Suppliers',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
-        ),
-        backgroundColor: Colors.deepOrangeAccent,
         elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: const Text(
+          'Suppliers',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromRGBO(30, 58, 138, 1),
+                Color.fromRGBO(59, 130, 246, 1),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: suppliers.isEmpty
           ? Center(
@@ -200,7 +248,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.group_off, size: 50, color: Colors.grey[400]),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Text(
                     'No Suppliers',
                     style: TextStyle(
@@ -213,7 +261,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
               ),
             )
           : ListView.builder(
-              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               itemCount: suppliers.length,
               itemBuilder: (context, index) {
                 final supplier = suppliers[index];
@@ -226,8 +274,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Tapped: ${supplier['name']}'),
-                        backgroundColor: Colors.deepOrangeAccent,
-                        duration: Duration(seconds: 2),
+                        backgroundColor: const Color.fromRGBO(59, 130, 246, 1),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   },
@@ -235,8 +283,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Selected: ${supplier['name']}'),
-                        backgroundColor: Colors.deepOrangeAccent,
-                        duration: Duration(seconds: 2),
+                        backgroundColor: const Color.fromRGBO(59, 130, 246, 1),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   },
@@ -247,8 +295,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showSupplierDialog,
-        backgroundColor: Colors.deepOrangeAccent,
-        child: Icon(Icons.add, color: Colors.white, size: 28),
+        backgroundColor: const Color.fromRGBO(59, 130, 246, 1),
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
     );
   }

@@ -35,7 +35,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
         backgroundColor: Colors.white,
         title: Text(
           'Delete Notification',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+          style: TextStyle(
+              fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
         ),
         content: Text(
           'Are you sure you want to delete ${notifications[index]['title']} notification?',
@@ -65,7 +66,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: Text(
@@ -83,19 +85,41 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          'Notifications',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
-        ),
-        backgroundColor: Colors.deepOrangeAccent,
         elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: const Text(
+          'Notifications',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromRGBO(30, 58, 138, 1),
+                Color.fromRGBO(59, 130, 246, 1),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: notifications.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_off, size: 50, color: Colors.grey[400]),
+                  Icon(Icons.notifications_off,
+                      size: 50, color: Colors.grey[400]),
                   SizedBox(height: 12),
                   Text(
                     'No Notifications',
@@ -122,7 +146,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   onAvatarTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Avatar tapped: ${notification['title']}'),
+                        content:
+                            Text('Avatar tapped: ${notification['title']}'),
                         backgroundColor: Colors.deepOrangeAccent,
                         duration: Duration(seconds: 2),
                       ),
