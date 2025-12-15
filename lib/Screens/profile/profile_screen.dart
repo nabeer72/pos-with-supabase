@@ -10,7 +10,7 @@ class ProfileScreen extends StatelessWidget {
   // AppBar gradient (reused for avatar border)
   static const Color gradientStart = Color(0xFF1E3A8A); // Navy Blue
   static const Color gradientEnd   = Color(0xFF3B82F6); // Soft Blue
-  static const Color accent = Color(0xFF475569); // Slate Grey
+  static const Color accent = Color(0xFF253746); // Slate Grey
 
   @override
   Widget build(BuildContext context) {

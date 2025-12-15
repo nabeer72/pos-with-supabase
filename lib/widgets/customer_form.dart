@@ -35,6 +35,7 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: Colors.white,
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
@@ -113,39 +114,57 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                 });
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+
+            // ✅ Gradient Button
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  widget.controller.addCustomer(
-                    context,
-                    _nameController.text,
-                    _addressController.text,
-                    _cellNumberController.text,
-                    _emailController.text,
-                    _selectedType,
-                  );
-                  setState(() {
-                    _nameController.clear();
-                    _addressController.clear();
-                    _cellNumberController.clear();
-                    _emailController.clear();
-                    _selectedType = CustomerType.regular;
-                  });
-                  widget.onCustomerAdded();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrangeAccent,
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color.fromRGBO(30, 58, 138, 1),
+                      Color.fromRGBO(59, 130, 246, 1)
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  'Add Customer',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    widget.controller.addCustomer(
+                      context,
+                      _nameController.text,
+                      _addressController.text,
+                      _cellNumberController.text,
+                      _emailController.text,
+                      _selectedType,
+                    );
+                    setState(() {
+                      _nameController.clear();
+                      _addressController.clear();
+                      _cellNumberController.clear();
+                      _emailController.clear();
+                      _selectedType = CustomerType.regular;
+                    });
+                    widget.onCustomerAdded();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent, // important for gradient
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Add Customer',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
                 ),
               ),
             ),

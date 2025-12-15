@@ -23,27 +23,31 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.deepOrangeAccent,
-        elevation: 0,
-        title: const Text(
-          'Add Customer',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          const Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 16,
-              child: Icon(Icons.person, color: Colors.deepOrangeAccent, size: 20),
-            ),
-          ),
+    appBar: AppBar(
+  elevation: 0,
+  backgroundColor: Colors.transparent, // Make background transparent
+  title: const Text(
+    'Add Customer',
+    style: TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+  flexibleSpace: Container(
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          Color.fromRGBO(30, 58, 138, 1),
+          Color.fromRGBO(59, 130, 246, 1),
         ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
+    ),
+  ),
+
+),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -83,6 +87,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                     itemBuilder: (context, index) {
                       final customer = _controller.customers[index];
                       return Card(
+                        color: Colors.white,
                         elevation: 1,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         margin: const EdgeInsets.symmetric(vertical: 6),

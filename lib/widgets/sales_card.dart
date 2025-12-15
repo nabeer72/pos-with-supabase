@@ -15,6 +15,7 @@ class SalesAndTransactionsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: Colors.white,
       elevation: 2,
       shadowColor: Colors.grey.withOpacity(0.15),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

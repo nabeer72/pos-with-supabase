@@ -38,7 +38,7 @@ class CustomTextField extends StatelessWidget {
             ? IconButton(
                 icon: Icon(
                   obscureText ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey[600],
+                  color:  Color(0xFF253746),
                 ),
                 onPressed: onEyeTap,
               )
