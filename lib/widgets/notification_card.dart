@@ -48,7 +48,7 @@ class CustomCardWidget extends StatelessWidget {
             onTap: onAvatarTap,
             child: CircleAvatar(
               backgroundColor: Colors.white,
-              child: Icon(avatarIcon, color: Colors.deepOrangeAccent, size: 24),
+              child: Icon(avatarIcon, color: Color(0xFF253746), size: 24),
             ),
           ),
           title: Text(

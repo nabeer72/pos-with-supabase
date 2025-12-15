@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/Get.dart';
 import 'package:pos/widgets/action_card.dart';
-import 'package:pos/widgets/search_bar.dart'; // Import SearchBarWidget
 import 'package:pos/widgets/custom_button.dart'; // Import CustomButton
 import 'package:mobile_scanner/mobile_scanner.dart'; // Import MobileScanner
 
@@ -21,7 +20,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 50,
       'category': 'Electronics',
       'icon': Icons.devices,
-      'color': Colors.indigo[600]!
+      'color': Color(0xFF253746),
     },
     {
       'name': 'Product B',
@@ -29,7 +28,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 30,
       'category': 'Clothing',
       'icon': Icons.checkroom,
-      'color': Colors.teal[400]!
+      'color': Color(0xFF253746),
     },
     {
       'name': 'Product C',
@@ -37,7 +36,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 20,
       'category': 'Electronics',
       'icon': Icons.devices,
-      'color': Colors.purple[400]!
+      'color':Color(0xFF253746),
     },
     {
       'name': 'Product D',
@@ -45,7 +44,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 100,
       'category': 'Accessories',
       'icon': Icons.watch,
-      'color': Colors.deepOrange[400]!
+      'color':Color(0xFF253746),
     },
     {
       'name': 'Product E',
@@ -53,7 +52,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 15,
       'category': 'Clothing',
       'icon': Icons.checkroom,
-      'color': Colors.blue[400]!
+      'color':Color(0xFF253746),
     },
     {
       'name': 'Product F',
@@ -61,7 +60,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 40,
       'category': 'Accessories',
       'icon': Icons.watch,
-      'color': Colors.green[400]!
+      'color':Color(0xFF253746),
     },
   ];
 
@@ -314,45 +313,38 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     // ignore: unused_local_variable
     final isTablet = screenWidth > 600;
-    final isLargeScreen = screenWidth > 900;
+  
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
+   
+     appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: const Text(
           'Inventory',
           style: TextStyle(
-            fontSize: isLargeScreen ? 24 : screenWidth * 0.05,
-            color: Colors.black,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            color: Colors.deepOrangeAccent, // White background for the AppBar
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.black),
-            onPressed: () {
-              // Placeholder for refreshing inventory data
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Inventory refreshed')),
-              );
-            },
-          ),
-          Padding(
-            padding: EdgeInsets.only(right: screenWidth * 0.04),
-            child: CircleAvatar(
-              radius: isLargeScreen ? 20 : screenWidth * 0.04,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person,
-                  size: isLargeScreen ? 24 : screenWidth * 0.045,
-                  color: Colors.black),
+            gradient: LinearGradient(
+              colors: [
+                Color.fromRGBO(30, 58, 138, 1),
+                Color.fromRGBO(59, 130, 246, 1),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-        ],
+        ),
       ),
       body: Container(
         color: Colors.grey[100], // Set Colors.grey[100] as the background
@@ -366,13 +358,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Search bar using SearchBarWidget
-                  SearchBarWidget(
-                   
-                    onSearchChanged: (value) {
-                      // Implement inventory search logic here
-                    },
-                  ),
                   SizedBox(height: constraints.maxHeight * 0.02),
                   _buildInventoryGrid(context, constraints.maxWidth),
                   SizedBox(height: constraints.maxHeight * 0.03),

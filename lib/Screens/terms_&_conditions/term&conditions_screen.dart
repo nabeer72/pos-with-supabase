@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+
 class TermsAndConditionsScreen extends StatelessWidget {
   const TermsAndConditionsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const accent = Colors.black;
+  
     // Get screen width for responsive sizing
     final double screenWidth = MediaQuery.sizeOf(context).width;
     // Calculate responsive sizes based on screen width
@@ -14,18 +14,31 @@ class TermsAndConditionsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),// Match HomeScreen background
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFF),
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: accent),
-          onPressed: () => Get.back(),
-        ),
-        title: Text(
+        backgroundColor: Colors.transparent,
+        title: const Text(
           'Terms & Conditions',
           style: TextStyle(
-            color: Colors.black87,
-            fontSize: screenWidth * 0.05,
-            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromRGBO(30, 58, 138, 1),
+                Color.fromRGBO(59, 130, 246, 1),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
         ),
       ),

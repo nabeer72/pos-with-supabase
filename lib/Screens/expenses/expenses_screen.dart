@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
+
 class ExpensesScreen extends StatefulWidget {
   @override
   _ExpensesScreenState createState() => _ExpensesScreenState();
@@ -26,121 +27,164 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   ];
 
   // Function to show dialog for adding or editing an expense
-  void _showExpenseDialog({Map<String, String>? expense, int? index}) {
-    final categoryController = TextEditingController(text: expense?['category'] ?? '');
-    final amountController = TextEditingController(text: expense?['amount']?.replaceAll('\$', '') ?? '');
-    final isEdit = expense != null;
+void _showExpenseDialog({Map<String, String>? expense, int? index}) {
+  final categoryController = TextEditingController(text: expense?['category'] ?? '');
+  final amountController = TextEditingController(text: expense?['amount']?.replaceAll('\$', '') ?? '');
+  final isEdit = expense != null;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: Colors.white,
-        title: Text(
-          isEdit ? 'Edit Expense' : 'Add Expense',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: categoryController,
-              decoration: InputDecoration(
-                hintText: 'Category (e.g., Utilities)',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              style: TextStyle(fontSize: 14),
-            ),
-            SizedBox(height: 8),
-            TextField(
-              controller: amountController,
-              decoration: InputDecoration(
-                hintText: 'Amount (e.g., 150.00)',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              style: TextStyle(fontSize: 14),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+  showDialog(
+    context: context,
+    barrierDismissible: true, // Tap outside to close
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: Colors.white,
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            isEdit ? 'Edit Expense' : 'Add Expense',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (categoryController.text.isNotEmpty && amountController.text.isNotEmpty) {
-                final amount = double.tryParse(amountController.text);
-                if (amount != null) {
-                  setState(() {
-                    final newExpense = {
-                      'category': categoryController.text,
-                      'amount': '\$${amount.toStringAsFixed(2)}',
-                      'date': isEdit ? expense['date']! : 'Oct 18, 2025',
-                    };
-                    if (isEdit) {
-                      expenses[index!] = newExpense;
-                    } else {
-                      expenses.add(newExpense);
-                    }
-                  });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(isEdit ? 'Expense updated' : 'Expense added'),
-                      backgroundColor: Colors.deepOrangeAccent,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Please enter a valid amount'),
-                      backgroundColor: Colors.redAccent,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please fill all fields'),
-                    backgroundColor: Colors.redAccent,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepOrangeAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: Text(
-              isEdit ? 'Update' : 'Add',
-              style: TextStyle(color: Colors.white, fontSize: 14),
-            ),
+          // Close icon added here
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.redAccent),
+            onPressed: () => Navigator.pop(context),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            iconSize: 20,
           ),
         ],
       ),
-    );
-  }
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: categoryController,
+            decoration: InputDecoration(
+              hintText: 'Category (e.g., Utilities)',
+              hintStyle: TextStyle(color: Colors.grey[400]),
+              filled: true,
+              fillColor: Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            style: const TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: amountController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              hintText: 'Amount (e.g., 150.00)',
+              hintStyle: TextStyle(color: Colors.grey[400]),
+              filled: true,
+              fillColor: Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
+      actions: [
+        // Only the gradient Add/Update button (no Cancel button)
+        ElevatedButton(
+          onPressed: () {
+            final category = categoryController.text.trim();
+            final amountText = amountController.text.trim();
+
+            if (category.isEmpty || amountText.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please fill all fields'),
+                  backgroundColor: Colors.redAccent,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+              return;
+            }
+
+            final amount = double.tryParse(amountText);
+            if (amount == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please enter a valid amount'),
+                  backgroundColor: Colors.redAccent,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+              return;
+            }
+
+            setState(() {
+              final newExpense = {
+                'category': category,
+                'amount': '\$${amount.toStringAsFixed(2)}',
+                'date': isEdit ? expense['date']! : 'Dec 15, 2025',
+              };
+
+              if (isEdit) {
+                expenses[index!] = newExpense;
+              } else {
+                expenses.add(newExpense);
+              }
+            });
+
+            Navigator.pop(context);
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(isEdit ? 'Expense updated' : 'Expense added'),
+                backgroundColor: Colors.deepOrangeAccent,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+          ),
+          child: Ink(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromRGBO(30, 58, 138, 1),
+                  Color.fromRGBO(59, 130, 246, 1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.all(Radius.circular(10)),
+            ),
+            child: Container(
+              alignment: Alignment.center,
+              constraints: const BoxConstraints(minHeight: 40),
+              child: Text(
+                isEdit ? 'Update' : 'Add',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    ),
+  );
+}
 
   // Function to delete an expense
   void _deleteExpense(int index) {
@@ -199,12 +243,33 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          'Expenses',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
-        ),
-        backgroundColor: Colors.deepOrangeAccent,
         elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: const Text(
+          'Add Customer',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromRGBO(30, 58, 138, 1),
+                Color.fromRGBO(59, 130, 246, 1),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: expenses.isEmpty
           ? Center(
@@ -238,7 +303,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Tapped: ${expense['category']}'),
-                        backgroundColor: Colors.deepOrangeAccent,
+                        backgroundColor: const Color.fromARGB(255, 75, 91, 234),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -259,8 +324,27 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showExpenseDialog,
-        backgroundColor: Colors.deepOrangeAccent,
-        child: Icon(Icons.add, color: Colors.white, size: 28),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [
+                Color.fromRGBO(30, 58, 138, 1),
+                Color.fromRGBO(59, 130, 246, 1),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: const Icon(
+            Icons.add,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
       ),
     );
   }
