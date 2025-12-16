@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/Get.dart';
 import 'package:pos/widgets/action_card.dart';
-import 'package:pos/widgets/custom_button.dart'; // Import CustomButton
-import 'package:mobile_scanner/mobile_scanner.dart'; // Import MobileScanner
+import 'package:pos/widgets/custom_button.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -12,7 +12,6 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
-  // Sample inventory data
   final List<Map<String, dynamic>> _inventoryItems = [
     {
       'name': 'Product A',
@@ -20,7 +19,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 50,
       'category': 'Electronics',
       'icon': Icons.devices,
-      'color': Color(0xFF253746),
+      'color': const Color(0xFF253746),
     },
     {
       'name': 'Product B',
@@ -28,7 +27,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 30,
       'category': 'Clothing',
       'icon': Icons.checkroom,
-      'color': Color(0xFF253746),
+      'color': const Color(0xFF253746),
     },
     {
       'name': 'Product C',
@@ -36,7 +35,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 20,
       'category': 'Electronics',
       'icon': Icons.devices,
-      'color':Color(0xFF253746),
+      'color': const Color(0xFF253746),
     },
     {
       'name': 'Product D',
@@ -44,7 +43,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 100,
       'category': 'Accessories',
       'icon': Icons.watch,
-      'color':Color(0xFF253746),
+      'color': const Color(0xFF253746),
     },
     {
       'name': 'Product E',
@@ -52,7 +51,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 15,
       'category': 'Clothing',
       'icon': Icons.checkroom,
-      'color':Color(0xFF253746),
+      'color': const Color(0xFF253746),
     },
     {
       'name': 'Product F',
@@ -60,21 +59,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
       'quantity': 40,
       'category': 'Accessories',
       'icon': Icons.watch,
-      'color':Color(0xFF253746),
+      'color': const Color(0xFF253746),
     },
   ];
 
   void _showAddItemDialog(BuildContext context) {
+    // ... (your existing _showAddItemDialog code remains unchanged)
     final nameController = TextEditingController();
     final priceController = TextEditingController();
     final quantityController = TextEditingController();
     String? selectedCategory;
     IconData selectedIcon = Icons.devices;
     Color selectedColor = Colors.indigo[600]!;
-    bool isScanningInDialog = false; // State for QR scanner in dialog
-    double scannerHeightInDialog = 150; // Default scanner height in dialog
+    bool isScanningInDialog = false;
+    double scannerHeightInDialog = 150;
 
-    // Dynamically get unique non-null categories from _inventoryItems
     final categories = _inventoryItems
         .where((item) => item['category'] != null)
         .map((item) => item['category'] as String)
@@ -181,14 +180,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                     for (final barcode in barcodes) {
                                       final scannedValue = barcode.rawValue ?? 'Unknown';
                                       setDialogState(() {
-                                        nameController.text = scannedValue; // Populate name field with scanned value
+                                        nameController.text = scannedValue;
                                       });
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(content: Text('Scanned: $scannedValue')),
                                       );
                                     }
                                     setDialogState(() {
-                                      isScanningInDialog = false; // Close scanner after scan
+                                      isScanningInDialog = false;
                                     });
                                   },
                                   fit: BoxFit.cover,
@@ -231,7 +230,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 12), // Spacing between buttons
+                const SizedBox(height: 12),
                 CustomButton(
                   text: 'Add Item',
                   onPressed: () {
@@ -257,11 +256,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       });
                     });
 
-                    Navigator.pop(context); // Close the dialog
+                    Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('$name added to inventory')),
                     );
-                    Get.back(); // Navigate back to DashboardScreen
+                    Get.back();
                   },
                 ),
               ],
@@ -285,7 +284,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     });
   }
 
-  // Custom overlay for QR scan guide
   Widget _customScannerOverlay() {
     return IgnorePointer(
       child: Container(
@@ -299,7 +297,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           child: Container(
             width: double.infinity,
             height: double.infinity,
-            color: Colors.black54, // Semi-transparent to show camera
+            color: Colors.black54,
           ),
         ),
       ),
@@ -308,16 +306,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    // ignore: unused_local_variable
-    final screenHeight = MediaQuery.of(context).size.height;
-    // ignore: unused_local_variable
-    final isTablet = screenWidth > 600;
-  
 
     return Scaffold(
-   
-     appBar: AppBar(
+      backgroundColor: Colors.grey[100], // ← Set background on Scaffold
+      appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
         title: const Text(
@@ -329,9 +321,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -346,64 +336,67 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ),
         ),
       ),
-      body: Container(
-        color: Colors.grey[100], // Set Colors.grey[100] as the background
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: constraints.maxWidth * 0.05,
-                vertical: constraints.maxHeight * 0.02,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: constraints.maxHeight * 0.02),
-                  _buildInventoryGrid(context, constraints.maxWidth),
-                  SizedBox(height: constraints.maxHeight * 0.03),
-                  _buildAddInventoryButton(context, constraints.maxWidth),
-                  SizedBox(height: constraints.maxHeight * 0.02),
-                  _buildInventorySummary(context, constraints.maxWidth, constraints.maxHeight),
-                ],
-              ),
-            );
-          },
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: constraints.maxWidth * 0.05,
+              vertical: constraints.maxHeight * 0.02,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: constraints.maxHeight * 0.02),
+                _buildInventoryGrid(context, constraints.maxWidth),
+                SizedBox(height: constraints.maxHeight * 0.03),
+                _buildAddInventoryButton(context, constraints.maxWidth),
+                SizedBox(height: constraints.maxHeight * 0.02),
+                _buildInventorySummary(context, constraints.maxWidth, constraints.maxHeight),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildInventoryGrid(BuildContext context, double screenWidth) {
-    final cardSize = screenWidth * 0.28; // Adjusted for 3 cards per row
+    final isTablet = screenWidth > 600;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final crossAxisCount = isTablet ? (isLandscape ? 6 : 4) : (isLandscape ? 5 : 3);
+    final cardSize = screenWidth / crossAxisCount - 16;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Inventory Items',
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
         const SizedBox(height: 12),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3, // Fixed to 3 cards per row
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 0.75,
+            childAspectRatio: 0.95,
           ),
           itemCount: _inventoryItems.length,
           itemBuilder: (context, index) {
             final item = _inventoryItems[index];
             return QuickActionCard(
               title: item['name'],
-              price: item['price'], // Pass price as double
+              price: item['price'],
               icon: item['icon'],
               color: item['color'],
               cardSize: cardSize,
               onTap: () {
-                // Placeholder for item details or edit action
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Selected ${item['name']}')),
                 );
@@ -425,6 +418,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget _buildInventorySummary(
       BuildContext context, double screenWidth, double screenHeight) {
     return Card(
+      color: Colors.white,
       child: Padding(
         padding: EdgeInsets.all(screenWidth * 0.04),
         child: Column(

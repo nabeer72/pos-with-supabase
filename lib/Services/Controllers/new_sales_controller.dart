@@ -45,42 +45,42 @@ class NewSaleController {
       'price': 29.99,
       'category': 'Electronics',
       'icon': Icons.devices,
-      'color': Colors.indigo[600]!
+   
     },
     {
       'name': 'Product B',
       'price': 19.99,
       'category': 'Clothing',
       'icon': Icons.checkroom,
-      'color': Colors.teal[400]!
+
     },
     {
       'name': 'Product C',
       'price': 49.99,
       'category': 'Electronics',
       'icon': Icons.devices,
-      'color': Colors.purple[400]!
+    
     },
     {
       'name': 'Product D',
       'price': 9.99,
       'category': 'Accessories',
       'icon': Icons.watch,
-      'color': Colors.deepOrange[400]!
+     
     },
     {
       'name': 'Product E',
       'price': 39.99,
       'category': 'Clothing',
       'icon': Icons.checkroom,
-      'color': Colors.blue[400]!
+    
     },
     {
       'name': 'Product F',
       'price': 24.99,
       'category': 'Accessories',
       'icon': Icons.watch,
-      'color': Colors.green[400]!
+      
     },
   ];
 
@@ -136,4 +136,6 @@ class NewSaleController {
   void setIsScanning(bool value) {
     _isScanning = value;
   }
+
+
 }

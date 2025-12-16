@@ -3,9 +3,7 @@ import 'package:pos/Services/Controllers/add_customer_controller.dart';
 import 'package:pos/Services/Controllers/new_sales_controller.dart';
 import 'package:pos/widgets/action_card.dart';
 import 'package:pos/widgets/customer_form.dart';
-import 'package:pos/widgets/search_bar.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-
 
 class NewSaleScreen extends StatefulWidget {
   const NewSaleScreen({super.key});
@@ -17,7 +15,7 @@ class NewSaleScreen extends StatefulWidget {
 class _NewSaleScreenState extends State<NewSaleScreen> {
   late NewSaleController _controller;
   late CustomerController _customerController;
-  double _scannerHeight = 150.0; // Default value
+  double _scannerHeight = 150.0;
 
   @override
   void initState() {
@@ -32,7 +30,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     _scannerHeight = MediaQuery.of(context).size.height * 0.25;
   }
 
-  // 🔸 Add Customer Popup
+  // Add Customer Popup
   void _showAddCustomerDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -75,7 +73,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  //  Customer Selection Dialog
+  // Customer Selection Dialog
   void _showCustomerSelectionDialog(BuildContext context) {
     String? selectedCustomer;
     final List<Map<String, String>> _dummyCustomers = [
@@ -163,7 +161,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  // 🔸 Main Content
+  // Main Content
   Widget _buildMainContent(BuildContext context, BoxConstraints constraints) {
     final screenWidth = constraints.maxWidth;
     final screenHeight = constraints.maxHeight;
@@ -175,10 +173,8 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔍 Search Bar
-          SearchBarWidget(onSearchChanged: (value) {}),
           const SizedBox(height: 20),
-          // 🔹 QR Scanner Section
+          // QR Scanner Section
           Text(
             'QR Scanner',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -191,8 +187,9 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
             GestureDetector(
               onVerticalDragUpdate: (details) {
                 setState(() {
-                  _scannerHeight = (_scannerHeight - details.delta.dy)
-                      .clamp(isLandscape ? screenHeight * 0.3 : 100.0, isLandscape ? screenHeight * 0.6 : 400.0);
+                  _scannerHeight = (_scannerHeight - details.delta.dy).clamp(
+                      isLandscape ? screenHeight * 0.3 : 100.0,
+                      isLandscape ? screenHeight * 0.6 : 400.0);
                 });
               },
               child: Container(
@@ -230,13 +227,13 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               ),
             )
           else
-            _buildActionButton(
+            _buildGradientButton(
               label: 'Open QR Scanner',
               icon: Icons.qr_code_scanner,
               onPressed: () => setState(() => _controller.setIsScanning(true)),
             ),
           const SizedBox(height: 24),
-          // 🔹 Products Grid
+          // Products Grid
           Text(
             'Products',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -247,7 +244,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
           const SizedBox(height: 12),
           _buildProductGrid(context, isTablet, isLandscape, screenWidth),
           const SizedBox(height: 24),
-          // 🔹 Cart Summary
+          // Cart Summary
           Text(
             'Cart Summary',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -258,14 +255,20 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
           const SizedBox(height: 12),
           _buildCartSummary(context, screenWidth, screenHeight),
           const SizedBox(height: 20),
-          // 🔹 Checkout
-          _buildCheckoutButton(context),
+          // Checkout Button
+          _buildGradientButton(
+            label: 'Proceed to Checkout',
+            icon: Icons.payment,
+            onPressed: _controller.cartItems.isEmpty
+                ? null
+                : () => _showCustomerSelectionDialog(context),
+          ),
         ],
       ),
     );
   }
 
-  // 📱 QR Overlay
+  // QR Overlay
   Widget _buildScannerOverlay(double screenWidth) => IgnorePointer(
         child: Container(
           margin: EdgeInsets.all(screenWidth * 0.1),
@@ -276,9 +279,8 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
         ),
       );
 
-  // 🔹 Product Grid
-  Widget _buildProductGrid(
-      BuildContext context, bool isTablet, bool isLandscape, double screenWidth) {
+  // Product Grid
+  Widget _buildProductGrid(BuildContext context, bool isTablet, bool isLandscape, double screenWidth) {
     final crossAxisCount = isTablet ? (isLandscape ? 6 : 4) : (isLandscape ? 5 : 3);
     final cardSize = isTablet
         ? (isLandscape ? screenWidth / 6 : screenWidth / 4)
@@ -300,7 +302,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
           title: product['name'],
           price: product['price'],
           icon: product['icon'],
-          color: product['color'],
+          color: const Color(0xFF253746),
           cardSize: cardSize,
           onTap: () {
             setState(() => _controller.addToCart(product));
@@ -310,7 +312,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  // 🛒 Cart Summary
+  // Cart Summary
   Widget _buildCartSummary(BuildContext context, double screenWidth, double screenHeight) {
     return Card(
       elevation: 1,
@@ -383,38 +385,42 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  // ✅ Checkout Button
-  Widget _buildCheckoutButton(BuildContext context) {
-    return _buildActionButton(
-      label: 'Proceed to Checkout',
-      icon: Icons.payment,
-      onPressed: _controller.cartItems.isEmpty ? null : () => _showCustomerSelectionDialog(context),
-    );
-  }
-
-  // 🔸 Reusable Button
-  Widget _buildActionButton({
+  // Reusable Gradient Button (same as AppBar)
+  Widget _buildGradientButton({
     required String label,
     required IconData icon,
     required VoidCallback? onPressed,
   }) {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, color: Colors.white, size: 20),
-        label: Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color.fromRGBO(30, 58, 138, 1),
+              Color.fromRGBO(59, 130, 246, 1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.deepOrangeAccent,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 1,
+        child: ElevatedButton.icon(
+          onPressed: onPressed,
+          icon: Icon(icon, color: Colors.white, size: 20),
+          label: Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         ),
       ),
     );
@@ -425,36 +431,68 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
         title: const Text(
           'New Sale',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.deepOrangeAccent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history, color: Colors.white, size: 20),
-            onPressed: () {},
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 16,
-              child: Icon(Icons.person, color: Colors.deepOrangeAccent, size: 20),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromRGBO(30, 58, 138, 1),
+                Color.fromRGBO(59, 130, 246, 1),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-        ],
+        ),
       ),
       body: SafeArea(
-        child: LayoutBuilder(builder: (context, constraints) {
-          return _buildMainContent(context, constraints);
-        }),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return _buildMainContent(context, constraints);
+          },
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.deepOrangeAccent,
-        onPressed: () => _showAddCustomerDialog(context),
-        child: const Icon(Icons.person_add, color: Colors.white, size: 20),
+      // Updated FAB with same gradient as AppBar
+      floatingActionButton: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color.fromRGBO(30, 58, 138, 1),
+              Color.fromRGBO(59, 130, 246, 1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.25),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          highlightElevation: 0,
+          onPressed: () => _showAddCustomerDialog(context),
+          child: const Icon(Icons.person_add, color: Colors.white, size: 28),
+        ),
       ),
     );
   }
