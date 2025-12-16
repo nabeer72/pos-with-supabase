@@ -197,7 +197,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                   top: 8,
                                   right: 8,
                                   child: IconButton(
-                                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                                    icon: const Icon(Icons.close, color: Colors.white, size: 24),
                                     onPressed: () => setDialogState(() => isScanningInDialog = false),
                                   ),
                                 ),
