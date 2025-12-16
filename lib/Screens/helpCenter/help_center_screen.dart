@@ -72,7 +72,7 @@ class HelpCenterScreen extends StatelessWidget {
             CollapsibleCardWidget(
               id: 'faq',
               title: 'Frequently Asked Questions',
-              leadingIcon: Icon(Icons.question_answer, color: accentColor, size: iconSize),
+              leadingIcon: Icon(Icons.question_answer, color:  Color(0xFF253746), size: iconSize),
               accent: accentColor,
               expandedChildren: [
                 _buildQA("How do I reset my password?",
@@ -92,8 +92,8 @@ class HelpCenterScreen extends StatelessWidget {
             CollapsibleCardWidget(
               id: 'contact',
               title: 'Contact Support',
-              leadingIcon: Icon(Icons.contact_support, color: accentColor, size: iconSize),
-              accent: accentColor,
+              leadingIcon: Icon(Icons.contact_support, color:  Color(0xFF253746), size: iconSize),
+              accent:  Color(0xFF253746),
               expandedChildren: [
                 _buildContactRow(Icons.email, "support@yourapp.com"),
                 const SizedBox(height: 12),
@@ -109,7 +109,7 @@ class HelpCenterScreen extends StatelessWidget {
             CollapsibleCardWidget(
               id: 'resources',
               title: 'Help Resources',
-              leadingIcon: Icon(Icons.menu_book, color: accentColor, size: iconSize),
+              leadingIcon: Icon(Icons.menu_book, color:  Color(0xFF253746), size: iconSize),
               accent: accentColor,
               expandedChildren: [
                 const Text(
@@ -119,7 +119,7 @@ class HelpCenterScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.link, color: accentColor, size: 20),
+                    Icon(Icons.link, color:  Color(0xFF253746), size: 20),
                     const SizedBox(width: 10),
                     const Text(
                       "www.yourapp.com/help",
@@ -143,7 +143,7 @@ class HelpCenterScreen extends StatelessWidget {
               child: Column(
                 children: [
                   ListTile(
-                    leading: Icon(Icons.access_time_filled, color: accentColor, size: 28),
+                    leading: Icon(Icons.access_time_filled, color:  Color(0xFF253746), size: 28),
                     title: Text("Support Hours", style: TextStyle(color: Colors.grey[600], fontSize: bodyFont)),
                     subtitle: Text(
                       "Monday – Friday\n9:00 AM – 6:00 PM",
@@ -152,7 +152,7 @@ class HelpCenterScreen extends StatelessWidget {
                   ),
                   const Divider(height: 32),
                   ListTile(
-                    leading: Icon(Icons.phone_in_talk, color: accentColor, size: 28),
+                    leading: Icon(Icons.phone_in_talk, color:  Color(0xFF253746), size: 28),
                     title: Text("Emergency Hotline", style: TextStyle(color: Colors.grey[600], fontSize: bodyFont)),
                     subtitle: Text(
                       "+1 (800) 123-4567\nAvailable 24/7",
@@ -192,7 +192,7 @@ class HelpCenterScreen extends StatelessWidget {
   Widget _buildContactRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: accentColor, size: 22),
+        Icon(icon, color:  Color(0xFF253746), size: 22),
         const SizedBox(width: 14),
         Expanded(
           child: Text(

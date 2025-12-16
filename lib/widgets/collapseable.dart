@@ -56,7 +56,7 @@ class CollapsibleCardWidget extends StatelessWidget {
               if (trailingBadge != null) trailingBadge!,
             ],
           ),
-          trailing: Icon(Icons.expand_more, color: accent, size: 24),
+          trailing: Icon(Icons.expand_more, color:  Color(0xFF253746), size: 24),
           children: [
             Padding(
               padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: 8),
