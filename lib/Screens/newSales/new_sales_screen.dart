@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:pos/Services/Controllers/add_customer_controller.dart';
 import 'package:pos/Services/Controllers/new_sales_controller.dart';
 import 'package:pos/widgets/action_card.dart';
 import 'package:pos/widgets/customer_form.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 
 class NewSaleScreen extends StatefulWidget {
   const NewSaleScreen({super.key});
@@ -13,9 +13,19 @@ class NewSaleScreen extends StatefulWidget {
 }
 
 class _NewSaleScreenState extends State<NewSaleScreen> {
-  late NewSaleController _controller;
-  late CustomerController _customerController;
-  double _scannerHeight = 150.0;
+  late final NewSaleController _controller;
+  late final CustomerController _customerController;
+
+  double _scannerHeight = 180;
+
+  static const _appGradient = LinearGradient(
+    colors: [
+      Color.fromRGBO(30, 58, 138, 1),
+      Color.fromRGBO(59, 130, 246, 1),
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   @override
   void initState() {
@@ -24,134 +34,77 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     _customerController = CustomerController();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _scannerHeight = MediaQuery.of(context).size.height * 0.25;
-  }
+  // ================= ADD CUSTOMER DIALOG =================
+ void _showAddCustomerDialog() {
+  showDialog(
+    context: context,
+    builder: (dialogContext) {
+      final width = MediaQuery.of(context).size.width;
 
-  // Add Customer Popup
-  void _showAddCustomerDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Add Customer',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.red, size: 20),
-                onPressed: () => Navigator.of(dialogContext).pop(),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: (screenWidth * 0.85).clamp(300.0, 400.0),
-            child: SingleChildScrollView(
-              child: AddCustomerForm(
-                controller: _customerController,
-                onCustomerAdded: () {
-                  setState(() {});
-                  Navigator.of(dialogContext).pop();
-                },
-              ),
+      // ✅ Perfect responsive width
+      final dialogWidth = width > 600 ? 420.0 : width * 0.92;
+
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        title: _dialogHeader('Add Customer', dialogContext),
+        content: SizedBox(
+          width: dialogWidth, // 👈 FIXED WIDTH
+          child: SingleChildScrollView(
+            child: AddCustomerForm(
+              controller: _customerController,
+              onCustomerAdded: () {
+                Navigator.pop(dialogContext);
+                setState(() {});
+              },
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
-  // Customer Selection Dialog
-  void _showCustomerSelectionDialog(BuildContext context) {
+
+  // ================= SELECT CUSTOMER DIALOG =================
+  void _showCustomerSelectionDialog() {
     String? selectedCustomer;
-    final List<Map<String, String>> _dummyCustomers = [
-      {'name': 'John Doe'},
-      {'name': 'Jane Smith'},
-      {'name': 'Alex Johnson'},
-      {'name': 'Emily Brown'},
-    ];
-    final screenWidth = MediaQuery.of(context).size.width;
+
+    final customers = ['John Doe', 'Jane Smith', 'Alex Johnson', 'Emily Brown'];
 
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setDialogState) {
+          builder: (_, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Select Customer',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.red, size: 20),
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                  ),
-                ],
-              ),
-              content: SizedBox(
-                width: (screenWidth * 0.85).clamp(300.0, 400.0),
-                child: DropdownButtonFormField<String>(
-                  value: selectedCustomer,
-                  decoration: InputDecoration(
-                    labelText: 'Select Customer',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                  items: _dummyCustomers
-                      .map((c) => DropdownMenuItem(
-                            value: c['name'],
-                            child: Text(c['name']!, style: Theme.of(context).textTheme.bodySmall),
-                          ))
-                      .toList(),
-                  onChanged: (val) => setDialogState(() => selectedCustomer = val),
-                ),
+              title: _dialogHeader('Select Customer', dialogContext),
+              content: DropdownButtonFormField<String>(
+                dropdownColor: Colors.white,
+                value: selectedCustomer,
+                decoration: _inputDecoration('Select Customer'),
+                items: customers
+                    .map(
+                      (name) => DropdownMenuItem(
+                        value: name,
+                        child: Text(name, style: const TextStyle(color: Colors.black)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) => setDialogState(() => selectedCustomer = val),
               ),
               actions: [
-                ElevatedButton(
-                  onPressed: selectedCustomer == null
-                      ? null
-                      : () {
-                          _controller.processCheckout(context, selectedCustomer);
-                          Navigator.of(dialogContext).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Checkout processed for $selectedCustomer')),
-                          );
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrangeAccent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                  child: Text(
-                    'Proceed',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
+                _gradientButton(
+                  label: 'Proceed',
+                  enabled: selectedCustomer != null,
+                  onTap: () {
+                    _controller.processCheckout(context, selectedCustomer);
+                    Navigator.pop(dialogContext);
+                  },
                 ),
               ],
             );
@@ -161,339 +114,221 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  // Main Content
-  Widget _buildMainContent(BuildContext context, BoxConstraints constraints) {
-    final screenWidth = constraints.maxWidth;
-    final screenHeight = constraints.maxHeight;
-    final isTablet = screenWidth > 600;
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          // QR Scanner Section
-          Text(
-            'QR Scanner',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-          ),
-          const SizedBox(height: 12),
-          if (_controller.isScanning)
-            GestureDetector(
-              onVerticalDragUpdate: (details) {
-                setState(() {
-                  _scannerHeight = (_scannerHeight - details.delta.dy).clamp(
-                      isLandscape ? screenHeight * 0.3 : 100.0,
-                      isLandscape ? screenHeight * 0.6 : 400.0);
-                });
-              },
-              child: Container(
-                height: _scannerHeight,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  color: Colors.black,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      spreadRadius: 2,
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.hardEdge,
-                child: Stack(
-                  children: [
-                    MobileScanner(
-                      onDetect: _controller.qrScannerService.handleScanResult,
-                      fit: BoxFit.cover,
-                    ),
-                    _buildScannerOverlay(screenWidth),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                        onPressed: () => setState(() => _controller.setIsScanning(false)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            _buildGradientButton(
-              label: 'Open QR Scanner',
-              icon: Icons.qr_code_scanner,
-              onPressed: () => setState(() => _controller.setIsScanning(true)),
-            ),
-          const SizedBox(height: 24),
-          // Products Grid
-          Text(
-            'Products',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-          ),
-          const SizedBox(height: 12),
-          _buildProductGrid(context, isTablet, isLandscape, screenWidth),
-          const SizedBox(height: 24),
-          // Cart Summary
-          Text(
-            'Cart Summary',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-          ),
-          const SizedBox(height: 12),
-          _buildCartSummary(context, screenWidth, screenHeight),
-          const SizedBox(height: 20),
-          // Checkout Button
-          _buildGradientButton(
-            label: 'Proceed to Checkout',
-            icon: Icons.payment,
-            onPressed: _controller.cartItems.isEmpty
-                ? null
-                : () => _showCustomerSelectionDialog(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // QR Overlay
-  Widget _buildScannerOverlay(double screenWidth) => IgnorePointer(
-        child: Container(
-          margin: EdgeInsets.all(screenWidth * 0.1),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.white, width: 2),
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-
-  // Product Grid
-  Widget _buildProductGrid(BuildContext context, bool isTablet, bool isLandscape, double screenWidth) {
-    final crossAxisCount = isTablet ? (isLandscape ? 6 : 4) : (isLandscape ? 5 : 3);
-    final cardSize = isTablet
-        ? (isLandscape ? screenWidth / 6 : screenWidth / 4)
-        : (isLandscape ? screenWidth / 5 : screenWidth / 3.5);
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _controller.products.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1,
-      ),
-      itemBuilder: (context, index) {
-        final product = _controller.products[index];
-        return QuickActionCard(
-          title: product['name'],
-          price: product['price'],
-          icon: product['icon'],
-          color: const Color(0xFF253746),
-          cardSize: cardSize,
-          onTap: () {
-            setState(() => _controller.addToCart(product));
-          },
-        );
-      },
-    );
-  }
-
-  // Cart Summary
-  Widget _buildCartSummary(BuildContext context, double screenWidth, double screenHeight) {
-    return Card(
-      elevation: 1,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: _controller.cartItems.isEmpty
-            ? const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Text(
-                    'Cart is empty',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ..._controller.cartItems.map((item) {
-                    final index = _controller.cartItems.indexOf(item);
-                    return ListTile(
-                      title: Text(
-                        item['name'],
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      subtitle: Text(
-                        '\$${item['price'].toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove, size: 16),
-                            onPressed: () => setState(() => _controller.updateQuantity(index, -1)),
-                          ),
-                          Text('${item['quantity']}', style: Theme.of(context).textTheme.bodySmall),
-                          IconButton(
-                            icon: const Icon(Icons.add, size: 16),
-                            onPressed: () => setState(() => _controller.updateQuantity(index, 1)),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  const Divider(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Total:',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                      ),
-                      Text(
-                        '\$${_controller.totalAmount.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-
-  // Reusable Gradient Button (same as AppBar)
-  Widget _buildGradientButton({
-    required String label,
-    required IconData icon,
-    required VoidCallback? onPressed,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              Color.fromRGBO(30, 58, 138, 1),
-              Color.fromRGBO(59, 130, 246, 1),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: ElevatedButton.icon(
-          onPressed: onPressed,
-          icon: Icon(icon, color: Colors.white, size: 20),
-          label: Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-      ),
-    );
-  }
-
+  // ================= MAIN UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        title: const Text(
-          'New Sale',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color.fromRGBO(30, 58, 138, 1),
-                Color.fromRGBO(59, 130, 246, 1),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        title: const Text('New Sale', style: TextStyle(color: Colors.white)),
+        leading: const BackButton(color: Colors.white),
+        flexibleSpace: Container(decoration: const BoxDecoration(gradient: _appGradient)),
       ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return _buildMainContent(context, constraints);
-          },
-        ),
-      ),
-      // Updated FAB with same gradient as AppBar
-      floatingActionButton: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              Color.fromRGBO(30, 58, 138, 1),
-              Color.fromRGBO(59, 130, 246, 1),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.25),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+      floatingActionButton: _fab(),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionTitle('QR Scanner'),
+            _controller.isScanning ? _qrScanner() : _openScannerButton(),
+            const SizedBox(height: 24),
+
+            _sectionTitle('Products'),
+            _productsGrid(),
+            const SizedBox(height: 24),
+
+            _sectionTitle('Cart Summary'),
+            _cartSummary(),
+            const SizedBox(height: 20),
+
+            _gradientButton(
+              label: 'Proceed to Checkout',
+              enabled: _controller.cartItems.isNotEmpty,
+              onTap: _showCustomerSelectionDialog,
             ),
           ],
         ),
-        child: FloatingActionButton(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          highlightElevation: 0,
-          onPressed: () => _showAddCustomerDialog(context),
-          child: const Icon(Icons.person_add, color: Colors.white, size: 28),
+      ),
+    );
+  }
+
+  // ================= WIDGETS =================
+  Widget _qrScanner() {
+    return GestureDetector(
+      onVerticalDragUpdate: (d) {
+        setState(() {
+          _scannerHeight = (_scannerHeight - d.delta.dy).clamp(120, 400);
+        });
+      },
+      child: Container(
+        height: _scannerHeight,
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Stack(
+          children: [
+            MobileScanner(onDetect: _controller.qrScannerService.handleScanResult),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => setState(() => _controller.setIsScanning(false)),
+              ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _openScannerButton() {
+    return _gradientButton(
+      label: 'Open QR Scanner',
+      enabled: true,
+      icon: Icons.qr_code_scanner,
+      onTap: () => setState(() => _controller.setIsScanning(true)),
+    );
+  }
+
+  Widget _productsGrid() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+      ),
+      itemCount: _controller.products.length,
+      itemBuilder: (_, i) {
+        final p = _controller.products[i];
+        return QuickActionCard(
+          title: p['name'],
+          price: p['price'],
+          icon: p['icon'],
+          color: const Color(0xFF253746),
+          onTap: () => setState(() => _controller.addToCart(p)),
+          cardSize: 90,
+        );
+      },
+    );
+  }
+
+  Widget _cartSummary() {
+    if (_controller.cartItems.isEmpty) {
+      return const Center(child: Text('Cart is empty'));
+    }
+
+    return Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Column(
+        children: [
+          ..._controller.cartItems.asMap().entries.map((e) {
+            final i = e.key;
+            final item = e.value;
+            return ListTile(
+              title: Text(item['name']),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove, size: 16),
+                    onPressed: () => setState(() => _controller.updateQuantity(i, -1)),
+                  ),
+                  Text('${item['quantity']}'),
+                  IconButton(
+                    icon: const Icon(Icons.add, size: 16),
+                    onPressed: () => setState(() => _controller.updateQuantity(i, 1)),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('\$${_controller.totalAmount.toStringAsFixed(2)}'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= HELPERS =================
+  Widget _sectionTitle(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      );
+
+  Widget _fab() {
+    return Container(
+      decoration: const BoxDecoration(shape: BoxShape.circle, gradient: _appGradient),
+      child: FloatingActionButton(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        onPressed: _showAddCustomerDialog,
+        child: const Icon(Icons.person_add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _gradientButton({
+    required String label,
+    required bool enabled,
+    IconData? icon,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: enabled ? _appGradient : null,
+        color: enabled ? null : Colors.grey,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ElevatedButton.icon(
+        onPressed: enabled ? onTap : null,
+        icon: icon != null ? Icon(icon, color: Colors.white) : const SizedBox(),
+        label: Text(label, style: const TextStyle(color: Colors.white)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
+    );
+  }
+
+  Widget _dialogHeader(String title, BuildContext ctx) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        IconButton(
+          icon: const Icon(Icons.close, color: Colors.red),
+          onPressed: () => Navigator.pop(ctx),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 }
