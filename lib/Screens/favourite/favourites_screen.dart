@@ -15,7 +15,6 @@ class FavoritesScreen extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isTablet = screenWidth > 600;
-    final isLargeScreen = screenWidth > 900;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     final cardSize = isTablet
@@ -46,33 +45,53 @@ class FavoritesScreen extends StatelessWidget {
       backgroundColor: Color(0xFFF8FAFC),
 
       // Beautiful Gradient AppBar – EXACTLY like ProfileScreen
-     appBar: AppBar(
-  elevation: 0,
-  centerTitle: false,
-  
-  flexibleSpace: Container(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Color.fromRGBO(30, 58, 138, 1), Color.fromRGBO(59, 130, 246, 1)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+   appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: AppBar(
+          systemOverlayStyle: const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.light,
+            statusBarBrightness: Brightness.dark,
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          automaticallyImplyLeading: false,
+          centerTitle: false,
+          title: const Text(
+            "Favourite",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+           leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+          // actions: [
+          //   IconButton(
+          //     icon: const Icon(Icons.notifications_none, color: Colors.white),
+          //     onPressed: () {
+          //       Get.to(() => NotificationScreen());
+          //     },
+          //   ),
+          // ],
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromRGBO(30, 58, 138, 1),
+                  Color.fromRGBO(59, 130, 246, 1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+        ),
       ),
-    ),
-  ),
-  title: Text(
-    'Favorites',
-    style: TextStyle(
-      fontSize: (isLargeScreen ? 24.0 : screenWidth * 0.05)
-          .clamp(16.0, 26.0),
-      color: Colors.white,
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-  leading: IconButton(
-    icon: const Icon(Icons.arrow_back, color: Colors.white),
-    onPressed: () => Get.back(),
-  ),
-),
 
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
