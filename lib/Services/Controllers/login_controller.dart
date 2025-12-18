@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pos/Screens/dashboard/home_screen.dart';
-
+import 'package:pos/Screens/button_bar.dart';
 class LoginController extends GetxController {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -55,7 +54,7 @@ class LoginController extends GetxController {
 
     // Dummy credentials check
     if (email == 'test@example.com' && password == 'password123') {
-      Get.offAll(() => const DashboardScreen());
+      Get.offAll(() =>  BottomNavigation());
     } else {
       Get.snackbar(
         'Error',

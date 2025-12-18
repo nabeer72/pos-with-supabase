@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pos/Screens/button_bar.dart';
+import 'package:pos/Screens/login_screen/login_screen.dart';
+// import 'package:pos/Screens/button_bar.dart';
 import 'package:pos/widgets/custom_loader.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -49,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     Future.delayed(const Duration(seconds: 3), () {
-      Get.offAll(() => BottomNavigation());
+      Get.offAll(() => LoginScreen());
     });
   }
 

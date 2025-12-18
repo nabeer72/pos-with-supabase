@@ -15,13 +15,10 @@ class LoginScreen extends StatelessWidget {
     final loginController = Get.put(LoginController());
 
     return Scaffold(
+  backgroundColor: const Color(0xFFF8FAFC),
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF1A237E), Color(0xFF455A64)], // Sober dark blue to gray gradient
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+         color: Colors.white
         ),
         child: SafeArea(
           child: Padding(
@@ -38,7 +35,7 @@ class LoginScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white, // White for strong contrast
+                    color: Colors.black, // White for strong contrast
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -47,7 +44,7 @@ class LoginScreen extends StatelessWidget {
                   'Sign in to continue',
                   style: TextStyle(
                     fontSize: 18,
-                    color: Colors.white70, // Slightly muted white for subtitle
+                    color: Colors.black, // Slightly muted white for subtitle
                   ),
                   textAlign: TextAlign.center,
                 ),

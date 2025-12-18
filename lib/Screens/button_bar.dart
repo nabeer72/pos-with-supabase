@@ -35,9 +35,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
     final fontSize = isSmallScreen ? 10.0 : 12.0;
 
     return Scaffold(
-      body: SafeArea(
-        child: _screens[_selectedIndex],
-      ),
+      body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white,
         selectedItemColor: Color(0xFF1E3A8A),

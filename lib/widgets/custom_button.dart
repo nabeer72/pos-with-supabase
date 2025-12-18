@@ -10,7 +10,6 @@ class CustomButton extends StatelessWidget {
     required this.onPressed,
   });
 
-  // Define the gradient once for reuse
   static const LinearGradient _gradient = LinearGradient(
     colors: [
       Color.fromRGBO(30, 58, 138, 1),
@@ -27,6 +26,8 @@ class CustomButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
+        elevation: 0, // ✅ Shadow removed
+        backgroundColor: Colors.transparent,
         padding: EdgeInsets.symmetric(
           horizontal: screenWidth * 0.05,
           vertical: 16,
@@ -34,10 +35,7 @@ class CustomButton extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.2),
-        backgroundColor: Colors.transparent, // Required to show gradient
-        minimumSize: Size(screenWidth * 0.9, 56), // Consistent height
+        minimumSize: Size(screenWidth * 0.9, 56),
       ),
       child: Ink(
         decoration: const BoxDecoration(
@@ -52,7 +50,7 @@ class CustomButton extends StatelessWidget {
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Colors.white, // White text looks best on gradient
+              color: Colors.white,
             ),
             textAlign: TextAlign.center,
           ),
