@@ -219,6 +219,7 @@ class ProfileScreen extends StatelessWidget {
 
   void _showLogoutDialog(BuildContext context, double screenWidth) {
     Get.defaultDialog(
+      backgroundColor: Colors.white,
       title: "Logout",
       titleStyle: TextStyle(fontSize: (screenWidth * 0.05).clamp(18.0, 22.0), fontWeight: FontWeight.bold),
       middleText: "Are you sure you want to logout?",
