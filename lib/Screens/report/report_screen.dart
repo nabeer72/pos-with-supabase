@@ -1,17 +1,19 @@
+import 'dart:math' show max;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+
 import 'package:pos/Services/Controllers/report_controller.dart';
 import 'package:pos/widgets/sales_card.dart';
-import 'dart:math' show max;
 
-// EXACT SAME GRADIENT COLORS FROM PROFILE SCREEN
+// COLORS
 class AppColors {
-  static const Color gradientStart = Color(0xFF1E3A8A); // Navy Blue
-  static const Color gradientEnd   = Color(0xFF3B82F6); // Soft Blue
-  static const Color accent        = Color(0xFF475569); // Slate Grey
-  static const Color background    = Color(0xFFF8FAFC);
+  static const Color gradientStart = Color(0xFF1E3A8A);
+  static const Color gradientEnd = Color(0xFF3B82F6);
+  static const Color background = Color(0xFFF8FAFC);
 }
 
 class ReportScreen extends StatelessWidget {
@@ -19,23 +21,23 @@ class ReportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
- 
     final ReportController controller = Get.put(ReportController());
+
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    final isLargeScreen = screenWidth > 900;
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
       backgroundColor: AppColors.background,
+
+      // APP BAR
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [AppColors.gradientStart, AppColors.gradientEnd],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
             ),
           ),
           child: AppBar(
@@ -43,12 +45,11 @@ class ReportScreen extends StatelessWidget {
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Get.back(),
+              onPressed: Get.back,
             ),
-            title: Text(
+            title: const Text(
               'Sales Reports',
               style: TextStyle(
-                fontSize: (isLargeScreen ? 24.0 : screenWidth * 0.05).clamp(16.0, 26.0),
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -58,127 +59,120 @@ class ReportScreen extends StatelessWidget {
                 icon: const Icon(Icons.refresh, color: Colors.white),
                 onPressed: controller.fetchReportData,
               ),
+              IconButton(
+                icon: const Icon(Icons.print, color: Colors.white),
+                onPressed: () => _printReport(controller),
+              ),
             ],
           ),
         ),
       ),
+
+      // BODY
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.04,
-                vertical: screenHeight * 0.02,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.04,
+            vertical: screenHeight * 0.02,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPeriodSelector(controller, screenWidth, isLandscape),
+              const SizedBox(height: 20),
+
+              // SUMMARY
+              Obx(() => SalesAndTransactionsWidget(
+                    screenWidth: screenWidth,
+                    screenHeight: screenHeight,
+                    salesData: {
+                      'amount': controller.summary['totalAmount'] ?? 0,
+                      'transactionCount':
+                          controller.summary['totalCount'] ?? 0,
+                    },
+                  )),
+
+              const SizedBox(height: 30),
+
+              _buildSalesChart(
+                controller,
+                screenWidth,
+                screenHeight,
+                isLandscape,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildPeriodSelector(controller, screenWidth, isLandscape),
-                  SizedBox(height: screenHeight * 0.02),
-                  // Summary Card (auto-updates because controller.summary is Rx)
-                  Obx(() => SalesAndTransactionsWidget(
-                        screenWidth: screenWidth,
-                        screenHeight: screenHeight,
-                        salesData: {
-                          'amount': controller.summary['totalAmount'] ?? 0.0,
-                          'transactionCount': controller.summary['totalCount'] ?? 0,
-                        },
-                      )),
-                  SizedBox(height: screenHeight * 0.03),
-                  _buildSalesChart(controller, screenWidth, screenHeight, isLandscape),
-                ],
-              ),
-            );
-          },
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // FIXED: No GetX error + Text perfectly centered
- Widget _buildPeriodSelector(
-  ReportController controller,
-  double screenWidth,
-  bool isLandscape,
-) {
-  final periods = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
+  // PERIOD SELECTOR
+  Widget _buildPeriodSelector(
+    ReportController controller,
+    double screenWidth,
+    bool isLandscape,
+  ) {
+    final periods = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
 
-  return SizedBox(
-    height: isLandscape ? screenWidth * 0.10 : screenWidth * 0.14, // 🔥 Increased height
-    child: ListView.builder(
-      scrollDirection: Axis.horizontal,
-      itemCount: periods.length,
-      itemBuilder: (context, index) {
-        final period = periods[index];
+    return SizedBox(
+      height: isLandscape ? screenWidth * 0.1 : screenWidth * 0.14,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: periods.length,
+        itemBuilder: (_, index) {
+          final period = periods[index];
 
-        return Padding(
-          padding: EdgeInsets.only(right: screenWidth * 0.03),
+          return Padding(
+            padding: EdgeInsets.only(right: screenWidth * 0.03),
+            child: Obx(() {
+              final isSelected =
+                  controller.selectedPeriod.value == period;
 
-          child: Obx(() {
-            final bool isSelected = controller.selectedPeriod.value == period;
-
-            return GestureDetector(
-              onTap: () => controller.changePeriod(period),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 280),
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.06,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  gradient: isSelected
-                      ? const LinearGradient(
-                          colors: [
-                            AppColors.gradientStart,
-                            AppColors.gradientEnd,
-                          ],
-                        )
-                      : null,
-                  color: isSelected ? null : Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: isSelected
-                        ? Colors.transparent
-                        : AppColors.gradientStart.withOpacity(0.5),
-                    width: 2,
+              return GestureDetector(
+                onTap: () => controller.changePeriod(period),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.06,
+                    vertical: 14,
                   ),
-                ),
-
-                child: Center(
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? const LinearGradient(
+                            colors: [
+                              AppColors.gradientStart,
+                              AppColors.gradientEnd,
+                            ],
+                          )
+                        : null,
+                    color: isSelected ? null : Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.transparent
+                          : AppColors.gradientStart.withOpacity(0.5),
+                      width: 2,
+                    ),
+                  ),
                   child: Text(
                     period,
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-
-                      // ⭐ FIX: Always visible text
-                      color: isSelected
-                          ? Colors.white
-                          : Colors.black, // 🔥 Dark color (always visible)
-
-                      // ⭐ Enhancement for selected text visibility
-                      shadows: isSelected
-                          ? [
-                              Shadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 4,
-                              )
-                            ]
-                          : [],
+                      fontWeight: FontWeight.bold,
+                      color:
+                          isSelected ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
-              ),
-            );
-          }),
-        );
-      },
-    ),
-  );
-}
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
 
-
-  // 100% CRASH-PROOF CHART – No RangeError, No Null Error
+  // SALES CHART
   Widget _buildSalesChart(
     ReportController controller,
     double screenWidth,
@@ -187,13 +181,16 @@ class ReportScreen extends StatelessWidget {
   ) {
     return Obx(() {
       final data = controller.salesData;
+
       if (data.isEmpty) {
         return _emptyChartWidget(screenHeight, isLandscape);
       }
 
-      final values = data.map((e) => (e['amount'] as num?)?.toDouble() ?? 0.0).toList();
-      final maxAmount = values.isEmpty ? 0 : values.reduce(max);
-      final maxY = maxAmount <= 0 ? 100.0 : maxAmount * 1.3;
+      final values = data
+          .map((e) => (e['amount'] as num?)?.toDouble() ?? 0)
+          .toList();
+
+      final maxY = max(values.reduce(max), 100) * 1.2;
 
       return Container(
         height: isLandscape ? screenHeight * 0.7 : screenHeight * 0.45,
@@ -202,141 +199,220 @@ class ReportScreen extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 6)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+            ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${controller.selectedPeriod.value} Sales Overview',
-              style: TextStyle(
-                fontSize: (screenWidth * 0.045).clamp(16.0, 19.0),
-                fontWeight: FontWeight.bold,
-                color: AppColors.gradientStart,
-              ),
+        child: BarChart(
+          BarChartData(
+            maxY: maxY,
+            borderData: FlBorderData(show: false),
+            gridData: FlGridData(
+              drawVerticalLine: false,
+              horizontalInterval: maxY / 5,
+              getDrawingHorizontalLine: (_) =>
+                  FlLine(color: Colors.grey.shade200),
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: maxY,
-                  barTouchData: BarTouchData(
-                    enabled: true,
-                    touchTooltipData: BarTouchTooltipData(
-                      tooltipRoundedRadius: 12,
-                      tooltipPadding: const EdgeInsets.all(12),
-                      tooltipMargin: 8,
-                      getTooltipColor: (_) => AppColors.gradientStart.withOpacity(0.95),
-                      getTooltipItem: (group, _, rod, __) {
-                        final i = group.x.toInt();
-                        if (i < 0 || i >= data.length) return null;
-                        final raw = data[i]['date']?.toString() ?? '';
-                        final date = raw.length >= 10 ? raw.substring(5, 10).replaceAll('-', '/') : raw;
-                        return BarTooltipItem(
-                          '\$${rod.toY.toStringAsFixed(0)}\n$date',
-                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                        );
-                      },
+            titlesData: FlTitlesData(
+              topTitles:
+                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles:
+                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: maxY / 5,
+                  getTitlesWidget: (value, _) => Text(
+                    '\$${value.toInt()}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color:
+                          AppColors.gradientStart.withOpacity(0.7),
                     ),
                   ),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 38,
-                        getTitlesWidget: (value, meta) {
-                          final i = value.toInt();
-                          if (i < 0 || i >= data.length) return const SizedBox.shrink();
-
-                          final raw = data[i]['date']?.toString() ?? '';
-                          final date = raw.length >= 10 ? raw.substring(5, 10).replaceAll('-', '/') : raw;
-
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              date,
-                              style: TextStyle(
-                                color: AppColors.gradientStart.withOpacity(0.8),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 40,
-                        interval: maxY / 5,
-                        getTitlesWidget: (value, meta) => Text(
-                          '\$${value.toInt()}',
-                          style: TextStyle(color: AppColors.gradientStart.withOpacity(0.7), fontSize: 11),
-                        ),
-                      ),
-                    ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: maxY / 5,
-                    getDrawingHorizontalLine: (_) => FlLine(color: Colors.grey.shade200, strokeWidth: 1),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: values.asMap().entries.map((e) {
-                    return BarChartGroupData(
-                      x: e.key,
-                      barRods: [
-                        BarChartRodData(
-                          toY: e.value,
-                          gradient: const LinearGradient(
-                            colors: [AppColors.gradientStart, AppColors.gradientEnd],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                          ),
-                          width: isLandscape ? 20 : 16,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                        ),
-                      ],
-                    );
-                  }).toList(),
                 ),
-                swapAnimationDuration: const Duration(milliseconds: 800),
-                swapAnimationCurve: Curves.easeInOutCubic,
+              ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  getTitlesWidget: (value, _) {
+                    final i = value.toInt();
+                    if (i >= data.length) return const SizedBox();
+                    return Text(
+                      data[i]['date'] ?? '',
+                      style: const TextStyle(fontSize: 10),
+                    );
+                  },
+                ),
               ),
             ),
-          ],
+            barGroups: values.asMap().entries.map((e) {
+              return BarChartGroupData(
+                x: e.key,
+                barRods: [
+                  BarChartRodData(
+                    toY: e.value,
+                    width: 16,
+                    gradient: const LinearGradient(
+                      colors: [
+                        AppColors.gradientStart,
+                        AppColors.gradientEnd
+                      ],
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
         ),
       );
     });
   }
 
+  // EMPTY STATE
   Widget _emptyChartWidget(double screenHeight, bool isLandscape) {
     return Container(
       height: isLandscape ? screenHeight * 0.6 : screenHeight * 0.4,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.bar_chart, size: 60, color: AppColors.gradientStart.withOpacity(0.3)),
-            const SizedBox(height: 16),
-            Text(
-              'No sales data available',
-              style: TextStyle(color: AppColors.gradientStart.withOpacity(0.6), fontSize: 16),
-            ),
-          ],
+      child: const Center(
+        child: Text(
+          'No sales data available',
+          style: TextStyle(fontSize: 16),
         ),
       ),
     );
   }
+
+  // =======================
+  // PRINT PDF REPORT
+  // =======================
+Future<void> _printReport(ReportController controller) async {
+  try {
+    final pdf = pw.Document();
+
+    // SAFETY CHECK
+    final salesData = controller.salesData;
+    final summary = controller.summary;
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(24),
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'Sales Report',
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+
+              pw.SizedBox(height: 8),
+
+              pw.Text(
+                'Period: ${controller.selectedPeriod.value}',
+                style: const pw.TextStyle(fontSize: 14),
+              ),
+
+              pw.Divider(),
+
+              pw.Text(
+                'Total Sales: \$${summary['totalAmount'] ?? 0}',
+              ),
+              pw.Text(
+                'Total Transactions: ${summary['totalCount'] ?? 0}',
+              ),
+
+              pw.SizedBox(height: 20),
+
+              pw.Table(
+                border: pw.TableBorder.all(),
+                columnWidths: const {
+                  0: pw.FlexColumnWidth(2),
+                  1: pw.FlexColumnWidth(1),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColors.grey300,
+                    ),
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          'Date',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          'Amount',
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // DATA ROWS
+                  ...salesData.map((item) {
+                    return pw.TableRow(
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(
+                            item['date']?.toString() ?? '-',
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(
+                            '\$${item['amount'] ?? 0}',
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
+
+              pw.SizedBox(height: 20),
+
+              pw.Text(
+                'Generated on: ${DateTime.now()}',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    // THIS LINE OPENS PREVIEW (MOST IMPORTANT)
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+  } catch (e) {
+    Get.snackbar(
+      'Print Error',
+      e.toString(),
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+    );
+  }
+}
 }
