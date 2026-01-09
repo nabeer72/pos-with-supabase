@@ -86,7 +86,7 @@ class QuickActionCard extends StatelessWidget {
                     if (price != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        '\$${price!.toDouble().toStringAsFixed(2)}',
+                        'Rs. ${price!.toDouble().toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: priceFontSize,
                           color: Colors.grey[600],

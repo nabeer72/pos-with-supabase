@@ -46,7 +46,7 @@ class SalesAndTransactionsWidget extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          '\$${salesData['amount'] is num ? (salesData['amount'] as num).toDouble().toStringAsFixed(2) : '0.00'}',
+          'Rs. ${salesData['amount'] is num ? (salesData['amount'] as num).toDouble().toStringAsFixed(2) : '0.00'}',
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,

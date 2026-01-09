@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
+import 'package:pos/Services/database_helper.dart';
 
 class ExpensesScreen extends StatefulWidget {
   @override
@@ -7,29 +8,27 @@ class ExpensesScreen extends StatefulWidget {
 }
 
 class _ExpensesScreenState extends State<ExpensesScreen> {
-  // Dummy expense data for POS
-  List<Map<String, String>> expenses = [
-    {
-      'category': 'Utilities',
-      'amount': '\$150.00',
-      'date': 'Oct 15, 2025',
-    },
-    {
-      'category': 'Supplies',
-      'amount': '\$300.00',
-      'date': 'Oct 12, 2025',
-    },
-    {
-      'category': 'Maintenance',
-      'amount': '\$75.50',
-      'date': 'Oct 10, 2025',
-    },
-  ];
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<Map<String, dynamic>> expenses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExpenses();
+  }
+
+  Future<void> _loadExpenses() async {
+    final data = await _dbHelper.getExpenses();
+    setState(() {
+      // Map back to String for UI if needed, or update UI to handle dynamic
+      expenses = data;
+    });
+  }
 
   // Function to show dialog for adding or editing an expense
-void _showExpenseDialog({Map<String, String>? expense, int? index}) {
+void _showExpenseDialog({Map<String, dynamic>? expense, int? index}) {
   final categoryController = TextEditingController(text: expense?['category'] ?? '');
-  final amountController = TextEditingController(text: expense?['amount']?.replaceAll('\$', '') ?? '');
+  final amountController = TextEditingController(text: expense?['amount']?.toString().replaceAll('Rs.', '').trim() ?? '');
   final isEdit = expense != null;
 
   showDialog(
@@ -97,7 +96,7 @@ void _showExpenseDialog({Map<String, String>? expense, int? index}) {
       actions: [
         // Only the gradient Add/Update button (no Cancel button)
         ElevatedButton(
-          onPressed: () {
+            onPressed: () async {
             final category = categoryController.text.trim();
             final amountText = amountController.text.trim();
 
@@ -124,19 +123,18 @@ void _showExpenseDialog({Map<String, String>? expense, int? index}) {
               return;
             }
 
-            setState(() {
-              final newExpense = {
-                'category': category,
-                'amount': '\$${amount.toStringAsFixed(2)}',
-                'date': isEdit ? expense['date']! : 'Dec 15, 2025',
-              };
+            final newExpense = {
+              'category': category,
+              'amount': amount,
+              'date': isEdit ? expense['date']! : DateTime.now().toIso8601String(),
+            };
 
-              if (isEdit) {
-                expenses[index!] = newExpense;
-              } else {
-                expenses.add(newExpense);
-              }
-            });
+            if (isEdit) {
+              await _dbHelper.updateExpense(int.parse(expense['id']!), newExpense);
+            } else {
+              await _dbHelper.insertExpense(newExpense);
+            }
+            await _loadExpenses();
 
             Navigator.pop(context);
 
@@ -210,10 +208,9 @@ void _showExpenseDialog({Map<String, String>? expense, int? index}) {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                expenses.removeAt(index);
-              });
+            onPressed: () async {
+              await _dbHelper.deleteExpense(expenses[index]['id']);
+              await _loadExpenses();
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -246,7 +243,7 @@ void _showExpenseDialog({Map<String, String>? expense, int? index}) {
         elevation: 0,
         backgroundColor: Colors.transparent,
         title: const Text(
-          'Add Customer',
+          'Expenses',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -296,7 +293,7 @@ void _showExpenseDialog({Map<String, String>? expense, int? index}) {
                 final expense = expenses[index];
                 return CustomCardWidget(
                   title: expense['category']!,
-                  subtitle: expense['amount']!,
+                  subtitle: 'Rs. ${expense['amount']}',
                   trailingText: expense['date']!,
                   avatarIcon: Icons.account_balance_wallet,
                   onAvatarTap: () {

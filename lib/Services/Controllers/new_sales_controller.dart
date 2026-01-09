@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:pos/Services/database_helper.dart';
+import 'package:pos/Services/models/product_model.dart';
+import 'package:pos/Services/models/sale_model.dart';
+import 'package:pos/Services/models/sale_item_model.dart';
 
 // QR Scanner Service to handle QR scanning logic
 class QRScannerService {
@@ -19,11 +24,13 @@ class QRScannerService {
       if (barcode.rawValue != null) {
         final scannedCode = barcode.rawValue!;
         try {
-          // Match QR code to product name; adjust if using IDs
-          final product = products.firstWhere((p) => p['name'] == scannedCode);
+          // Match QR code to product barcode first, then name as fallback
+          final product = products.firstWhere(
+            (p) => p['barcode'] == scannedCode || p['name'] == scannedCode,
+          );
           onProductFound(product);
         } catch (e) {
-          onError('Product not found for QR code: $scannedCode');
+          onError('Product not found for code: $scannedCode');
         }
         return; // Process only the first valid barcode
       }
@@ -32,110 +39,182 @@ class QRScannerService {
 }
 
 // Controller to handle business logic for NewSaleScreen
-class NewSaleController {
-  final List<Map<String, dynamic>> _cartItems = [];
-  double _totalAmount = 0.0;
-  bool _isScanning = false;
-  late QRScannerService _qrScannerService;
+class NewSaleController extends GetxController {
+  final cartItems = <Map<String, dynamic>>[].obs;
+  final totalAmount = 0.0.obs;
+  final isScanning = false.obs;
+  final products = <Product>[].obs;
+  
+  late QRScannerService qrScannerService;
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  // Sample product data
-  final List<Map<String, dynamic>> _products = [
-    {
-      'name': 'Product A',
-      'price': 29.99,
-      'category': 'Electronics',
-      'icon': Icons.devices,
-   
-    },
-    {
-      'name': 'Product B',
-      'price': 19.99,
-      'category': 'Clothing',
-      'icon': Icons.checkroom,
+  @override
+  void onInit() {
+    super.onInit();
+    _loadProducts();
+  }
 
-    },
-    {
-      'name': 'Product C',
-      'price': 49.99,
-      'category': 'Electronics',
-      'icon': Icons.devices,
+  Future<void> _loadProducts() async {
+    final loadedProducts = await _dbHelper.getProducts();
+    products.assignAll(loadedProducts);
     
-    },
-    {
-      'name': 'Product D',
-      'price': 9.99,
-      'category': 'Accessories',
-      'icon': Icons.watch,
-     
-    },
-    {
-      'name': 'Product E',
-      'price': 39.99,
-      'category': 'Clothing',
-      'icon': Icons.checkroom,
-    
-    },
-    {
-      'name': 'Product F',
-      'price': 24.99,
-      'category': 'Accessories',
-      'icon': Icons.watch,
-      
-    },
-  ];
-
-  NewSaleController(BuildContext context) {
-    _qrScannerService = QRScannerService(
-      products: _products,
-      onProductFound: (product) {
-        addToCart(product);
-        setIsScanning(false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Added ${product['name']} to cart via QR scan')),
-        );
+    qrScannerService = QRScannerService(
+      products: products.map((p) => p.toMap()).toList(),
+      onProductFound: (productMap) {
+        final product = Product.fromMap(productMap);
+        if (addToCart(product)) {
+          setIsScanning(false);
+        }
       },
       onError: (message) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
+        Get.snackbar(
+          'Error',
+          message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
         );
         setIsScanning(false);
       },
     );
   }
 
-  List<Map<String, dynamic>> get cartItems => _cartItems;
-  double get totalAmount => _totalAmount;
-  bool get isScanning => _isScanning;
-  QRScannerService get qrScannerService => _qrScannerService;
-  List<Map<String, dynamic>> get products => _products;
+  bool addToCart(Product product) {
+    // Check if product is in stock
+    if (product.quantity <= 0) {
+      Get.snackbar(
+        'Out of Stock',
+        '${product.name} is currently out of stock',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
 
-  void addToCart(Map<String, dynamic> product) {
-    _cartItems.add({...product, 'quantity': 1});
-    _totalAmount += product['price'];
-  }
-
-  void updateQuantity(int index, int change) {
-    final newQuantity = (_cartItems[index]['quantity'] as int) + change;
-    if (newQuantity > 0) {
-      _totalAmount += change * _cartItems[index]['price'];
-      _cartItems[index]['quantity'] = newQuantity;
+    // Check if product already in cart
+    final index = cartItems.indexWhere((item) => item['id'] == product.id);
+    if (index != -1) {
+      return updateQuantity(index, 1);
     } else {
-      _totalAmount -= _cartItems[index]['price'] * _cartItems[index]['quantity'];
-      _cartItems.removeAt(index);
+      cartItems.add({...product.toMap(), 'quantity': 1});
+      totalAmount.value += product.price;
+      
+      Get.snackbar(
+        'Product Added',
+        'Added ${product.name} to cart',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+      return true;
     }
   }
 
-  void processCheckout(BuildContext context, String? selectedCustomer) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Checkout processed successfully!')),
+  void searchByBarcode(String barcode) {
+    try {
+      final product = products.firstWhere(
+        (p) => p.barcode == barcode || p.name.toLowerCase() == barcode.toLowerCase(),
+      );
+      addToCart(product);
+    } catch (e) {
+      Get.snackbar(
+        'Not Found',
+        'No product found with code: $barcode',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  bool updateQuantity(int index, int change) {
+    final item = cartItems[index];
+    final int currentQtyInCart = item['quantity'] as int;
+    final int newQuantity = currentQtyInCart + change;
+
+    // Find the product in the master list to check total stock
+    final product = products.firstWhereOrNull((p) => p.id == item['id']);
+    
+    if (change > 0 && product != null) {
+      if (newQuantity > product.quantity) {
+        Get.snackbar(
+          'Limit Reached',
+          'Only ${product.quantity} items available in stock',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    }
+    
+    if (newQuantity > 0) {
+      totalAmount.value += change * (item['price'] as num).toDouble();
+      final Map<String, dynamic> newItem = Map<String, dynamic>.from(item);
+      newItem['quantity'] = newQuantity;
+      cartItems[index] = newItem;
+      
+      if (change > 0) {
+        Get.snackbar(
+          'Updated',
+          'Increased ${item['name']} quantity to $newQuantity',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+      return true;
+    } else {
+      totalAmount.value -= (item['price'] as num).toDouble() * currentQtyInCart;
+      cartItems.removeAt(index);
+      return true;
+    }
+  }
+
+  Future<Map<String, dynamic>?> processCheckout(BuildContext context, String? selectedCustomer) async {
+    if (cartItems.isEmpty) return null;
+
+    final sale = Sale(
+      saleDate: DateTime.now(),
+      totalAmount: totalAmount.value,
     );
-    _cartItems.clear();
-    _totalAmount = 0.0;
+    
+    final items = cartItems.map((item) => SaleItem(
+      saleId: 0, 
+      productId: item['id'] ?? 0,
+      quantity: item['quantity'],
+      unitPrice: (item['price'] as num).toDouble(),
+    )).toList();
+
+    int saleId = await _dbHelper.insertSale(sale, items);
+    
+    // Refresh products to update quantities after deduction
+    await _loadProducts();
+
+    final completedSale = Sale(
+      id: saleId,
+      saleDate: sale.saleDate,
+      totalAmount: sale.totalAmount,
+    );
+
+    Get.snackbar(
+      'Success',
+      'Checkout processed successfully!',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+    );
+    
+    final cartCopy = List<Map<String, dynamic>>.from(cartItems);
+    
+    cartItems.clear();
+    totalAmount.value = 0.0;
+    
+    return {'sale': completedSale, 'items': cartCopy};
   }
 
   void setIsScanning(bool value) {
-    _isScanning = value;
+    isScanning.value = value;
   }
-
-
 }

@@ -1,48 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:pos/Services/database_helper.dart';
+import 'package:pos/Services/models/customer_model.dart';
 
 enum CustomerType { regular, vip, wholesale }
 
-class Customer {
-  final String name;
-  final String? address;
-  final String? cellNumber;
-  final String? email;
-  final CustomerType type;
-  bool isActive;
-
-  Customer({
-    required this.name,
-    this.address,
-    this.cellNumber,
-    this.email,
-    required this.type,
-    this.isActive = true,
-  });
-}
-
 class CustomerController {
-  List<Customer> customers = [];
+  List<CustomerModel> customers = [];
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  void addCustomer(
+  Future<void> loadCustomers() async {
+    customers = await _dbHelper.getCustomers();
+  }
+
+  Future<void> addCustomer(
     BuildContext context,
     String name,
     String address,
     String cellNumber,
     String email,
     CustomerType type,
-  ) {
-    customers.add(Customer(
+  ) async {
+    final newCustomer = CustomerModel(
       name: name,
       address: address.isEmpty ? null : address,
       cellNumber: cellNumber.isEmpty ? null : cellNumber,
       email: email.isEmpty ? null : email,
       type: type,
-    ));
+    );
+    await _dbHelper.insertCustomer(newCustomer);
+    await loadCustomers();
   }
 
   void toggleCustomerStatus(int index) {
-    if (index >= 0 && index < customers.length) {
-      customers[index].isActive = !customers[index].isActive;
-    }
+     // Optional: Implement toggle status in DB
   }
 }

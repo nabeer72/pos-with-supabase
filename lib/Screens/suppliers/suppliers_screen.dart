@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
+import 'package:pos/Services/database_helper.dart';
 
 class SuppliersScreen extends StatefulWidget {
   @override
@@ -7,27 +8,24 @@ class SuppliersScreen extends StatefulWidget {
 }
 
 class _SuppliersScreenState extends State<SuppliersScreen> {
-  // Dummy supplier data for POS
-  List<Map<String, String>> suppliers = [
-    {
-      'name': 'Bean & Brew',
-      'contact': 'contact@beanbrew.com',
-      'lastOrder': 'Oct 15, 2025',
-    },
-    {
-      'name': 'Fresh Foods',
-      'contact': '+1-555-123-4567',
-      'lastOrder': 'Oct 10, 2025',
-    },
-    {
-      'name': 'Sweet Supplies',
-      'contact': 'sweetsupply@gmail.com',
-      'lastOrder': 'Oct 8, 2025',
-    },
-  ];
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<Map<String, dynamic>> suppliers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSuppliers();
+  }
+
+  Future<void> _loadSuppliers() async {
+    final data = await _dbHelper.getSuppliers();
+    setState(() {
+      suppliers = data;
+    });
+  }
 
   // Function to show dialog for adding or editing a supplier
-  void _showSupplierDialog({Map<String, String>? supplier, int? index}) {
+  void _showSupplierDialog({Map<String, dynamic>? supplier, int? index}) {
     final nameController = TextEditingController(text: supplier?['name'] ?? '');
     final contactController = TextEditingController(text: supplier?['contact'] ?? '');
     final isEdit = supplier != null;
@@ -108,20 +106,21 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
         ),
         actions: [
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (nameController.text.isNotEmpty && contactController.text.isNotEmpty) {
-                setState(() {
-                  final newSupplier = {
-                    'name': nameController.text,
-                    'contact': contactController.text,
-                    'lastOrder': isEdit ? supplier['lastOrder']! : 'Dec 15, 2025',
-                  };
-                  if (isEdit) {
-                    suppliers[index!] = newSupplier;
-                  } else {
-                    suppliers.add(newSupplier);
-                  }
-                });
+                final newSupplier = {
+                  'name': nameController.text,
+                  'contact': contactController.text,
+                  'lastOrder': isEdit ? supplier['lastOrder']! : DateTime.now().toIso8601String(),
+                };
+
+                if (isEdit) {
+                  await _dbHelper.updateSupplier(int.parse(supplier['id']!), newSupplier);
+                } else {
+                  await _dbHelper.insertSupplier(newSupplier);
+                }
+                await _loadSuppliers();
+
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -181,10 +180,9 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                suppliers.removeAt(index);
-              });
+            onPressed: () async {
+              await _dbHelper.deleteSupplier(suppliers[index]['id']);
+              await _loadSuppliers();
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(

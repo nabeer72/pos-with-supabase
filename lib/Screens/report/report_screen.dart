@@ -225,7 +225,7 @@ class ReportScreen extends StatelessWidget {
                   showTitles: true,
                   interval: maxY / 5,
                   getTitlesWidget: (value, _) => Text(
-                    '\$${value.toInt()}',
+                    'Rs. ${value.toInt()}',
                     style: TextStyle(
                       fontSize: 11,
                       color:
@@ -327,7 +327,7 @@ Future<void> _printReport(ReportController controller) async {
               pw.Divider(),
 
               pw.Text(
-                'Total Sales: \$${summary['totalAmount'] ?? 0}',
+                'Total Sales: Rs. ${summary['totalAmount'] ?? 0}',
               ),
               pw.Text(
                 'Total Transactions: ${summary['totalCount'] ?? 0}',
@@ -381,7 +381,7 @@ Future<void> _printReport(ReportController controller) async {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
                           child: pw.Text(
-                            '\$${item['amount'] ?? 0}',
+                            'Rs. ${item['amount'] ?? 0}',
                           ),
                         ),
                       ],

@@ -4,6 +4,7 @@ import 'package:pos/Services/Controllers/login_controller.dart';
 import 'package:pos/widgets/custom_button.dart';
 import 'package:pos/widgets/custom_loader.dart';
 import 'package:pos/widgets/custom_textfield.dart';
+import 'package:pos/Screens/login_screen/signup_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -79,6 +80,19 @@ class LoginScreen extends StatelessWidget {
                   text: 'Login',
                   onPressed: loginController.login,
                 )),
+
+          SizedBox(height: screenHeight * 0.02),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text("Don't have an account?"),
+              TextButton(
+                onPressed: () => Get.to(() => const SignUpScreen()),
+                child: const Text('Sign Up'),
+              ),
+            ],
+          ),
         ],
       ),
     ),

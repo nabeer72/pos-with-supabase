@@ -1,192 +1,205 @@
 import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
+import 'package:pos/Services/database_helper.dart';
+import 'dart:convert';
+
 class UserManagementScreen extends StatefulWidget {
   @override
   _UserManagementScreenState createState() => _UserManagementScreenState();
 }
 
 class _UserManagementScreenState extends State<UserManagementScreen> {
-  // Dummy user data for POS
-  List<Map<String, String>> users = [
-    {
-      'name': 'John Doe',
-      'role': 'Admin',
-      'lastActive': 'Oct 18, 2025',
-    },
-    {
-      'name': 'Jane Smith',
-      'role': 'Cashier',
-      'lastActive': 'Oct 17, 2025',
-    },
-    {
-      'name': 'Mike Johnson',
-      'role': 'Manager',
-      'lastActive': 'Oct 16, 2025',
-    },
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<Map<String, dynamic>> users = [];
+  final List<String> roles = ['Admin', 'Cashier', 'Manager'];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    setState(() => _isLoading = true);
+    final data = await _dbHelper.getUsers();
+    setState(() {
+      users = data;
+      _isLoading = false;
+    });
+  }
+  Map<String, List<String>> roleDefaults = {
+    'Admin': ['all'],
+    'Manager': ['sales', 'inventory', 'customers', 'suppliers', 'expenses', 'reports', 'analytics', 'purchases', 'loyalty', 'support'],
+    'Cashier': ['sales', 'customers', 'reports', 'support'],
+  };
+
+  final List<Map<String, String>> permissionOptions = [
+    {'key': 'sales', 'label': 'New Sale'},
+    {'key': 'inventory', 'label': 'Inventory'},
+    {'key': 'customers', 'label': 'Customers'},
+    {'key': 'suppliers', 'label': 'Suppliers'},
+    {'key': 'expenses', 'label': 'Expenses'},
+    {'key': 'reports', 'label': 'Reports'},
+    {'key': 'users', 'label': 'User Management'},
+    {'key': 'settings', 'label': 'Settings'},
+    {'key': 'backup', 'label': 'Backup & Restore'},
+    {'key': 'analytics', 'label': 'Analytics'},
+    {'key': 'purchases', 'label': 'Purchases'},
+    {'key': 'loyalty', 'label': 'Loyalty Program'},
+    {'key': 'support', 'label': 'Support'},
   ];
 
-  // List of available roles
-  final List<String> roles = ['Admin', 'Cashier', 'Manager'];
+  void _showUserDialog({Map<String, dynamic>? user, int? index}) {
+    final nameController = TextEditingController(text: user?['name']?.toString() ?? '');
+    final emailController = TextEditingController(text: user?['email']?.toString() ?? '');
+    final passwordController = TextEditingController(text: user?['password']?.toString() ?? '');
+    
+    String? selectedRole = user?['role']?.toString() ?? roles[1]; // Default to Cashier
+    
+    List<String> selectedPermissions = [];
+    if (user != null && user['permissions'] != null) {
+      try {
+        selectedPermissions = List<String>.from(jsonDecode(user['permissions']));
+      } catch (e) {
+        selectedPermissions = roleDefaults[selectedRole] ?? [];
+      }
+    } else {
+      selectedPermissions = roleDefaults[selectedRole] ?? [];
+    }
 
-  // Function to show dialog for adding or editing a user
-  void _showUserDialog({Map<String, String>? user, int? index}) {
-    final nameController = TextEditingController(text: user?['name'] ?? '');
-    String? selectedRole = user?['role'] ?? roles[0];
-    final isEdit = user != null;
+    bool isEdit = user != null;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: Colors.white,
-        title: Text(
-          isEdit ? 'Edit User' : 'Add User',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                hintText: 'User Name',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text(isEdit ? 'Edit User' : 'Add User'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'User Name'),
                 ),
-              ),
-              style: TextStyle(fontSize: 14),
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                ),
+                TextField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedRole,
+                  items: roles.map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedRole = value;
+                      selectedPermissions = List.from(roleDefaults[value!] ?? []);
+                    });
+                  },
+                  decoration: const InputDecoration(labelText: 'Role'),
+                ),
+                const SizedBox(height: 16),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Permissions', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 8),
+                ...permissionOptions.map((perm) {
+                  bool isAll = selectedPermissions.contains('all');
+                  return CheckboxListTile(
+                    title: Text(perm['label']!),
+                    value: isAll || selectedPermissions.contains(perm['key']),
+                    dense: true,
+                    onChanged: isAll && perm['key'] != 'all' ? null : (bool? value) {
+                      setDialogState(() {
+                        if (value == true) {
+                          if (perm['key'] == 'all') {
+                            selectedPermissions = ['all'];
+                          } else {
+                            if (!selectedPermissions.contains(perm['key'])) {
+                              selectedPermissions.add(perm['key']!);
+                            }
+                          }
+                        } else {
+                          selectedPermissions.remove(perm['key']);
+                          if (perm['key'] == 'all') selectedPermissions = [];
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+                CheckboxListTile(
+                  title: const Text('All Permissions (Admin)'),
+                  value: selectedPermissions.contains('all'),
+                  dense: true,
+                  onChanged: (value) {
+                    setDialogState(() {
+                      if (value == true) {
+                        selectedPermissions = ['all'];
+                      } else {
+                        selectedPermissions = [];
+                      }
+                    });
+                  },
+                ),
+              ],
             ),
-            SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: selectedRole,
-              decoration: InputDecoration(
-                hintText: 'Role',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              items: roles.map((role) {
-                return DropdownMenuItem<String>(
-                  value: role,
-                  child: Text(role, style: TextStyle(fontSize: 14)),
-                );
-              }).toList(),
-              onChanged: (value) {
-                selectedRole = value;
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameController.text.isNotEmpty && emailController.text.isNotEmpty) {
+                  final userData = {
+                    'name': nameController.text,
+                    'email': emailController.text,
+                    'password': passwordController.text,
+                    'role': selectedRole,
+                    'permissions': jsonEncode(selectedPermissions),
+                    'lastActive': isEdit ? user['lastActive'] : DateTime.now().toString().split(' ')[0],
+                  };
+
+                  if (isEdit) {
+                    await _dbHelper.updateUser(user['id'], userData);
+                  } else {
+                    await _dbHelper.insertUser(userData);
+                  }
+                  
+                  await _loadUsers();
+                  Navigator.pop(context);
+                }
               },
+              child: Text(isEdit ? 'Update' : 'Add'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty && selectedRole != null) {
-                setState(() {
-                  final newUser = {
-                    'name': nameController.text,
-                    'role': selectedRole!,
-                    'lastActive': isEdit ? user['lastActive']! : 'Oct 18, 2025',
-                  };
-                  if (isEdit) {
-                    users[index!] = newUser;
-                  } else {
-                    users.add(newUser);
-                  }
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(isEdit ? 'User updated' : 'User added'),
-                    backgroundColor: Colors.deepOrangeAccent,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please fill all fields'),
-                    backgroundColor: Colors.redAccent,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepOrangeAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: Text(
-              isEdit ? 'Update' : 'Add',
-              style: TextStyle(color: Colors.white, fontSize: 14),
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  // Function to delete a user
-  void _deleteUser(int index) {
+  void _deleteUser(int id) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: Colors.white,
-        title: Text(
-          'Delete User',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
-        ),
-        content: Text(
-          'Are you sure you want to delete ${users[index]['name']}?',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-        ),
+        title: const Text('Delete User'),
+        content: const Text('Are you sure you want to delete this user?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            ),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                users.removeAt(index);
-              });
+            onPressed: () async {
+              await _dbHelper.deleteUser(id);
+              await _loadUsers();
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('User deleted'),
-                  backgroundColor: Colors.deepOrangeAccent,
-                  duration: Duration(seconds: 2),
-                ),
-              );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: Text(
-              'Delete',
-              style: TextStyle(color: Colors.white, fontSize: 14),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -196,70 +209,35 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          'User Management',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
-        ),
+        title: const Text('User Management', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.deepOrangeAccent,
-        elevation: 0,
       ),
-      body: users.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person_off, size: 50, color: Colors.grey[400]),
-                  SizedBox(height: 12),
-                  Text(
-                    'No Users',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              itemCount: users.length,
-              itemBuilder: (context, index) {
-                final user = users[index];
-                return CustomCardWidget(
-                  title: user['name']!,
-                  subtitle: user['role']!,
-                  trailingText: user['lastActive']!,
-                  avatarIcon: Icons.person,
-                  onAvatarTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Tapped: ${user['name']}'),
-                        backgroundColor: Colors.deepOrangeAccent,
-                        duration: Duration(seconds: 2),
-                      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : users.isEmpty
+              ? const Center(child: Text('No Users Found'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final user = users[index];
+                    return CustomCardWidget(
+                      title: user['name'].toString(),
+                      subtitle: user['role'].toString(),
+                      trailingText: user['lastActive'].toString(),
+                      avatarIcon: Icons.person,
+                      onAvatarTap: () {},
+                      onCardTap: () {},
+                      onEdit: () => _showUserDialog(user: user, index: index),
+                      onDelete: () => _deleteUser(user['id']),
                     );
                   },
-                  onCardTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Selected: ${user['name']}'),
-                        backgroundColor: Colors.deepOrangeAccent,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  onEdit: () => _showUserDialog(user: user, index: index),
-                  onDelete: () => _deleteUser(index),
-                );
-              },
-            ),
+                ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showUserDialog,
+        onPressed: () => _showUserDialog(),
         backgroundColor: Colors.deepOrangeAccent,
-        child: Icon(Icons.add, color: Colors.white, size: 28),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

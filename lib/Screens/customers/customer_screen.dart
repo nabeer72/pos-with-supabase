@@ -16,6 +16,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   void initState() {
     super.initState();
     _controller = CustomerController();
+    _controller.loadCustomers().then((_) => setState(() {}));
   }
 
   @override

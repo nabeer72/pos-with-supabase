@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:pos/Services/Controllers/add_customer_controller.dart';
 import 'package:pos/Services/Controllers/new_sales_controller.dart';
 import 'package:pos/widgets/action_card.dart';
 import 'package:pos/widgets/customer_form.dart';
+import 'package:pos/Services/printing_service.dart';
+import 'package:pos/Services/models/sale_model.dart';
 
 class NewSaleScreen extends StatefulWidget {
   const NewSaleScreen({super.key});
@@ -15,6 +18,7 @@ class NewSaleScreen extends StatefulWidget {
 class _NewSaleScreenState extends State<NewSaleScreen> {
   late final NewSaleController _controller;
   late final CustomerController _customerController;
+  final TextEditingController _barcodeSearchController = TextEditingController();
 
   double _scannerHeight = 180;
 
@@ -30,48 +34,41 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = NewSaleController(context);
+    _controller = Get.put(NewSaleController());
     _customerController = CustomerController();
   }
 
-  // ================= ADD CUSTOMER DIALOG =================
- void _showAddCustomerDialog() {
-  showDialog(
-    context: context,
-    builder: (dialogContext) {
-      final width = MediaQuery.of(context).size.width;
+  // ... (Add Customer & Select Customer Dialogs remain same, but update _controller calls)
 
-      // ✅ Perfect responsive width
-      final dialogWidth = width > 600 ? 420.0 : width * 0.92;
+  void _showAddCustomerDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final width = MediaQuery.of(context).size.width;
+        final dialogWidth = width > 600 ? 420.0 : width * 0.92;
 
-      return AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        title: _dialogHeader('Add Customer', dialogContext),
-        content: SizedBox(
-          width: dialogWidth, // 👈 FIXED WIDTH
-          child: SingleChildScrollView(
-            child: AddCustomerForm(
-              controller: _customerController,
-              onCustomerAdded: () {
-                Navigator.pop(dialogContext);
-                setState(() {});
-              },
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: _dialogHeader('Add Customer', dialogContext),
+          content: SizedBox(
+            width: dialogWidth,
+            child: SingleChildScrollView(
+              child: AddCustomerForm(
+                controller: _customerController,
+                onCustomerAdded: () {
+                  Navigator.pop(dialogContext);
+                },
+              ),
             ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
-
-  // ================= SELECT CUSTOMER DIALOG =================
   void _showCustomerSelectionDialog() {
     String? selectedCustomer;
-
     final customers = ['John Doe', 'Jane Smith', 'Alex Johnson', 'Emily Brown'];
 
     showDialog(
@@ -87,23 +84,39 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                 dropdownColor: Colors.white,
                 value: selectedCustomer,
                 decoration: _inputDecoration('Select Customer'),
-                items: customers
-                    .map(
-                      (name) => DropdownMenuItem(
-                        value: name,
-                        child: Text(name, style: const TextStyle(color: Colors.black)),
-                      ),
-                    )
-                    .toList(),
+                items: customers.map((name) => DropdownMenuItem(value: name, child: Text(name, style: const TextStyle(color: Colors.black)))).toList(),
                 onChanged: (val) => setDialogState(() => selectedCustomer = val),
               ),
               actions: [
                 _gradientButton(
                   label: 'Proceed',
                   enabled: selectedCustomer != null,
-                  onTap: () {
-                    _controller.processCheckout(context, selectedCustomer);
+                  onTap: () async {
+                    final result = await _controller.processCheckout(context, selectedCustomer);
                     Navigator.pop(dialogContext);
+                    
+                    if (result != null && result is Map) {
+                      final sale = result['sale'] as Sale;
+                      final items = result['items'] as List<Map<String, dynamic>>;
+                      
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Print Receipt'),
+                          content: const Text('Would you like to print the receipt for this sale?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('No')),
+                            ElevatedButton(
+                              onPressed: () async {
+                                Navigator.pop(ctx);
+                                await PrintingService().printReceipt(sale: sale, items: items, customerName: selectedCustomer);
+                              },
+                              child: const Text('Print'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
                   },
                 ),
               ],
@@ -114,7 +127,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  // ================= MAIN UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -131,8 +143,12 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _sectionTitle('Barcode Search'),
+            _barcodeSearchField(),
+            const SizedBox(height: 24),
+
             _sectionTitle('QR Scanner'),
-            _controller.isScanning ? _qrScanner() : _openScannerButton(),
+            Obx(() => _controller.isScanning.value ? _qrScanner() : _openScannerButton()),
             const SizedBox(height: 24),
 
             _sectionTitle('Products'),
@@ -143,18 +159,46 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
             _cartSummary(),
             const SizedBox(height: 20),
 
-            _gradientButton(
+            Obx(() => _gradientButton(
               label: 'Proceed to Checkout',
               enabled: _controller.cartItems.isNotEmpty,
               onTap: _showCustomerSelectionDialog,
-            ),
+            )),
           ],
         ),
       ),
     );
   }
 
-  // ================= WIDGETS =================
+  Widget _barcodeSearchField() {
+    return TextField(
+      controller: _barcodeSearchController,
+      decoration: InputDecoration(
+        hintText: 'Enter Product Name or Code',
+        prefixIcon: const Icon(Icons.search, color: Colors.blueAccent),
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.arrow_forward),
+          onPressed: () {
+            if (_barcodeSearchController.text.isNotEmpty) {
+              _controller.searchByBarcode(_barcodeSearchController.text);
+              _barcodeSearchController.clear();
+              FocusScope.of(context).unfocus();
+            }
+          },
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      ),
+      onSubmitted: (val) {
+        if (val.isNotEmpty) {
+          _controller.searchByBarcode(val);
+          _barcodeSearchController.clear();
+        }
+      },
+    );
+  }
+
   Widget _qrScanner() {
     return GestureDetector(
       onVerticalDragUpdate: (d) {
@@ -165,10 +209,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       child: Container(
         height: _scannerHeight,
         clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(14),
-        ),
+        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(14)),
         child: Stack(
           children: [
             MobileScanner(onDetect: _controller.qrScannerService.handleScanResult),
@@ -177,7 +218,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               right: 8,
               child: IconButton(
                 icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => setState(() => _controller.setIsScanning(false)),
+                onPressed: () => _controller.setIsScanning(false),
               ),
             ),
           ],
@@ -191,12 +232,12 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       label: 'Open QR Scanner',
       enabled: true,
       icon: Icons.qr_code_scanner,
-      onTap: () => setState(() => _controller.setIsScanning(true)),
+      onTap: () => _controller.setIsScanning(true),
     );
   }
 
   Widget _productsGrid() {
-    return GridView.builder(
+    return Obx(() => GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -208,65 +249,70 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       itemBuilder: (_, i) {
         final p = _controller.products[i];
         return QuickActionCard(
-          title: p['name'],
-          price: p['price'],
-          icon: p['icon'],
+          title: p.name,
+          price: p.price,
+          icon: p.icon,
           color: const Color(0xFF253746),
-          onTap: () => setState(() => _controller.addToCart(p)),
+          onTap: () => _controller.addToCart(p),
           cardSize: 90,
         );
       },
-    );
+    ));
   }
 
   Widget _cartSummary() {
-    if (_controller.cartItems.isEmpty) {
-      return const Center(child: Text('Cart is empty'));
-    }
+    return Obx(() {
+      if (_controller.cartItems.isEmpty) {
+        return const Center(child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: Text('Cart is empty', style: TextStyle(color: Colors.grey)),
+        ));
+      }
 
-    return Card(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Column(
-        children: [
-          ..._controller.cartItems.asMap().entries.map((e) {
-            final i = e.key;
-            final item = e.value;
-            return ListTile(
-              title: Text(item['name']),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+      return Card(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        child: Column(
+          children: [
+            ..._controller.cartItems.asMap().entries.map((e) {
+              final i = e.key;
+              final item = e.value;
+              return ListTile(
+                title: Text(item['name']),
+                subtitle: Text('Rs. ${item['price']} x ${item['quantity']}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, size: 22, color: Colors.orange),
+                      onPressed: () => _controller.updateQuantity(i, -1),
+                    ),
+                    Text('${item['quantity']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline, size: 22, color: Colors.blueAccent),
+                      onPressed: () => _controller.updateQuantity(i, 1),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.remove, size: 16),
-                    onPressed: () => setState(() => _controller.updateQuantity(i, -1)),
-                  ),
-                  Text('${item['quantity']}'),
-                  IconButton(
-                    icon: const Icon(Icons.add, size: 16),
-                    onPressed: () => setState(() => _controller.updateQuantity(i, 1)),
-                  ),
+                  const Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  Text('Rs. ${_controller.totalAmount.value.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blueAccent)),
                 ],
               ),
-            );
-          }),
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('\$${_controller.totalAmount.toStringAsFixed(2)}'),
-              ],
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
-  // ================= HELPERS =================
   Widget _sectionTitle(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -294,13 +340,13 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: enabled ? _appGradient : null,
-        color: enabled ? null : Colors.grey,
+        color: enabled ? null : Colors.grey[300],
         borderRadius: BorderRadius.circular(12),
       ),
       child: ElevatedButton.icon(
         onPressed: enabled ? onTap : null,
         icon: icon != null ? Icon(icon, color: Colors.white) : const SizedBox(),
-        label: Text(label, style: const TextStyle(color: Colors.white)),
+        label: Text(label, style: TextStyle(color: enabled ? Colors.white : Colors.grey[600], fontWeight: FontWeight.bold)),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
