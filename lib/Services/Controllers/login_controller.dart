@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:pos/Screens/button_bar.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
+import 'package:pos/Services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginController extends GetxController {
   final _dbHelper = DatabaseHelper();
@@ -11,7 +13,10 @@ class LoginController extends GetxController {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   var isPasswordVisible = false.obs;
+
   var isLoading = false.obs;
+  
+  final _supabaseService = SupabaseService();
 
   bool isValidEmail(String email) {
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
@@ -21,6 +26,10 @@ class LoginController extends GetxController {
   void togglePasswordVisibility() {
     isPasswordVisible.toggle();
   }
+
+
+
+
 
   Future<void> login() async {
     final email = emailController.text.trim();
@@ -56,6 +65,7 @@ class LoginController extends GetxController {
   void onClose() {
     emailController.dispose();
     passwordController.dispose();
+
     super.onClose();
   }
 }

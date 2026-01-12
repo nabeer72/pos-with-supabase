@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:pos/Screens/button_bar.dart';
 import 'package:pos/Screens/helpCenter/help_center_screen.dart';
 import 'package:pos/Screens/terms_&_conditions/term&conditions_screen.dart';
+import 'package:pos/Services/Controllers/auth_controller.dart';
+import 'package:pos/Screens/login_screen/login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -224,7 +226,11 @@ class ProfileScreen extends StatelessWidget {
       titleStyle: TextStyle(fontSize: (screenWidth * 0.05).clamp(18.0, 22.0), fontWeight: FontWeight.bold),
       middleText: "Are you sure you want to logout?",
       confirm: TextButton(
-        onPressed: () => Get.back(),
+        onPressed: () {
+          Get.back(); // Close dialog
+          Get.find<AuthController>().logout(); // Perform logout
+          Get.offAll(() => const LoginScreen()); // Navigate to login
+        },
         style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
         child: const Text("Yes"),
       ),

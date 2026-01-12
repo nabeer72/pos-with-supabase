@@ -7,12 +7,29 @@ class SupabaseService {
   factory SupabaseService() => _instance;
   SupabaseService._internal();
 
-  final _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
   final _dbHelper = DatabaseHelper();
 
   // Configuration
   static const String supabaseUrl = 'https://gxiftmvrnieqdsmdcwhz.supabase.co';
   static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4aWZ0bXZybmllcWRzbWRjd2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzYxMTQsImV4cCI6MjA4MzUxMjExNH0.43rUqJARm04tLrnDtgeW8KzUONNwl7iECspyHQFb3cc';
+
+
+  // Auth Methods
+  // Auth Methods
+  Future<void> signUp(String email, String password) async {
+    await _supabase.auth.signUp(email: email, password: password);
+  }
+
+  Future<void> signIn(String email, String password) async {
+    await _supabase.auth.signInWithPassword(email: email, password: password);
+  }
+
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
+  }
+
+  User? get currentUser => _supabase.auth.currentUser;
 
   Future<void> initialize() async {
     await Supabase.initialize(
@@ -37,6 +54,20 @@ class SupabaseService {
   }
 
   Future<void> pushUnsyncedData() async {
+    // 0. Users (Sync first so foreign keys might work if needed, though usually unrelated)
+    await _syncTable('users', 'id', mapLocalToRemote: (localMap) {
+      return {
+        'name': localMap['name'],
+        'email': localMap['email'],
+        'role': localMap['role'],
+        'permissions': localMap['permissions'],
+        'last_active': localMap['lastActive'], // Mapped to snake_case for Supabase
+        // Password is not synced for security usually, relying on Supabase Auth. 
+        // But if this is a custom table, we might sync it or keep it local-only.
+        // Given the requirement "all the data and the user are shown in suoa base", we sync metadata.
+      };
+    });
+
     // 1. Categories
     await _syncTable('categories', 'name'); 
     

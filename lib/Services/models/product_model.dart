@@ -11,6 +11,7 @@ class Product {
   final int? color;
   final String? supabaseId;
   final bool isSynced;
+  final bool isFavorite;
 
   Product({
     this.id,
@@ -23,6 +24,7 @@ class Product {
     this.color,
     this.supabaseId,
     this.isSynced = false,
+    this.isFavorite = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -37,6 +39,7 @@ class Product {
       'color': color,
       'supabase_id': supabaseId,
       'is_synced': isSynced ? 1 : 0,
+      'is_favorite': isFavorite ? 1 : 0,
     };
   }
 
@@ -52,6 +55,7 @@ class Product {
       color: map['color'],
       supabaseId: map['supabase_id'],
       isSynced: map['is_synced'] == 1,
+      isFavorite: map['is_favorite'] == 1,
     );
   }
 }

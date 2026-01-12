@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'dart:convert';
 import 'package:pos/Services/database_helper.dart';
+import 'package:pos/Services/supabase_service.dart';
 
 class AuthController extends GetxController {
   var isLoggedIn = false.obs;
@@ -26,10 +27,15 @@ class AuthController extends GetxController {
     }
   }
 
-  void logout() {
+  void logout() async {
     isLoggedIn.value = false;
     currentUser.value = {};
     userPermissions.value = [];
+    try {
+      await SupabaseService().signOut();
+    } catch(e) {
+      print("Error signing out from supabase: $e");
+    }
   }
 
   bool hasPermission(String permission) {
@@ -67,6 +73,10 @@ class AuthController extends GetxController {
       if (createdUser != null) {
         login(createdUser);
       }
+      
+      // Trigger sync to push user to Supabase
+      SupabaseService().syncData();
+      
       return true;
     } catch (e) {
       print('SignUp Error: $e');

@@ -24,7 +24,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'pos_database.db');
     final db = await openDatabase(
       path,
-      version: 5, // Incremented version to 5 for Supabase sync
+      version: 6, // Incremented version to 6 for Favorites
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -110,6 +110,15 @@ class DatabaseHelper {
         }
       }
     }
+
+    if (oldVersion < 6) {
+      // Add is_favorite column to products
+      var tableInfo = await db.rawQuery('PRAGMA table_info(products)');
+      var columns = tableInfo.map((e) => e['name']).toList();
+      if (!columns.contains('is_favorite')) {
+        await db.execute('ALTER TABLE products ADD COLUMN is_favorite INTEGER DEFAULT 0');
+      }
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -124,7 +133,8 @@ class DatabaseHelper {
         quantity INTEGER NOT NULL DEFAULT 0,
         color INTEGER,
         supabase_id TEXT,
-        is_synced INTEGER DEFAULT 0
+        is_synced INTEGER DEFAULT 0,
+        is_favorite INTEGER DEFAULT 0
       )
     ''');
 
@@ -290,6 +300,15 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<List<Product>> getFavoriteProducts() async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'products',
+      where: 'is_favorite = 1',
+    );
+    return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
   }
 
   // Customers

@@ -4,6 +4,9 @@ import 'package:pos/Services/database_helper.dart';
 class DashboardController extends GetxController {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   var salesSummary = {'totalAmount': 0.0, 'totalCount': 0}.obs;
+  var favoriteProducts = <String, dynamic>{}.obs; // Actually list of Product, but keeping consistent structure if needed, or better List<Product>
+  // Let's use List since it's products
+  var favProducts = <dynamic>[].obs; 
   var isLoading = true.obs;
 
   @override
@@ -20,6 +23,10 @@ class DashboardController extends GetxController {
         'totalAmount': (summary['totalAmount'] as num?)?.toDouble() ?? 0.0,
         'totalCount': (summary['totalCount'] as num?)?.toInt() ?? 0,
       };
+      
+      final products = await _dbHelper.getFavoriteProducts();
+      favProducts.value = products;
+      
     } catch (e) {
       print('Error fetching dashboard data: $e');
     } finally {

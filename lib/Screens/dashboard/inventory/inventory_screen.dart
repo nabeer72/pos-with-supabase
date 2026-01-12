@@ -168,6 +168,26 @@ class InventoryScreen extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
+                            icon: Icon(item.isFavorite ? Icons.favorite : Icons.favorite_border,
+                                color: item.isFavorite ? Colors.red : Colors.grey),
+                            onPressed: () {
+                              final updated = Product(
+                                id: item.id,
+                                name: item.name,
+                                barcode: item.barcode,
+                                price: item.price,
+                                category: item.category,
+                                icon: item.icon,
+                                quantity: item.quantity,
+                                color: item.color,
+                                supabaseId: item.supabaseId,
+                                isSynced: item.isSynced,
+                                isFavorite: !item.isFavorite,
+                              );
+                              controller.updateProduct(updated);
+                            },
+                          ),
+                          IconButton(
                             icon: const Icon(Icons.remove_circle_outline, color: Colors.orange),
                             onPressed: () {
                               if (item.quantity > 0) {

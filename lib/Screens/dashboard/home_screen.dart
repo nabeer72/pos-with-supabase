@@ -41,6 +41,7 @@ class DashboardScreen extends StatelessWidget {
     final allQuickActions = [
       {'title': 'New Sale', 'icon': Icons.add_shopping_cart, 'permission': 'sales'},
       {'title': 'Inventory', 'icon': Icons.inventory, 'permission': 'inventory'},
+      {'title': 'Favorites', 'icon': Icons.favorite, 'permission': 'inventory'}, // Using inventory permission for now
       {'title': 'Customers', 'icon': Icons.person, 'permission': 'customers'},
       {'title': 'Suppliers', 'icon': Icons.local_shipping, 'permission': 'suppliers'},
       {'title': 'Expenses', 'icon': Icons.money_off, 'permission': 'expenses'},
@@ -184,8 +185,6 @@ class DashboardScreen extends StatelessWidget {
                   childAspectRatio: 1,
                 ),
                 itemCount: favoriteActions.length,
-                itemBuilder: (context, index) {
-                  final action = favoriteActions[index];
                   return QuickActionCard(
                     title: action['title'] as String,
                     icon: action['icon'] as IconData,
@@ -195,6 +194,80 @@ class DashboardScreen extends StatelessWidget {
                   );
                 },
               );
+            }),
+
+            const SizedBox(height: 24),
+            
+            // Favorite Products Section
+            Obx(() {
+               if (dashboardController.favProducts.isEmpty) return const SizedBox.shrink();
+               
+               return Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Favorite Products",
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                      ),
+                      TextButton(
+                        onPressed: () => Get.to(() => InventoryScreen()),
+                        child: const Text('View All', style: TextStyle(color: Color.fromRGBO(59, 130, 246, 1))),
+                      ),
+                    ],
+                   ),
+                   const SizedBox(height: 12),
+                   SizedBox(
+                     height: 140,
+                     child: ListView.builder(
+                       scrollDirection: Axis.horizontal,
+                       itemCount: dashboardController.favProducts.length,
+                       itemBuilder: (context, index) {
+                         final product = dashboardController.favProducts[index];
+                         return Container(
+                           width: 120,
+                           margin: const EdgeInsets.only(right: 12),
+                           padding: const EdgeInsets.all(12),
+                           decoration: BoxDecoration(
+                             color: Colors.white,
+                             borderRadius: BorderRadius.circular(12),
+                             boxShadow: [
+                               BoxShadow(
+                                 color: Colors.grey.withOpacity(0.1),
+                                 blurRadius: 4,
+                                 offset: const Offset(0, 2),
+                               ),
+                             ],
+                           ),
+                           child: Column(
+                             mainAxisAlignment: MainAxisAlignment.center,
+                             children: [
+                               Icon(product.icon != null ? IconData(product.icon, fontFamily: 'MaterialIcons') : Icons.shopping_bag, 
+                                    size: 32, color: product.color != null ? Color(product.color) : Colors.blueAccent),
+                               const SizedBox(height: 8),
+                               Text(
+                                 product.name,
+                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                 maxLines: 1,
+                                 overflow: TextOverflow.ellipsis,
+                               ),
+                               Text(
+                                 'Rs. ${product.price}',
+                                 style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                               ),
+                             ],
+                           ),
+                         );
+                       },
+                     ),
+                   )
+                 ],
+               );
             }),
           ],
         ),
@@ -209,6 +282,9 @@ class DashboardScreen extends StatelessWidget {
         break;
       case 'Inventory':
         Get.to(() => InventoryScreen());
+        break;
+      case 'Favorites':
+        Get.to(() => const FavoritesScreen());
         break;
       case 'Sales Report':
         Get.to(() => const ReportScreen());

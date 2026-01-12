@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/widgets/custom_button.dart';
+import 'package:pos/Services/supabase_service.dart';
+import 'package:pos/Screens/button_bar.dart'; // BottomNavigation
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -193,26 +196,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
+    // Check connectivity
+    final connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult.contains(ConnectivityResult.none)) {
+        Get.snackbar('Error', 'Internet connection required for Sign Up', backgroundColor: Colors.redAccent, colorText: Colors.white);
+        return;
+    }
+
     setState(() => _isLoading = true);
 
-    final success = await authController.signUp(name, email, password);
-    
-    setState(() => _isLoading = false);
+    try {
+      // 1. SignUp via Supabase (Remote)
+      final supabase = SupabaseService();
+      await supabase.signUp(email, password);
+      
+      // 2. Create Local Account (Local)
+      final success = await authController.signUp(name, email, password);
+      
+      setState(() => _isLoading = false);
 
-    if (success) {
-      Get.snackbar('Success', 'Account created successfully', backgroundColor: Colors.green, colorText: Colors.white);
-      // AuthController's login should have been called, usually we navigate to dashboard from there or here
-      // Assuming existing login flow handles navigation or we force it:
-      // Check where normal login goes -> usually home.
-      // We can rely on AuthController state or manually navigate.
-      // For now, let's go Back (to login) or to Home if auto-logged in.
-      // If auto-logged in, Main/GetX observer might handle it, or we push replacement.
-      // Let's assume standard flow:
-      Get.offAllNamed('/home'); // Or whatever the route is. 
-      // Actually finding Home screen import might be safer or using Get.offAll(() => Dashboard/HomeScreen());
-      // But let's verify existing routing. 
-    } else {
-       Get.snackbar('Error', 'Email already exists or invalid', backgroundColor: Colors.redAccent, colorText: Colors.white);
+      if (success) {
+        Get.snackbar('Success', 'Account created successfully', backgroundColor: Colors.green, colorText: Colors.white);
+        Get.offAll(() => BottomNavigation());
+      } else {
+         Get.snackbar('Error', 'Account created remotely but failed locally (Email exists?)', backgroundColor: Colors.redAccent, colorText: Colors.white);
+      }
+
+    } catch (e) {
+      setState(() => _isLoading = false);
+      Get.snackbar('Error', 'Sign Up Failed: $e', backgroundColor: Colors.redAccent, colorText: Colors.white);
     }
   }
 }
