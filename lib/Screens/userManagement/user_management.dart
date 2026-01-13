@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
 import 'package:pos/Services/database_helper.dart';
+import 'package:pos/Services/supabase_service.dart';
 import 'dart:convert';
 
 class UserManagementScreen extends StatefulWidget {
@@ -193,8 +194,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   
                   try {
                      // Try to trigger sync
-                     // await SupabaseService().syncData(); 
-                     // Or explicitly push this user
+                     await SupabaseService().syncData(); 
                   } catch (e) {
                     print("Sync error: $e");
                   }
@@ -221,6 +221,17 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
+              // Get the user to check for supabase_id
+              final userToDelete = users.firstWhere((u) => u['id'] == id);
+              
+              if (userToDelete['supabase_id'] != null) {
+                try {
+                   await SupabaseService().deleteRow('users', userToDelete['supabase_id']);
+                } catch(e) {
+                  print("Remote delete failed: $e");
+                }
+              }
+
               await _dbHelper.deleteUser(id);
               await _loadUsers();
               Navigator.pop(context);

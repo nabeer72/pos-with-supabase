@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/database_helper.dart';
+import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/Services/models/product_model.dart';
 
 class InventoryController extends GetxController {
@@ -35,20 +36,24 @@ class InventoryController extends GetxController {
   Future<void> addProduct(Product product) async {
     await _dbHelper.insertProduct(product);
     await loadInventory();
+    SupabaseService().syncData(); // Trigger sync
   }
 
   Future<void> updateProduct(Product product) async {
     await _dbHelper.updateProduct(product);
     await loadInventory();
+    SupabaseService().syncData(); // Trigger sync
   }
 
   Future<void> deleteProduct(int id) async {
     await _dbHelper.deleteProduct(id);
     await loadInventory();
+    SupabaseService().syncData(); // Trigger sync
   }
 
   Future<void> addCategory(String name) async {
     await _dbHelper.insertCategory(name);
     await loadCategories();
+    SupabaseService().syncData(); // Trigger sync
   }
 }

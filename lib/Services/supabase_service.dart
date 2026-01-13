@@ -82,19 +82,29 @@ class SupabaseService {
     );
 
     // 1. Categories
-    await _syncTable('categories', 'name'); 
+    await _syncTable(
+      'categories', 
+      'name',
+      onConflict: 'name', // Fix duplicate key error
+    ); 
     
     // 2. Products
     await _syncTable('products', 'id', mapLocalToRemote: (localMap) {
+      // Fix: Cast color/icon to 32-bit signed int for Postgres 'integer' compatibility
+      // Dart ints are 64-bit, so large 32-bit unsigned values (like colors 0xFF...) 
+      // appear as large positives that overflow Postgres signed 4-byte integer.
+      // .toSigned(32) converts them to negative numbers if needed, which fit.
+      int colorVal = localMap['color'] ?? 0;
+      int iconVal = localMap['icon'] ?? 0;
+
       return {
         'name': localMap['name'],
         'price': localMap['price'],
-        'category': localMap['category'], // This might need to be resolved if foreign key in remote
+        'category': localMap['category'], 
         'quantity': localMap['quantity'],
         'barcode': localMap['barcode'],
-        'color': localMap['color'],
-        'icon': localMap['icon'],
-        // 'supabase_id': localMap['supabase_id'] // If updating
+        'color': colorVal.toSigned(32),
+        'icon': iconVal.toSigned(32),
       };
     });
 
@@ -283,5 +293,12 @@ class SupabaseService {
     // For simplicity in this iteration, we focus on PUSH (Offline -> Online).
     // Pulling data implies conflict resolution. 
     // We can implement a simple pull for products/categories if they are managed elsewhere.
+  }
+  Future<void> deleteRow(String tableName, String supabaseId) async {
+    try {
+      await _supabase.from(tableName).delete().eq('id', supabaseId);
+    } catch (e) {
+      print('Error deleting $tableName row $supabaseId: $e');
+    }
   }
 }
