@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:pos/Services/Controllers/login_controller.dart';
 import 'package:pos/widgets/custom_button.dart';
 import 'package:pos/widgets/custom_loader.dart';
+import 'package:pos/Services/database_helper.dart';
 import 'package:pos/widgets/custom_textfield.dart';
 import 'package:pos/Screens/login_screen/signup_screen.dart';
 
@@ -48,6 +49,36 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: screenHeight * 0.02),
+                  GestureDetector(
+                    onLongPress: () async {
+                      // Hidden feature to reset database for testing/Admin removal
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Reset Application?'),
+                          content: const Text('This will delete ALL data including users. You will need to sign up again.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Reset', style: TextStyle(color: Colors.red))
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        await DatabaseHelper().clearAllData();
+                        Get.snackbar('Success', 'App data cleared. Please restart or sign up.');
+                      }
+                    },
+                    child: Icon(
+                      Icons.store_mall_directory,
+                      size: screenWidth * 0.2,
+                      color: const Color.fromRGBO(59, 130, 246, 1),
+                    ),
+                  ),
+                  SizedBox(height: screenHeight * 0.02), // Added SizedBox for spacing after the icon
                   const Text(
                     'Sign in to continue',
                     style: TextStyle(fontSize: 18),

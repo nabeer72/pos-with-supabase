@@ -21,8 +21,18 @@ class SupabaseService {
     await _supabase.auth.signUp(email: email, password: password);
   }
 
-  Future<void> signIn(String email, String password) async {
-    await _supabase.auth.signInWithPassword(email: email, password: password);
+  Future<AuthResponse> signIn(String email, String password) async {
+    return await _supabase.auth.signInWithPassword(email: email, password: password);
+  }
+
+  Future<Map<String, dynamic>?> getUserProfile(String email) async {
+    try {
+      final response = await _supabase.from('users').select().eq('email', email).single();
+      return response;
+    } catch (e) {
+      print('Error fetching user profile: $e');
+      return null;
+    }
   }
 
   Future<void> signOut() async {
@@ -55,18 +65,21 @@ class SupabaseService {
 
   Future<void> pushUnsyncedData() async {
     // 0. Users (Sync first so foreign keys might work if needed, though usually unrelated)
-    await _syncTable('users', 'id', mapLocalToRemote: (localMap) {
-      return {
-        'name': localMap['name'],
-        'email': localMap['email'],
-        'role': localMap['role'],
-        'permissions': localMap['permissions'],
-        'last_active': localMap['lastActive'], // Mapped to snake_case for Supabase
-        // Password is not synced for security usually, relying on Supabase Auth. 
-        // But if this is a custom table, we might sync it or keep it local-only.
-        // Given the requirement "all the data and the user are shown in suoa base", we sync metadata.
-      };
-    });
+    await _syncTable(
+      'users', 
+      'id', 
+      onConflict: 'email', // Handle duplicate emails by updating
+      mapLocalToRemote: (localMap) {
+        return {
+          'name': localMap['name'],
+          'email': localMap['email'],
+          'role': localMap['role'],
+          'permissions': localMap['permissions'],
+          'last_active': localMap['lastActive'], // Mapped to snake_case for Supabase
+          'password': localMap['password'], // Syncing password as requested
+        };
+      }
+    );
 
     // 1. Categories
     await _syncTable('categories', 'name'); 
@@ -120,7 +133,7 @@ class SupabaseService {
     });
   }
 
-  Future<void> _syncTable(String tableName, String localIdColumn, {Map<String, dynamic> Function(Map<String, dynamic>)? mapLocalToRemote}) async {
+  Future<void> _syncTable(String tableName, String localIdColumn, {Map<String, dynamic> Function(Map<String, dynamic>)? mapLocalToRemote, String? onConflict}) async {
     final db = await _dbHelper.database;
     final unsyncedRows = await db.query(tableName, where: 'is_synced = 0');
 
@@ -141,8 +154,12 @@ class SupabaseService {
           // Update existing
           response = await _supabase.from(tableName).update(dataToSync).eq('id', supabaseId).select().single();
         } else {
-          // Insert new
-          response = await _supabase.from(tableName).insert(dataToSync).select().single();
+          // Insert new or Upsert
+          if (onConflict != null) {
+             response = await _supabase.from(tableName).upsert(dataToSync, onConflict: onConflict).select().single();
+          } else {
+             response = await _supabase.from(tableName).insert(dataToSync).select().single();
+          }
         }
 
         if (response != null) {

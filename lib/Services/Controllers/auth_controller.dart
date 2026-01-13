@@ -39,12 +39,64 @@ class AuthController extends GetxController {
   }
 
   bool hasPermission(String permission) {
+    if (userRole == 'Admin') return true; // Admin has all permissions implicitly
     if (userPermissions.contains('all')) return true;
     return userPermissions.contains(permission);
   }
 
   String get userRole => currentUser['role'] ?? 'Guest';
+  
+  bool get isAdmin => userRole == 'Admin';
+
   String get userName => currentUser['name'] ?? 'Unknown';
+
+  Future<bool> loginWithSupabase(String email, String password) async {
+    try {
+      // 1. Sign in with Supabase
+      final response = await SupabaseService().signIn(email, password);
+      
+      if (response.user != null) {
+        // 2. Fetch User Profile
+        final userProfile = await SupabaseService().getUserProfile(email);
+        
+        if (userProfile != null) {
+          // 3. Sync to Local Database
+          // Check if user exists locally
+          final existingUser = await _dbHelper.getUserByEmail(email);
+          
+          final userToSync = {
+            'name': userProfile['name'],
+            'email': email, // Ensure email is consistent
+            'role': userProfile['role'],
+            'permissions': userProfile['permissions'], // JSON string expected? Or list?
+             // If local uses JSON string for permissions, ensure remote sends compatible format or convert
+            'lastActive': DateTime.now().toString(),
+            'is_synced': 1,
+            'supabase_id': userProfile['id'], 
+            'password': password // Optional: Cache password for offline? Security consideration. 
+                                 // For now caching as per existing local auth pattern.
+          };
+
+          if (existingUser != null) {
+             await _dbHelper.updateUser(existingUser['id'], userToSync);
+          } else {
+             await _dbHelper.insertUser(userToSync);
+          }
+           
+          // 4. Perform Local Login to set state
+          final localUser = await _dbHelper.getUserByEmail(email);
+          if (localUser != null) {
+            login(localUser);
+            return true;
+          }
+        }
+      }
+      return false;
+    } catch (e) {
+      print('LoginWithSupabase Error: $e');
+      return false;
+    }
+  }
 
   Future<bool> signUp(String name, String email, String password) async {
     try {
@@ -60,9 +112,9 @@ class AuthController extends GetxController {
         'name': name,
         'email': email,
         'password': password,
-        'role': 'Cashier', // Default role
+        'role': 'Admin', // Default to Admin for public signup
         'lastActive': DateTime.now().toString(),
-        'permissions': jsonEncode(['sales', 'customers']), // Default permissions
+        'permissions': jsonEncode(['all']), // Admin gets all permissions
         'is_synced': 0, // Flag for sync
       };
 

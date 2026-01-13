@@ -185,6 +185,8 @@ class DashboardScreen extends StatelessWidget {
                   childAspectRatio: 1,
                 ),
                 itemCount: favoriteActions.length,
+                itemBuilder: (context, index) {
+                  final action = favoriteActions[index];
                   return QuickActionCard(
                     title: action['title'] as String,
                     icon: action['icon'] as IconData,

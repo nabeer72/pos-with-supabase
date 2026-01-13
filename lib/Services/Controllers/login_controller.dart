@@ -44,14 +44,34 @@ class LoginController extends GetxController {
     isLoading.value = true;
     
     try {
-      final user = await _dbHelper.getUserByEmail(email);
+      // Check connectivity
+      // Note: Connectivity check is good but sometimes unreliable (e.g. connected to wifi but no internet)
+      // We can try remote login and catch exception to fallback
+      bool loggedInStart = false;
       
-      if (user != null && user['password'] == password) {
-        _authController.login(user); // Store in global auth state
-        Get.offAll(() => BottomNavigation());
-      } else {
-        Get.snackbar('Error', 'Invalid email or password',
-            snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.redAccent, colorText: Colors.white);
+      try {
+         // Attempt Remote Login first
+         final success = await _authController.loginWithSupabase(email, password);
+         if (success) {
+           loggedInStart = true;
+           Get.offAll(() => BottomNavigation());
+         }
+      } catch (e) {
+        print("Remote login failed or offline: $e");
+      }
+
+      if (!loggedInStart) {
+        // Fallback to Local Login
+        print("Attempting local login...");
+        final user = await _dbHelper.getUserByEmail(email);
+        
+        if (user != null && user['password'] == password) {
+          _authController.login(user); // Store in global auth state
+          Get.offAll(() => BottomNavigation());
+        } else {
+          Get.snackbar('Error', 'Invalid email or password',
+              snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.redAccent, colorText: Colors.white);
+        }
       }
     } catch (e) {
       Get.snackbar('Error', 'An error occurred during login: $e',

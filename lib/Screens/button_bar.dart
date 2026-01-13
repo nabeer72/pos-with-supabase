@@ -3,6 +3,8 @@ import 'package:pos/Screens/dashboard/home_screen.dart';
 import 'package:pos/Screens/favourite/favourites_screen.dart';
 import 'package:pos/Screens/profile/profile_screen.dart';
 import 'package:pos/Screens/report/report_screen.dart';
+import 'package:get/get.dart';
+import 'package:pos/Services/Controllers/auth_controller.dart';
 
 class BottomNavigation extends StatefulWidget {
   @override
@@ -13,13 +15,15 @@ class _BottomNavigationState extends State<BottomNavigation> {
   int _selectedIndex = 0;
 
   // List of screens to navigate between
-  final List<Widget> _screens = [
-    DashboardScreen(),
-    ReportScreen(),
-    FavoritesScreen(),
-    ProfileScreen(),
-    // Replace with your actual ProfileScreen()
-  ];
+  List<Widget> get _screens {
+    final isAdmin = Get.find<AuthController>().isAdmin;
+    return [
+      DashboardScreen(),
+      ReportScreen(),
+      if (isAdmin) FavoritesScreen(),
+      ProfileScreen(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -47,20 +51,21 @@ class _BottomNavigationState extends State<BottomNavigation> {
         unselectedFontSize: fontSize,
         iconSize: iconSize,
         showUnselectedLabels: !isSmallScreen, // Hide labels on small screens
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
             label: 'Dashboard',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.analytics),
             label: 'Reports',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Favorites',
-          ),
-          BottomNavigationBarItem(
+          if (Get.find<AuthController>().isAdmin)
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.favorite),
+              label: 'Favorites',
+            ),
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
           ),

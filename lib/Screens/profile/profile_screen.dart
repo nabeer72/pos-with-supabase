@@ -5,6 +5,7 @@ import 'package:pos/Screens/helpCenter/help_center_screen.dart';
 import 'package:pos/Screens/terms_&_conditions/term&conditions_screen.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/Screens/login_screen/login_screen.dart';
+import 'package:pos/Screens/userManagement/user_management.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -82,20 +83,53 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Column(
-                    children: [
-                      SizedBox(height: spacerHeight),
-                      _profileTile(icon: Icons.person, title: 'Nabeer Hussain', accent: accent, screenWidth: screenWidth, isTablet: isTablet),
-                      _divider(),
-                      _profileTile(icon: Icons.email_outlined, title: 'nabeerhussain72@gmail.com', accent: accent, screenWidth: screenWidth, isTablet: isTablet),
-                      _divider(),
-                      _profileTile(icon: Icons.phone, title: '+1 234 567 8900', accent: accent, screenWidth: screenWidth, isTablet: isTablet),
-                      _divider(),
-                      _profileTile(icon: Icons.badge, title: '12345-6789012-3', accent: accent, screenWidth: screenWidth, isTablet: isTablet),
-                      _divider(),
-                      _profileTile(icon: Icons.location_on, title: '123 Main St, City, Country', accent: accent, screenWidth: screenWidth, isTablet: isTablet),
-                    ],
-                  ),
+                  child: Obx(() {
+                    final user = Get.find<AuthController>().currentUser;
+                    return Column(
+                      children: [
+                        SizedBox(height: spacerHeight),
+                        _profileTile(
+                          icon: Icons.person,
+                          title: user['name'] ?? 'Guest User',
+                          accent: accent,
+                          screenWidth: screenWidth,
+                          isTablet: isTablet
+                        ),
+                        _divider(),
+                        _profileTile(
+                          icon: Icons.email_outlined,
+                          title: user['email'] ?? 'No Email',
+                          accent: accent,
+                          screenWidth: screenWidth,
+                          isTablet: isTablet
+                        ),
+                        _divider(),
+                        _profileTile(
+                          icon: Icons.workspace_premium, // Changed icon for Role
+                          title: user['role'] ?? 'Cashier',
+                          accent: accent,
+                          screenWidth: screenWidth,
+                          isTablet: isTablet
+                        ),
+                        _divider(),
+                        _profileTile(
+                          icon: Icons.category, // Changed icon for Permissions length or similar? Or just keep it simpler
+                          title: 'Permissions: ${(Get.find<AuthController>().userPermissions.length)}',
+                          accent: accent,
+                          screenWidth: screenWidth,
+                          isTablet: isTablet
+                        ),
+                        _divider(),
+                        _profileTile(
+                          icon: Icons.access_time, // Last Active
+                          title: 'Last Active: ${user['lastActive'] != null ? user['lastActive'].toString().split(' ')[0] : 'Now'}',
+                          accent: accent,
+                          screenWidth: screenWidth,
+                          isTablet: isTablet
+                        ),
+                      ],
+                    );
+                  }),
                 ),
 
                 // AVATAR WITH GRADIENT BORDER (exactly like AppBar)
@@ -148,6 +182,17 @@ class ProfileScreen extends StatelessWidget {
                     isTablet: isTablet,
                   ),
                   _divider(),
+                  if (Get.find<AuthController>().isAdmin) ...[
+                    _settingsTile(
+                      icon: Icons.people,
+                      title: 'User Management',
+                      onTap: () => Get.to(() => UserManagementScreen()),
+                      accent: accent,
+                      screenWidth: screenWidth,
+                      isTablet: isTablet,
+                    ),
+                    _divider(),
+                  ],
                   _settingsTile(
                     icon: Icons.help_outline,
                     title: 'Help Center',
