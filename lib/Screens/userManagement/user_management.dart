@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
+import 'package:get/get.dart';
+import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/supabase_service.dart';
 import 'dart:convert';
@@ -23,7 +25,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Future<void> _loadUsers() async {
     setState(() => _isLoading = true);
-    final data = await _dbHelper.getUsers();
+    final adminId = Get.find<AuthController>().adminId;
+    final data = await _dbHelper.getUsers(adminId: adminId);
     setState(() {
       users = data;
       _isLoading = false;
@@ -166,6 +169,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     'permissions': jsonEncode(selectedPermissions),
                     'lastActive': isEdit ? user['lastActive'] : DateTime.now().toString(),
                     'is_synced': 0, // Mark as unsynced initially
+                    'adminId': Get.find<AuthController>().adminId, // Assign Admin ID
                   };
 
                   if (isEdit) {

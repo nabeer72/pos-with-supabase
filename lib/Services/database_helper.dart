@@ -24,7 +24,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'pos_database.db');
     final db = await openDatabase(
       path,
-      version: 7, // Incremented version to 7 for Purchase Price
+      version: 8, // Incremented version to 8 for Admin Isolation
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -128,6 +128,13 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE products ADD COLUMN purchasePrice REAL DEFAULT 0.0');
       }
     }
+
+    if (oldVersion < 8) {
+      // Add adminId column to enforce multi-tenancy
+      await db.execute('ALTER TABLE products ADD COLUMN adminId TEXT');
+      await db.execute('ALTER TABLE categories ADD COLUMN adminId TEXT');
+      await db.execute('ALTER TABLE users ADD COLUMN adminId TEXT');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -144,7 +151,8 @@ class DatabaseHelper {
         supabase_id TEXT,
         is_synced INTEGER DEFAULT 0,
         is_favorite INTEGER DEFAULT 0,
-        purchasePrice REAL DEFAULT 0.0
+        purchasePrice REAL DEFAULT 0.0,
+        adminId TEXT
       )
     ''');
 
@@ -215,7 +223,8 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
         supabase_id TEXT,
-        is_synced INTEGER DEFAULT 0
+        is_synced INTEGER DEFAULT 0,
+        adminId TEXT
       )
     ''');
 
@@ -242,7 +251,8 @@ class DatabaseHelper {
         password TEXT,
         permissions TEXT,
         supabase_id TEXT,
-        is_synced INTEGER DEFAULT 0
+        is_synced INTEGER DEFAULT 0,
+        adminId TEXT
       )
     ''');
 
@@ -253,7 +263,8 @@ class DatabaseHelper {
       'lastActive': 'Oct 18, 2025',
       'email': 'admin@pos.com',
       'password': 'adminpassword',
-      'permissions': '["all"]'
+      'permissions': '["all"]',
+      'adminId': '1'
     });
     await db.insert('users', {
       'name': 'Jane Smith', 
@@ -261,7 +272,8 @@ class DatabaseHelper {
       'lastActive': 'Oct 17, 2025',
       'email': 'jane@pos.com',
       'password': 'password123',
-      'permissions': '["sales", "customers", "reports"]'
+      'permissions': '["sales", "customers", "reports"]',
+      'adminId': '1'
     });
   }
 
@@ -287,9 +299,12 @@ class DatabaseHelper {
     return await db.insert('products', product.toMap());
   }
 
-  Future<List<Product>> getProducts() async {
+  Future<List<Product>> getProducts({String? adminId}) async {
     Database db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('products');
+    final String? whereClause = adminId != null ? 'adminId = ?' : null;
+    final List<Object?>? whereArgs = adminId != null ? [adminId] : null;
+
+    final List<Map<String, dynamic>> maps = await db.query('products', where: whereClause, whereArgs: whereArgs);
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
   }
 
@@ -404,14 +419,17 @@ class DatabaseHelper {
   }
 
   // Categories
-  Future<int> insertCategory(String name) async {
+  Future<int> insertCategory(String name, {String? adminId}) async {
     Database db = await database;
-    return await db.insert('categories', {'name': name}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    return await db.insert('categories', {'name': name, 'adminId': adminId}, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
-  Future<List<String>> getCategories() async {
+  Future<List<String>> getCategories({String? adminId}) async {
     Database db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('categories');
+    final String? whereClause = adminId != null ? 'adminId = ?' : null;
+    final List<Object?>? whereArgs = adminId != null ? [adminId] : null;
+
+    final List<Map<String, dynamic>> maps = await db.query('categories', where: whereClause, whereArgs: whereArgs);
     return List.generate(maps.length, (i) => maps[i]['name'] as String);
   }
 
@@ -495,9 +513,11 @@ class DatabaseHelper {
     return await db.insert('users', user);
   }
 
-  Future<List<Map<String, dynamic>>> getUsers() async {
+  Future<List<Map<String, dynamic>>> getUsers({String? adminId}) async {
     Database db = await database;
-    return await db.query('users');
+    final String? whereClause = adminId != null ? 'adminId = ?' : null;
+    final List<Object?>? whereArgs = adminId != null ? [adminId] : null;
+    return await db.query('users', where: whereClause, whereArgs: whereArgs);
   }
 
   Future<int> updateUser(int id, Map<String, dynamic> user) async {

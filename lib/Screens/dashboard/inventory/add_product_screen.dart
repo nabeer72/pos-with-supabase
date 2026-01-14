@@ -377,6 +377,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final name = _nameController.text.trim();
     final barcodeValue = _barcodeController.text.trim();
     final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
+    final purchasePrice = double.tryParse(_purchasePriceController.text.trim()) ?? 0.0;
     final quantity = int.tryParse(_quantityController.text.trim()) ?? 0;
 
     if (name.isEmpty) {
@@ -396,6 +397,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       name: name,
       barcode: finalBarcode,
       price: price,
+      purchasePrice: purchasePrice, // Added purchasePrice
       category: selectedCategory!,
       icon: selectedIcon,
       quantity: quantity,

@@ -13,6 +13,7 @@ class Product {
   final bool isSynced;
   final bool isFavorite;
   final double purchasePrice; // New field
+  final String? adminId; // New field for Admin ID
 
   Product({
     this.id,
@@ -27,6 +28,7 @@ class Product {
     this.isSynced = false,
     this.isFavorite = false,
     this.purchasePrice = 0.0, // Default
+    this.adminId, // Admin ID for multi-tenancy
   });
 
   Map<String, dynamic> toMap() {
@@ -43,6 +45,7 @@ class Product {
       'is_synced': isSynced ? 1 : 0,
       'is_favorite': isFavorite ? 1 : 0,
       'purchasePrice': purchasePrice,
+      'adminId': adminId,
     };
   }
 
@@ -60,6 +63,7 @@ class Product {
       isSynced: map['is_synced'] == 1,
       isFavorite: map['is_favorite'] == 1,
       purchasePrice: map['purchasePrice'] != null ? (map['purchasePrice'] as num).toDouble() : 0.0,
+      adminId: map['adminId'],
     );
   }
 }

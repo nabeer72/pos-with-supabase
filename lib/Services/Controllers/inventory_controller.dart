@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/Services/models/product_model.dart';
+import 'package:pos/Services/Controllers/auth_controller.dart';
 
 class InventoryController extends GetxController {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -21,7 +22,8 @@ class InventoryController extends GetxController {
   Future<void> loadInventory() async {
     isLoading.value = true;
     try {
-      final items = await _dbHelper.getProducts();
+      final authController = Get.find<AuthController>();
+      final items = await _dbHelper.getProducts(adminId: authController.adminId);
       inventoryItems.assignAll(items);
     } finally {
       isLoading.value = false;
@@ -29,12 +31,29 @@ class InventoryController extends GetxController {
   }
 
   Future<void> loadCategories() async {
-    final cats = await _dbHelper.getCategories();
+    final authController = Get.find<AuthController>();
+    final cats = await _dbHelper.getCategories(adminId: authController.adminId);
     categories.assignAll(cats);
   }
 
   Future<void> addProduct(Product product) async {
-    await _dbHelper.insertProduct(product);
+    final authController = Get.find<AuthController>();
+    final productWithAdmin = Product(
+      id: product.id,
+      name: product.name,
+      barcode: product.barcode,
+      price: product.price,
+      category: product.category,
+      icon: product.icon,
+      quantity: product.quantity,
+      color: product.color,
+      supabaseId: product.supabaseId,
+      isSynced: product.isSynced,
+      isFavorite: product.isFavorite,
+      purchasePrice: product.purchasePrice,
+      adminId: authController.adminId, // Assign current Admin ID
+    );
+    await _dbHelper.insertProduct(productWithAdmin);
     await loadInventory();
     SupabaseService().syncData(); // Trigger sync
   }
@@ -52,7 +71,8 @@ class InventoryController extends GetxController {
   }
 
   Future<void> addCategory(String name) async {
-    await _dbHelper.insertCategory(name);
+    final authController = Get.find<AuthController>();
+    await _dbHelper.insertCategory(name, adminId: authController.adminId);
     await loadCategories();
     SupabaseService().syncData(); // Trigger sync
   }

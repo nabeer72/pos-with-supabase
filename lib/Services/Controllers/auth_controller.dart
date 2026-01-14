@@ -116,9 +116,14 @@ class AuthController extends GetxController {
         'lastActive': DateTime.now().toString(),
         'permissions': jsonEncode(['all']), // Admin gets all permissions
         'is_synced': 0, // Flag for sync
+        'adminId': null, // Will be set to own ID or handled by sync logic. Actually for Admin, adminId is their own ID. 
+                         // But we don't have ID yet. We can update it after insertion or use UUID. 
+                         // For simplicity, let's treat NULL adminId as "Root/Self" or update after insert.
       };
 
-      await _dbHelper.insertUser(newUser);
+      final id = await _dbHelper.insertUser(newUser);
+      // Update adminId to be the same as the user ID for Admins so they are their own Tenant
+      await _dbHelper.updateUser(id, {'adminId': id.toString()});
       
       // Auto login after signup
       final createdUser = await _dbHelper.getUserByEmail(email);
@@ -133,6 +138,14 @@ class AuthController extends GetxController {
     } catch (e) {
       print('SignUp Error: $e');
       return false;
+    }
+  }
+
+  String? get adminId {
+    if (currentUser['role'] == 'Admin') {
+      return currentUser['adminId'] ?? currentUser['id'].toString();
+    } else {
+      return currentUser['adminId'];
     }
   }
 }
