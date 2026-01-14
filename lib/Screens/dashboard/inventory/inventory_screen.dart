@@ -183,26 +183,9 @@ class InventoryScreen extends StatelessWidget {
                                 supabaseId: item.supabaseId,
                                 isSynced: item.isSynced,
                                 isFavorite: !item.isFavorite,
+                                purchasePrice: item.purchasePrice,
                               );
                               controller.updateProduct(updated);
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline, color: Colors.orange),
-                            onPressed: () {
-                              if (item.quantity > 0) {
-                                final updated = Product(
-                                  id: item.id,
-                                  name: item.name,
-                                  barcode: item.barcode,
-                                  price: item.price,
-                                  category: item.category,
-                                  icon: item.icon,
-                                  quantity: item.quantity - 1,
-                                  color: item.color,
-                                );
-                                controller.updateProduct(updated);
-                              }
                             },
                           ),
                           Text('${item.quantity}', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -218,6 +201,7 @@ class InventoryScreen extends StatelessWidget {
                                 icon: item.icon,
                                 quantity: item.quantity + 1,
                                 color: item.color,
+                                purchasePrice: item.purchasePrice,
                               );
                               controller.updateProduct(updated);
                             },

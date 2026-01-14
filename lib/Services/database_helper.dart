@@ -24,7 +24,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'pos_database.db');
     final db = await openDatabase(
       path,
-      version: 6, // Incremented version to 6 for Favorites
+      version: 7, // Incremented version to 7 for Purchase Price
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -119,6 +119,15 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE products ADD COLUMN is_favorite INTEGER DEFAULT 0');
       }
     }
+
+    if (oldVersion < 7) {
+      // Add purchasePrice column to products
+      var tableInfo = await db.rawQuery('PRAGMA table_info(products)');
+      var columns = tableInfo.map((e) => e['name']).toList();
+      if (!columns.contains('purchasePrice')) {
+        await db.execute('ALTER TABLE products ADD COLUMN purchasePrice REAL DEFAULT 0.0');
+      }
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -134,7 +143,8 @@ class DatabaseHelper {
         color INTEGER,
         supabase_id TEXT,
         is_synced INTEGER DEFAULT 0,
-        is_favorite INTEGER DEFAULT 0
+        is_favorite INTEGER DEFAULT 0,
+        purchasePrice REAL DEFAULT 0.0
       )
     ''');
 

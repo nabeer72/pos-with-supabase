@@ -15,10 +15,11 @@ class AddProductScreen extends StatefulWidget {
 class _AddProductScreenState extends State<AddProductScreen> {
   final InventoryController controller = Get.find<InventoryController>();
   
-  final nameController = TextEditingController();
-  final barcodeController = TextEditingController();
-  final priceController = TextEditingController();
-  final quantityController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _barcodeController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _purchasePriceController = TextEditingController();
+  final _quantityController = TextEditingController();
   
   String? selectedCategory;
   IconData selectedIcon = Icons.devices;
@@ -61,6 +62,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       'Others': Colors.grey[600]!,
   };
 
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,91 +88,162 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            _buildTextField(nameController, 'Item Name', Icons.inventory),
-            const SizedBox(height: 15),
-            _buildTextField(barcodeController, 'QR/Barcode', Icons.qr_code, suffixIcon: IconButton(
-              icon: const Icon(Icons.qr_code_scanner),
-              onPressed: () => isScanning.value = !isScanning.value,
-            )),
-            
-            // Scanner Section
-            Obx(() => isScanning.value ? _buildScanner() : const SizedBox.shrink()),
-            
-            const SizedBox(height: 15),
-            Row(
-              children: [
-                Expanded(child: _buildTextField(priceController, 'Price', Icons.attach_money, isNumber: true, prefixText: 'Rs. ')),
-                const SizedBox(width: 15),
-                Expanded(child: _buildTextField(quantityController, 'Quantity', Icons.production_quantity_limits, isNumber: true)),
-              ],
-            ),
-            const SizedBox(height: 15),
-            
-            // Category Dropdown
-            Obx(() => Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade400)
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              _buildTextField(_nameController, 'Item Name', Icons.inventory),
+              const SizedBox(height: 15),
+              _buildTextField(_barcodeController, 'QR/Barcode', Icons.qr_code, suffixIcon: IconButton(
+                icon: const Icon(Icons.qr_code_scanner),
+                onPressed: () => isScanning.value = !isScanning.value,
+              )),
+              
+              // Scanner Section
+              Obx(() => isScanning.value ? _buildScanner() : const SizedBox.shrink()),
+              
+              const SizedBox(height: 15),
+              _buildPriceField(
+                controller: _priceController,
+                label: 'Sell Price',
+                icon: Icons.attach_money,
+              ),
+              const SizedBox(height: 16),
+              _buildPriceField(
+                controller: _purchasePriceController,
+                label: 'Purchase Price',
+                icon: Icons.money_off,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                _quantityController,
+                'Quantity',
+                Icons.inventory_2,
+                isNumber: true,
+              ),
+              const SizedBox(height: 24),
+              _buildCategorySection(),
+              const SizedBox(height: 24),
+              _buildColorSection(),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      final product = Product(
+                        name: _nameController.text,
+                        barcode: _barcodeController.text.isEmpty ? null : _barcodeController.text,
+                        price: double.tryParse(_priceController.text) ?? 0.0,
+                        purchasePrice: double.tryParse(_purchasePriceController.text) ?? 0.0,
+                        quantity: int.tryParse(_quantityController.text) ?? 0,
+                        category: selectedCategory!,
+                        icon: selectedIcon,
+                        color: selectedColor.value,
+                      );
+                      controller.addProduct(product);
+                      Get.back();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3A8A),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        hint: const Row(children: [Icon(Icons.category, color: Colors.grey), SizedBox(width: 10), Text('Select Category')]),
-                        value: controller.categories.contains(selectedCategory) ? selectedCategory : null,
-                        items: controller.categories.map((category) {
-                          return DropdownMenuItem(
-                            value: category,
-                            child: Row(
-                              children: [
-                                Icon(icons[category] ?? Icons.category, color: colors[category] ?? Colors.grey),
-                                const SizedBox(width: 10),
-                                Text(category)
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedCategory = value;
-                            selectedIcon = icons[value!] ?? Icons.category;
-                            selectedColor = colors[value] ?? Colors.grey[600]!;
-                          });
-                        },
-                      ),
+                    elevation: 4,
+                  ),
+                  child: const Text(
+                    'Save Product',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Container(
-                  decoration: BoxDecoration(color: Colors.blueAccent, borderRadius: BorderRadius.circular(12)),
-                  child: IconButton(
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    onPressed: () => _showAddCategoryDialog(context),
-                  ),
-                ),
-              ],
-            )),
-            
-            const SizedBox(height: 30),
-            CustomButton(
-              text: 'Save Product',
-              onPressed: _saveProduct,
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _buildCategorySection() {
+    return Obx(() => Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade400)
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                hint: const Row(children: [Icon(Icons.category, color: Colors.grey), SizedBox(width: 10), Text('Select Category')]),
+                value: controller.categories.contains(selectedCategory) ? selectedCategory : null,
+                items: controller.categories.map((category) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Row(
+                      children: [
+                        Icon(icons[category] ?? Icons.category, color: colors[category] ?? Colors.grey),
+                        const SizedBox(width: 10),
+                        Text(category)
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedCategory = value;
+                    selectedIcon = icons[value!] ?? Icons.category;
+                    selectedColor = colors[value] ?? Colors.grey[600]!;
+                  });
+                },
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Container(
+          decoration: BoxDecoration(color: Colors.blueAccent, borderRadius: BorderRadius.circular(12)),
+          child: IconButton(
+            icon: const Icon(Icons.add, color: Colors.white),
+            onPressed: () => _showAddCategoryDialog(context),
+          ),
+        ),
+      ],
+    ));
+  }
+
+  Widget _buildColorSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Color Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(color: selectedColor, shape: BoxShape.circle, border: Border.all(color: Colors.black12)),
+            ),
+            const SizedBox(width: 15),
+            const Text('Selected Color'),
+          ],
+        )
+      ],
+    );
+  }
+
   Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool isNumber = false, String? prefixText, Widget? suffixIcon}) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       decoration: InputDecoration(
@@ -183,6 +257,44 @@ class _AddProductScreenState extends State<AddProductScreen> {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blueAccent, width: 2)),
       ),
+    );
+  }
+
+  Widget _buildPriceField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: const Color(0xFF1E3A8A)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter a price';
+        }
+        if (double.tryParse(value) == null) {
+          return 'Please enter a valid number';
+        }
+        return null;
+      },
     );
   }
 
@@ -208,7 +320,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     onDetect: (capture) {
                       final List<Barcode> barcodes = capture.barcodes;
                       if (barcodes.isNotEmpty) {
-                        barcodeController.text = barcodes.first.rawValue ?? '';
+                        _barcodeController.text = barcodes.first.rawValue ?? '';
                         isScanning.value = false;
                       }
                     },
@@ -262,10 +374,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Future<void> _saveProduct() async {
-    final name = nameController.text.trim();
-    final barcodeValue = barcodeController.text.trim();
-    final price = double.tryParse(priceController.text.trim()) ?? 0.0;
-    final quantity = int.tryParse(quantityController.text.trim()) ?? 0;
+    final name = _nameController.text.trim();
+    final barcodeValue = _barcodeController.text.trim();
+    final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
+    final quantity = int.tryParse(_quantityController.text.trim()) ?? 0;
 
     if (name.isEmpty) {
       Get.snackbar('Error', 'Please enter product name', backgroundColor: Colors.redAccent, colorText: Colors.white);

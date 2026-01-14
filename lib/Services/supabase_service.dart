@@ -105,6 +105,7 @@ class SupabaseService {
         'barcode': localMap['barcode'],
         'color': colorVal.toSigned(32),
         'icon': iconVal.toSigned(32),
+        // 'purchase_price': localMap['purchasePrice'] ?? 0.0, // TODO: Uncomment when column is added to Supabase
       };
     });
 

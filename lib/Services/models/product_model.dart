@@ -12,6 +12,7 @@ class Product {
   final String? supabaseId;
   final bool isSynced;
   final bool isFavorite;
+  final double purchasePrice; // New field
 
   Product({
     this.id,
@@ -25,6 +26,7 @@ class Product {
     this.supabaseId,
     this.isSynced = false,
     this.isFavorite = false,
+    this.purchasePrice = 0.0, // Default
   });
 
   Map<String, dynamic> toMap() {
@@ -40,6 +42,7 @@ class Product {
       'supabase_id': supabaseId,
       'is_synced': isSynced ? 1 : 0,
       'is_favorite': isFavorite ? 1 : 0,
+      'purchasePrice': purchasePrice,
     };
   }
 
@@ -56,6 +59,7 @@ class Product {
       supabaseId: map['supabase_id'],
       isSynced: map['is_synced'] == 1,
       isFavorite: map['is_favorite'] == 1,
+      purchasePrice: map['purchasePrice'] != null ? (map['purchasePrice'] as num).toDouble() : 0.0,
     );
   }
 }
