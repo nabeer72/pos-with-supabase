@@ -2,15 +2,23 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:pos/Services/models/sale_model.dart';
-import 'package:pos/Services/models/sale_item_model.dart';
 import 'package:intl/intl.dart';
+import 'package:pos/Services/receipt_service.dart';
+import 'package:pos/Services/currency_service.dart';
 
 class PrintingService {
   Future<void> printReceipt({
     required Sale sale,
     required List<Map<String, dynamic>> items,
     String? customerName,
+    double? subtotal,
+    double? discountAmount,
+    double? discountPercent,
   }) async {
+    final receiptService = ReceiptService();
+    final settings = await receiptService.getReceiptSettings();
+    final currencySymbol = await CurrencyService().getCurrencySymbol();
+    
     final pdf = pw.Document();
 
     final dateStr = DateFormat('yyyy-MM-dd HH:mm').format(sale.saleDate);
@@ -23,8 +31,12 @@ class PrintingService {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Center(
-                child: pw.Text('POS SYSTEM', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text(settings['store_name'] ?? 'POS SYSTEM', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
               ),
+              if (settings['store_address']?.isNotEmpty ?? false)
+                pw.Center(child: pw.Text(settings['store_address']!)),
+              if (settings['store_phone']?.isNotEmpty ?? false)
+                pw.Center(child: pw.Text('Tel: ${settings['store_phone']!}')),
               pw.SizedBox(height: 10),
               pw.Text('Date: $dateStr'),
               pw.Text('Order ID: ${sale.id ?? 'New'}'),
@@ -47,23 +59,40 @@ class PrintingService {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Expanded(child: pw.Text(item['name'])),
-                      pw.Text('${item['quantity']}'),
-                      pw.SizedBox(width: 20),
-                      pw.Text('Rs. ${(item['quantity'] * item['price']).toStringAsFixed(2)}'),
-                    ],
-                  ),
-                );
-              }).toList(),
-              pw.Divider(),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('TOTAL:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                  pw.Text('Rs. ${sale.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                ],
-              ),
+                       pw.Text('${item['quantity']}'),
+                       pw.SizedBox(width: 20),
+                       pw.Text('$currencySymbol ${(item['quantity'] * item['price']).toStringAsFixed(2)}'),
+                     ],
+                   ),
+                 );
+               }).toList(),
+               pw.Divider(),
+               if (subtotal != null && discountAmount != null && (discountAmount > 0)) ...[
+                 pw.Row(
+                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                   children: [
+                     pw.Text('Subtotal:'),
+                     pw.Text('$currencySymbol ${subtotal.toStringAsFixed(2)}'),
+                   ],
+                 ),
+                 pw.Row(
+                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                   children: [
+                     pw.Text('Discount (${discountPercent?.toStringAsFixed(0)}%):'),
+                     pw.Text('- $currencySymbol ${discountAmount.toStringAsFixed(2)}'),
+                   ],
+                 ),
+                 pw.SizedBox(height: 5),
+               ],
+               pw.Row(
+                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                 children: [
+                   pw.Text('TOTAL:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                   pw.Text('$currencySymbol ${sale.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                 ],
+               ),
               pw.SizedBox(height: 20),
-              pw.Center(child: pw.Text('Thank you for your business!')),
+              pw.Center(child: pw.Text(settings['receipt_footer'] ?? 'Thank you for your business!')),
             ],
           );
         },

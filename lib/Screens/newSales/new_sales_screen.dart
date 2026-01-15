@@ -110,7 +110,14 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                             ElevatedButton(
                               onPressed: () async {
                                 Navigator.pop(ctx);
-                                await PrintingService().printReceipt(sale: sale, items: items, customerName: selectedCustomer);
+                                await PrintingService().printReceipt(
+                                  sale: sale, 
+                                  items: items, 
+                                  customerName: selectedCustomer,
+                                  subtotal: result['subtotal'],
+                                  discountAmount: result['discountAmount'],
+                                  discountPercent: result['discountPercent'],
+                                );
                               },
                               child: const Text('Print'),
                             ),

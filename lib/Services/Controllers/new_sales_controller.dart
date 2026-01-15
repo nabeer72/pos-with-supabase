@@ -7,6 +7,7 @@ import 'package:pos/Services/models/sale_model.dart';
 import 'package:pos/Services/models/sale_item_model.dart';
 import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
+import 'package:pos/Services/receipt_service.dart';
 
 // QR Scanner Service to handle QR scanning logic
 class QRScannerService {
@@ -179,9 +180,16 @@ class NewSaleController extends GetxController {
     if (cartItems.isEmpty) return null;
 
     final authController = Get.find<AuthController>();
+    final receiptService = ReceiptService();
+    final discountPercent = await receiptService.getDefaultDiscount();
+    
+    double subtotal = totalAmount.value;
+    double discountAmount = (subtotal * discountPercent) / 100;
+    double finalTotal = subtotal - discountAmount;
+
     final sale = Sale(
       saleDate: DateTime.now(),
-      totalAmount: totalAmount.value,
+      totalAmount: finalTotal,
       adminId: authController.adminId, // Include adminId
     );
     
@@ -221,7 +229,13 @@ class NewSaleController extends GetxController {
     cartItems.clear();
     totalAmount.value = 0.0;
     
-    return {'sale': completedSale, 'items': cartCopy};
+    return {
+      'sale': completedSale, 
+      'items': cartCopy, 
+      'subtotal': subtotal,
+      'discountAmount': discountAmount,
+      'discountPercent': discountPercent
+    };
   }
 
   void setIsScanning(bool value) {

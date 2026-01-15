@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/Services/currency_service.dart';
+import 'package:pos/Services/receipt_service.dart';
 import 'package:pos/Services/models/currency_model.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -11,29 +12,81 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _currencyService = CurrencyService();
+  final _receiptService = ReceiptService();
+  
   Currency? _selectedCurrency;
   bool _isLoading = true;
   bool _isSaving = false;
 
+  // Receipt Settings
+  final _storeNameController = TextEditingController();
+  final _storeAddressController = TextEditingController();
+  final _storePhoneController = TextEditingController();
+  final _footerController = TextEditingController();
+  final _discountController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
-    _loadCurrentCurrency();
+    _loadSettings();
   }
 
-  Future<void> _loadCurrentCurrency() async {
+  Future<void> _loadSettings() async {
     setState(() => _isLoading = true);
     try {
       final currency = await _currencyService.getCurrentCurrency();
+      final receiptSettings = await _receiptService.getReceiptSettings();
+      final discount = await _receiptService.getDefaultDiscount();
+
       setState(() {
         _selectedCurrency = currency;
+        _storeNameController.text = receiptSettings['store_name'] ?? '';
+        _storeAddressController.text = receiptSettings['store_address'] ?? '';
+        _storePhoneController.text = receiptSettings['store_phone'] ?? '';
+        _footerController.text = receiptSettings['receipt_footer'] ?? '';
+        _discountController.text = discount.toString();
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading currency: $e')),
+          SnackBar(content: Text('Error loading settings: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _saveReceiptSettings() async {
+    setState(() => _isSaving = true);
+    try {
+      await _receiptService.updateReceiptSettings({
+        'store_name': _storeNameController.text,
+        'store_address': _storeAddressController.text,
+        'store_phone': _storePhoneController.text,
+        'receipt_footer': _footerController.text,
+      });
+      
+      final discount = double.tryParse(_discountController.text) ?? 0.0;
+      await _receiptService.setDefaultDiscount(discount);
+
+      setState(() => _isSaving = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Settings saved successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSaving = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving settings: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -213,6 +266,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 
+                const SizedBox(height: 16),
+
+                // Receipt Customization Section
+                Card(
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Receipt Customization',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSettingsField('Store Name', _storeNameController, Icons.store),
+                        const SizedBox(height: 12),
+                        _buildSettingsField('Store Address', _storeAddressController, Icons.location_on),
+                        const SizedBox(height: 12),
+                        _buildSettingsField('Contact Number', _storePhoneController, Icons.phone),
+                        const SizedBox(height: 12),
+                        _buildSettingsField('Receipt Footer', _footerController, Icons.message),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Discounts Section
+                Card(
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Discounts',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSettingsField(
+                          'Default Discount (%)', 
+                          _discountController, 
+                          Icons.percent,
+                          keyboardType: TextInputType.number,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Save Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _saveReceiptSettings,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: _isSaving
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Save All Settings',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 // Info Card
                 Card(
                   color: Colors.blue[50],
@@ -224,7 +362,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Your currency preference is saved per admin account and will be applied to all prices throughout the app.',
+                            'Your preferences are saved per admin account and will be applied to your transactions and receipts.',
                             style: TextStyle(
                               color: Colors.blue[900],
                               fontSize: 13,
@@ -237,6 +375,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildSettingsField(String label, TextEditingController controller, IconData icon, {TextInputType? keyboardType}) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: Colors.blue),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
     );
   }
 }
