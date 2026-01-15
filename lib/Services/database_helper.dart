@@ -9,6 +9,7 @@ import 'package:pos/Services/models/sale_item_model.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
+  static const int _databaseVersion = 11;
 
   factory DatabaseHelper() => _instance;
 
@@ -24,7 +25,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'pos_database.db');
     final db = await openDatabase(
       path,
-      version: 9, // Incremented version to 9 for Admin-specific Settings
+      version: _databaseVersion, // Use the version constant
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -39,7 +40,7 @@ class DatabaseHelper {
           name TEXT NOT NULL UNIQUE
         )
       ''');
-      await _seedCategories(db);
+      await _seedCategories(db, '1');
     }
     if (oldVersion < 3) {
       // Ensure users table exists
@@ -74,7 +75,8 @@ class DatabaseHelper {
       );
       
       if (admins.isEmpty) {
-        await db.insert('users', {
+        // Insert the admin user and get its ID
+        final int adminUserId = await db.insert('users', {
           'name': 'Admin',
           'role': 'Admin',
           'lastActive': DateTime.now().toString(),
@@ -82,6 +84,18 @@ class DatabaseHelper {
           'password': 'adminpassword',
           'permissions': '["all"]'
         });
+
+        // Update the adminId column for this user to be its own ID
+        final String adminId = adminUserId.toString();
+        await db.update(
+          'users',
+          {'adminId': adminId},
+          where: 'id = ?',
+          whereArgs: [adminUserId],
+        );
+        
+        // Seed default categories for this new admin
+        await _seedCategories(db, adminId);
       }
     }
     if (oldVersion < 4) {
@@ -167,6 +181,40 @@ class DatabaseHelper {
         'adminId': '1'
       }, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
+
+    if (oldVersion < 10) {
+      // Add adminId column to all remaining tables for complete isolation
+      List<String> tables = [
+        'customers', 'sales', 'sale_items', 'expenses', 'suppliers'
+      ];
+      
+      for (var table in tables) {
+        var tableInfo = await db.rawQuery('PRAGMA table_info($table)');
+        var columns = tableInfo.map((e) => e['name']).toList();
+        
+        if (!columns.contains('adminId')) {
+          await db.execute('ALTER TABLE $table ADD COLUMN adminId TEXT');
+        }
+      }
+
+      // Migrate existing data to default admin '1'
+      for (var table in tables) {
+        await db.execute('UPDATE $table SET adminId = ? WHERE adminId IS NULL', ['1']);
+      }
+    }
+
+    if (oldVersion < 11) {
+      // Add sync columns to settings table
+      var tableInfo = await db.rawQuery('PRAGMA table_info(settings)');
+      var columns = tableInfo.map((e) => e['name']).toList();
+      
+      if (!columns.contains('is_synced')) {
+        await db.execute('ALTER TABLE settings ADD COLUMN is_synced INTEGER DEFAULT 0');
+      }
+      if (!columns.contains('supabase_id')) {
+        await db.execute('ALTER TABLE settings ADD COLUMN supabase_id TEXT');
+      }
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -198,7 +246,8 @@ class DatabaseHelper {
         type INTEGER NOT NULL,
         isActive INTEGER NOT NULL DEFAULT 1,
         supabase_id TEXT,
-        is_synced INTEGER DEFAULT 0
+        is_synced INTEGER DEFAULT 0,
+        adminId TEXT
       )
     ''');
 
@@ -210,6 +259,7 @@ class DatabaseHelper {
         customerId INTEGER,
         supabase_id TEXT,
         is_synced INTEGER DEFAULT 0,
+        adminId TEXT,
         FOREIGN KEY (customerId) REFERENCES customers (id)
       )
     ''');
@@ -223,6 +273,7 @@ class DatabaseHelper {
         unitPrice REAL NOT NULL,
         supabase_id TEXT,
         is_synced INTEGER DEFAULT 0,
+        adminId TEXT,
         FOREIGN KEY (saleId) REFERENCES sales (id),
         FOREIGN KEY (productId) REFERENCES products (id)
       )
@@ -235,7 +286,8 @@ class DatabaseHelper {
         amount REAL NOT NULL,
         date TEXT NOT NULL,
         supabase_id TEXT,
-        is_synced INTEGER DEFAULT 0
+        is_synced INTEGER DEFAULT 0,
+        adminId TEXT
       )
     ''');
 
@@ -246,7 +298,8 @@ class DatabaseHelper {
         contact TEXT NOT NULL,
         lastOrder TEXT NOT NULL,
         supabase_id TEXT,
-        is_synced INTEGER DEFAULT 0
+        is_synced INTEGER DEFAULT 0,
+        adminId TEXT
       )
     ''');
 
@@ -266,6 +319,8 @@ class DatabaseHelper {
         key TEXT NOT NULL,
         value TEXT,
         adminId TEXT,
+        supabase_id TEXT,
+        is_synced INTEGER DEFAULT 0,
         UNIQUE(key, adminId)
       )
     ''');
@@ -273,8 +328,8 @@ class DatabaseHelper {
     // Initialize last backup date
     await db.insert('settings', {'key': 'last_backup_date', 'value': ''});
 
-    // Seed default categories
-    await _seedCategories(db);
+    // Seed default categories for default admin
+    await _seedCategories(db, '1');
 
     await db.execute('''
       CREATE TABLE users (
@@ -312,7 +367,12 @@ class DatabaseHelper {
     });
   }
 
-  Future<void> _seedCategories(Database db) async {
+  Future<void> seedCategoriesForAdmin(String adminId) async {
+    Database db = await database;
+    await _seedCategories(db, adminId);
+  }
+
+  Future<void> _seedCategories(Database db, String adminId) async {
     final List<String> defaultCategories = [
       'Electronics',
       'Clothing',
@@ -322,7 +382,7 @@ class DatabaseHelper {
     ];
 
     for (var cat in defaultCategories) {
-      await db.insert('categories', {'name': cat}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      await db.insert('categories', {'name': cat, 'adminId': adminId}, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
   }
 
@@ -362,11 +422,15 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<Product>> getFavoriteProducts() async {
+  Future<List<Product>> getFavoriteProducts({String? adminId}) async {
     Database db = await database;
+    final String whereClause = adminId != null ? 'is_favorite = 1 AND adminId = ?' : 'is_favorite = 1';
+    final List<Object?>? whereArgs = adminId != null ? [adminId] : null;
+
     final List<Map<String, dynamic>> maps = await db.query(
       'products',
-      where: 'is_favorite = 1',
+      where: whereClause,
+      whereArgs: whereArgs,
     );
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
   }
@@ -377,9 +441,11 @@ class DatabaseHelper {
     return await db.insert('customers', customer.toMap());
   }
 
-  Future<List<CustomerModel>> getCustomers() async {
+  Future<List<CustomerModel>> getCustomers({String? adminId}) async {
     Database db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('customers');
+    final String? whereClause = adminId != null ? 'adminId = ?' : null;
+    final List<Object?>? whereArgs = adminId != null ? [adminId] : null;
+    final List<Map<String, dynamic>> maps = await db.query('customers', where: whereClause, whereArgs: whereArgs);
     return List.generate(maps.length, (i) => CustomerModel.fromMap(maps[i]));
   }
 
@@ -399,9 +465,11 @@ class DatabaseHelper {
     return await db.insert('expenses', expense);
   }
 
-  Future<List<Map<String, dynamic>>> getExpenses() async {
+  Future<List<Map<String, dynamic>>> getExpenses({String? adminId}) async {
     Database db = await database;
-    return await db.query('expenses');
+    final String? whereClause = adminId != null ? 'adminId = ?' : null;
+    final List<Object?>? whereArgs = adminId != null ? [adminId] : null;
+    return await db.query('expenses', where: whereClause, whereArgs: whereArgs);
   }
 
   Future<int> updateExpense(int id, Map<String, dynamic> expense) async {
@@ -429,9 +497,11 @@ class DatabaseHelper {
     return await db.insert('suppliers', supplier);
   }
 
-  Future<List<Map<String, dynamic>>> getSuppliers() async {
+  Future<List<Map<String, dynamic>>> getSuppliers({String? adminId}) async {
     Database db = await database;
-    return await db.query('suppliers');
+    final String? whereClause = adminId != null ? 'adminId = ?' : null;
+    final List<Object?>? whereArgs = adminId != null ? [adminId] : null;
+    return await db.query('suppliers', where: whereClause, whereArgs: whereArgs);
   }
 
   Future<int> updateSupplier(int id, Map<String, dynamic> supplier) async {
@@ -482,9 +552,10 @@ class DatabaseHelper {
         await txn.insert('sale_items', {
           ...item.toMap(),
           'saleId': saleId,
+          'adminId': sale.adminId, // Ensure items have the same adminId
         });
         
-        // Update product quantity
+        // Update product quantity (should only affect admin's product, though ID is unique)
         await txn.execute(
           'UPDATE products SET quantity = quantity - ? WHERE id = ?',
           [item.quantity, item.productId],
@@ -494,15 +565,20 @@ class DatabaseHelper {
     });
   }
 
-  Future<Map<String, dynamic>> getSalesSummary() async {
+  Future<Map<String, dynamic>> getSalesSummary({String? adminId}) async {
     Database db = await database;
     final now = DateTime.now();
     final today = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
     
-    final result = await db.rawQuery(
-      'SELECT SUM(totalAmount) as totalAmount, COUNT(*) as totalCount FROM sales WHERE saleDate LIKE ?',
-      ['$today%'],
-    );
+    String query = 'SELECT SUM(totalAmount) as totalAmount, COUNT(*) as totalCount FROM sales WHERE saleDate LIKE ?';
+    List<Object?> args = ['$today%'];
+
+    if (adminId != null) {
+      query += ' AND adminId = ?';
+      args.add(adminId);
+    }
+
+    final result = await db.rawQuery(query, args);
     
     return {
       'totalAmount': result.first['totalAmount'] ?? 0.0,
@@ -510,7 +586,7 @@ class DatabaseHelper {
     };
   }
 
-  Future<List<Map<String, dynamic>>> getSalesStatsForPeriod(String period) async {
+  Future<List<Map<String, dynamic>>> getSalesStatsForPeriod(String period, {String? adminId}) async {
     Database db = await database;
     String dateFormat;
     
@@ -531,13 +607,24 @@ class DatabaseHelper {
         dateFormat = '%Y-%m-%d';
     }
 
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    String query = '''
       SELECT strftime(?, saleDate) as date, SUM(totalAmount) as amount, COUNT(*) as count 
       FROM sales 
+    ''';
+    List<Object?> args = [dateFormat];
+
+    if (adminId != null) {
+      query += ' WHERE adminId = ? ';
+      args.add(adminId);
+    }
+
+    query += '''
       GROUP BY date 
       ORDER BY date DESC 
       LIMIT 12
-    ''', [dateFormat]);
+    ''';
+
+    final List<Map<String, dynamic>> maps = await db.rawQuery(query, args);
 
     return maps;
   }
@@ -621,6 +708,6 @@ class DatabaseHelper {
     await db.delete('categories');
     // Note: We might want to keep users or settings, but "clean all database" usually refers to business data.
     // To be safe, let's keep the admin user.
-    await _seedCategories(db);
+    await _seedCategories(db, '1');
   }
 }

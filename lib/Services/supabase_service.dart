@@ -1,6 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:get/get.dart';
+import 'package:pos/Services/Controllers/auth_controller.dart';
 
 class SupabaseService {
   static final SupabaseService _instance = SupabaseService._internal();
@@ -89,16 +92,13 @@ class SupabaseService {
       mapLocalToRemote: (localMap) {
         return {
           'name': localMap['name'],
+          'admin_id': localMap['adminId'], // Added admin_id
         };
       }
     ); 
     
     // 2. Products
     await _syncTable('products', 'id', mapLocalToRemote: (localMap) {
-      // Fix: Cast color/icon to 32-bit signed int for Postgres 'integer' compatibility
-      // Dart ints are 64-bit, so large 32-bit unsigned values (like colors 0xFF...) 
-      // appear as large positives that overflow Postgres signed 4-byte integer.
-      // .toSigned(32) converts them to negative numbers if needed, which fit.
       int colorVal = localMap['color'] ?? 0;
       int iconVal = localMap['icon'] ?? 0;
 
@@ -110,7 +110,8 @@ class SupabaseService {
         'barcode': localMap['barcode'],
         'color': colorVal.toSigned(32),
         'icon': iconVal.toSigned(32),
-        // 'purchase_price': localMap['purchasePrice'] ?? 0.0, // TODO: Uncomment when column is added to Supabase
+        'admin_id': localMap['adminId'], // Added admin_id
+        'purchasePrice': localMap['purchasePrice'] ?? 0.0,
       };
     });
 
@@ -123,6 +124,7 @@ class SupabaseService {
         'email': localMap['email'],
         'type': localMap['type'],
         'isActive': localMap['isActive'],
+        'admin_id': localMap['adminId'], // Added admin_id
       };
     });
 
@@ -136,6 +138,7 @@ class SupabaseService {
         'category': localMap['category'],
         'amount': localMap['amount'],
         'date': localMap['date'],
+        'admin_id': localMap['adminId'], // Added admin_id
       };
     });
 
@@ -145,6 +148,7 @@ class SupabaseService {
         'name': localMap['name'],
         'contact': localMap['contact'],
         'lastOrder': localMap['lastOrder'],
+        'admin_id': localMap['adminId'], // Added admin_id
       };
     });
 
@@ -225,6 +229,7 @@ class SupabaseService {
           'saleDate': sale['saleDate'],
           'totalAmount': sale['totalAmount'],
           'customer_id': customerUuid, // Assuming remote column is customer_id
+          'admin_id': sale['adminId'], // Added admin_id
         };
 
         dynamic response;
@@ -283,6 +288,7 @@ class SupabaseService {
            'product_id': productUuid,
            'quantity': item['quantity'],
            'unitPrice': item['unitPrice'],
+           'admin_id': item['adminId'], // Added admin_id
          };
 
          // Insert item (items typically not updated individually in this POS context, but handled as part of sale)
@@ -304,10 +310,69 @@ class SupabaseService {
   }
 
   Future<void> pullRemoteData() async {
-    // This requires implementing logic to fetch data from Supabase and `upsert` locally.
-    // For simplicity in this iteration, we focus on PUSH (Offline -> Online).
-    // Pulling data implies conflict resolution. 
-    // We can implement a simple pull for products/categories if they are managed elsewhere.
+    final authController = Get.find<AuthController>();
+    final adminId = authController.adminId;
+    if (adminId == null) return;
+
+    final db = await _dbHelper.database;
+
+    // Pull Categories
+    final remoteCategories = await _supabase.from('categories').select().eq('admin_id', adminId);
+    for (var cat in remoteCategories) {
+      await db.insert('categories', {
+        'name': cat['name'],
+        'adminId': adminId,
+        'supabase_id': cat['id'],
+        'is_synced': 1
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+
+    // Pull Products
+    final remoteProducts = await _supabase.from('products').select().eq('admin_id', adminId);
+    for (var p in remoteProducts) {
+      await db.insert('products', {
+        'name': p['name'],
+        'barcode': p['barcode'],
+        'price': p['price'],
+        'category': p['category'],
+        'quantity': p['quantity'],
+        'color': p['color'],
+        'icon': p['icon'],
+        'purchasePrice': p['purchasePrice'] ?? 0.0,
+        'adminId': adminId,
+        'supabase_id': p['id'],
+        'is_synced': 1
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+
+    // Pull Customers
+    final remoteCustomers = await _supabase.from('customers').select().eq('admin_id', adminId);
+    for (var c in remoteCustomers) {
+      await db.insert('customers', {
+        'name': c['name'],
+        'address': c['address'],
+        'cellNumber': c['cellNumber'],
+        'email': c['email'],
+        'type': c['type'],
+        'isActive': c['isActive'],
+        'adminId': adminId,
+        'supabase_id': c['id'],
+        'is_synced': 1
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    
+    // Note: Pulling Sales/Expenses could be more complex due to volume, but let's implement for small sets
+    final remoteExpenses = await _supabase.from('expenses').select().eq('admin_id', adminId);
+    for (var e in remoteExpenses) {
+      await db.insert('expenses', {
+        'category': e['category'],
+        'amount': e['amount'],
+        'date': e['date'],
+        'adminId': adminId,
+        'supabase_id': e['id'],
+        'is_synced': 1
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
   }
   Future<void> deleteRow(String tableName, String supabaseId) async {
     try {

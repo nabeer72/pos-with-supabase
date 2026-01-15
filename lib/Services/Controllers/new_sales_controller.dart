@@ -5,6 +5,8 @@ import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/models/product_model.dart';
 import 'package:pos/Services/models/sale_model.dart';
 import 'package:pos/Services/models/sale_item_model.dart';
+import 'package:pos/Services/supabase_service.dart';
+import 'package:pos/Services/Controllers/auth_controller.dart';
 
 // QR Scanner Service to handle QR scanning logic
 class QRScannerService {
@@ -55,7 +57,8 @@ class NewSaleController extends GetxController {
   }
 
   Future<void> _loadProducts() async {
-    final loadedProducts = await _dbHelper.getProducts();
+    final authController = Get.find<AuthController>();
+    final loadedProducts = await _dbHelper.getProducts(adminId: authController.adminId);
     products.assignAll(loadedProducts);
     
     qrScannerService = QRScannerService(
@@ -175,9 +178,11 @@ class NewSaleController extends GetxController {
   Future<Map<String, dynamic>?> processCheckout(BuildContext context, String? selectedCustomer) async {
     if (cartItems.isEmpty) return null;
 
+    final authController = Get.find<AuthController>();
     final sale = Sale(
       saleDate: DateTime.now(),
       totalAmount: totalAmount.value,
+      adminId: authController.adminId, // Include adminId
     );
     
     final items = cartItems.map((item) => SaleItem(
@@ -185,10 +190,14 @@ class NewSaleController extends GetxController {
       productId: item['id'] ?? 0,
       quantity: item['quantity'],
       unitPrice: (item['price'] as num).toDouble(),
+      adminId: authController.adminId, // Include adminId
     )).toList();
 
     int saleId = await _dbHelper.insertSale(sale, items);
     
+    // Trigger sync to Supabase
+    SupabaseService().syncData();
+
     // Refresh products to update quantities after deduction
     await _loadProducts();
 
@@ -196,6 +205,7 @@ class NewSaleController extends GetxController {
       id: saleId,
       saleDate: sale.saleDate,
       totalAmount: sale.totalAmount,
+      adminId: authController.adminId,
     );
 
     Get.snackbar(

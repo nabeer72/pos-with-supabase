@@ -5,6 +5,7 @@ class Sale {
   final int? customerId;
   final String? supabaseId;
   final bool isSynced;
+  final String? adminId; // Added for multi-tenancy
 
   Sale({
     this.id,
@@ -13,6 +14,7 @@ class Sale {
     this.customerId,
     this.supabaseId,
     this.isSynced = false,
+    this.adminId,
   });
 
   Map<String, dynamic> toMap() {
@@ -23,6 +25,7 @@ class Sale {
       'customerId': customerId,
       'supabase_id': supabaseId,
       'is_synced': isSynced ? 1 : 0,
+      'adminId': adminId,
     };
   }
 
@@ -34,6 +37,7 @@ class Sale {
       customerId: map['customerId'],
       supabaseId: map['supabase_id'],
       isSynced: map['is_synced'] == 1,
+      adminId: map['adminId'],
     );
   }
 }

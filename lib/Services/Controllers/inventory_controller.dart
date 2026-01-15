@@ -23,6 +23,10 @@ class InventoryController extends GetxController {
     isLoading.value = true;
     try {
       final authController = Get.find<AuthController>();
+      
+      // Pull latest data from Supabase first (ensure real-time sync when loading screen)
+      await SupabaseService().syncData(); 
+      
       final items = await _dbHelper.getProducts(adminId: authController.adminId);
       inventoryItems.assignAll(items);
     } finally {
@@ -59,7 +63,24 @@ class InventoryController extends GetxController {
   }
 
   Future<void> updateProduct(Product product) async {
-    await _dbHelper.updateProduct(product);
+    final authController = Get.find<AuthController>();
+    // Ensure product has adminId before update if it was missing in UI construction
+    final productWithAdmin = Product(
+      id: product.id,
+      name: product.name,
+      barcode: product.barcode,
+      price: product.price,
+      category: product.category,
+      icon: product.icon,
+      quantity: product.quantity,
+      color: product.color,
+      supabaseId: product.supabaseId,
+      isSynced: product.isSynced,
+      isFavorite: product.isFavorite,
+      purchasePrice: product.purchasePrice,
+      adminId: authController.adminId, 
+    );
+    await _dbHelper.updateProduct(productWithAdmin);
     await loadInventory();
     SupabaseService().syncData(); // Trigger sync
   }

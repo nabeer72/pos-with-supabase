@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:pos/Services/database_helper.dart';
+import 'package:pos/Services/Controllers/auth_controller.dart';
 
 class ReportController extends GetxController {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -23,7 +24,8 @@ class ReportController extends GetxController {
     isLoading.value = true;
     
     try {
-      final stats = await _dbHelper.getSalesStatsForPeriod(selectedPeriod.value);
+      final authController = Get.find<AuthController>();
+      final stats = await _dbHelper.getSalesStatsForPeriod(selectedPeriod.value, adminId: authController.adminId);
       
       // Convert to format expected by UI
       salesData.value = stats.map((s) => {

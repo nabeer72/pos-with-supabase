@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:pos/Services/database_helper.dart';
+import 'package:pos/Services/Controllers/auth_controller.dart';
 
 class DashboardController extends GetxController {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -18,13 +19,14 @@ class DashboardController extends GetxController {
   Future<void> fetchDashboardData() async {
     isLoading.value = true;
     try {
-      final summary = await _dbHelper.getSalesSummary();
+      final authController = Get.find<AuthController>();
+      final summary = await _dbHelper.getSalesSummary(adminId: authController.adminId);
       salesSummary.value = {
         'totalAmount': (summary['totalAmount'] as num?)?.toDouble() ?? 0.0,
         'totalCount': (summary['totalCount'] as num?)?.toInt() ?? 0,
       };
       
-      final products = await _dbHelper.getFavoriteProducts();
+      final products = await _dbHelper.getFavoriteProducts(adminId: authController.adminId);
       favProducts.value = products;
       
     } catch (e) {

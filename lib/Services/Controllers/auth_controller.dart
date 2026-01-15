@@ -136,10 +136,12 @@ class AuthController extends GetxController {
       };
 
       final id = await _dbHelper.insertUser(newUser);
+      final String adminIdForNewUser = id.toString();
       // Update adminId to be the same as the user ID for Admins so they are their own Tenant
-      await _dbHelper.updateUser(id, {'adminId': id.toString()});
+      await _dbHelper.updateUser(id, {'adminId': adminIdForNewUser});
       
-      // Auto login after signup
+      // Seed default categories for this new admin
+      await _dbHelper.seedCategoriesForAdmin(adminIdForNewUser);
       final createdUser = await _dbHelper.getUserByEmail(email);
       if (createdUser != null) {
         login(createdUser);

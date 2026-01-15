@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
 import 'package:pos/Services/database_helper.dart';
+import 'package:get/get.dart';
+import 'package:pos/Services/Controllers/auth_controller.dart';
 
 class SuppliersScreen extends StatefulWidget {
   @override
@@ -18,7 +20,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   }
 
   Future<void> _loadSuppliers() async {
-    final data = await _dbHelper.getSuppliers();
+    final authController = Get.find<AuthController>();
+    final data = await _dbHelper.getSuppliers(adminId: authController.adminId);
     setState(() {
       suppliers = data;
     });
@@ -108,10 +111,12 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isNotEmpty && contactController.text.isNotEmpty) {
+                final authController = Get.find<AuthController>();
                 final newSupplier = {
                   'name': nameController.text,
                   'contact': contactController.text,
                   'lastOrder': isEdit ? supplier['lastOrder']! : DateTime.now().toIso8601String(),
+                  'adminId': authController.adminId, // Include adminId
                 };
 
                 if (isEdit) {

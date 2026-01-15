@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
 import 'package:pos/widgets/currency_text.dart';
 import 'package:pos/Services/database_helper.dart';
+import 'package:get/get.dart';
+import 'package:pos/Services/Controllers/auth_controller.dart';
 
 class ExpensesScreen extends StatefulWidget {
   @override
@@ -19,9 +21,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   Future<void> _loadExpenses() async {
-    final data = await _dbHelper.getExpenses();
+    final authController = Get.find<AuthController>();
+    final data = await _dbHelper.getExpenses(adminId: authController.adminId);
     setState(() {
-      // Map back to String for UI if needed, or update UI to handle dynamic
       expenses = data;
     });
   }
@@ -124,10 +126,12 @@ void _showExpenseDialog({Map<String, dynamic>? expense, int? index}) {
               return;
             }
 
+            final authController = Get.find<AuthController>();
             final newExpense = {
               'category': category,
               'amount': amount,
               'date': isEdit ? expense['date']! : DateTime.now().toIso8601String(),
+              'adminId': authController.adminId, // Include adminId
             };
 
             if (isEdit) {
