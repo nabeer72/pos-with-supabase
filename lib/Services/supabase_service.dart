@@ -404,7 +404,7 @@ class SupabaseService {
           'adminId': adminId,
           'supabase_id': p['id'],
           'is_synced': 1
-        }, conflictAlgorithm: ConflictAlgorithm.ignore); // Use ignore to avoid changing local IDs
+        }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace to link local by barcode
       }
     } catch (e) {
       print('Error pulling products: $e');
@@ -424,27 +424,50 @@ class SupabaseService {
           'adminId': adminId,
           'supabase_id': c['id'],
           'is_synced': 1
-        }, conflictAlgorithm: ConflictAlgorithm.ignore);
-      }
-    } catch (e) {
-      print('Error pulling customers: $e');
-    }
-    
-    // Pull Expenses
-    try {
-      final remoteExpenses = await _supabase.from('expenses').select().eq('admin_id', adminId);
-      for (var e in remoteExpenses) {
-        await db.insert('expenses', {
-          'category': e['category'],
-          'amount': e['amount'],
-          'date': e['date'],
-          'adminId': adminId,
-          'supabase_id': e['id'],
-          'is_synced': 1
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace to link local by name
       }
     } catch (e) {
       print('Error pulling expenses: $e');
+    }
+
+    // Pull Sales
+    try {
+      final remoteSales = await _supabase.from('sales').select().eq('admin_id', adminId);
+      for (var s in remoteSales) {
+        // Insert sale and keep track of its local ID
+        int localSaleId = await db.insert('sales', {
+          'saleDate': s['saleDate'],
+          'totalAmount': s['totalAmount'],
+          'customerId': null, // Need customer UUID to local ID mapping if we want to restore this
+          'adminId': adminId,
+          'supabase_id': s['id'],
+          'is_synced': 1
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+
+        if (localSaleId > 0) {
+          // Pull and link sale items
+          final remoteItems = await _supabase.from('sale_items').select().eq('sale_id', s['id']);
+          for (var item in remoteItems) {
+            // Resolve local product ID from remote product UUID
+            final remoteProductId = item['product_id'];
+            final localProduct = await db.query('products', where: 'supabase_id = ?', whereArgs: [remoteProductId]);
+            
+            if (localProduct.isNotEmpty) {
+              await db.insert('sale_items', {
+                'saleId': localSaleId,
+                'productId': localProduct.first['id'],
+                'quantity': item['quantity'],
+                'unitPrice': item['unitPrice'],
+                'adminId': adminId,
+                'supabase_id': item['id'],
+                'is_synced': 1
+              }, conflictAlgorithm: ConflictAlgorithm.ignore);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error pulling sales: $e');
     }
   }
   Future<void> deleteRow(String tableName, String supabaseId) async {

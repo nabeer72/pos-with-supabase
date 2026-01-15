@@ -382,7 +382,25 @@ class DatabaseHelper {
     ];
 
     for (var cat in defaultCategories) {
-      await db.insert('categories', {'name': cat, 'adminId': adminId}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      await db.insert('categories', {
+        'name': cat, 
+        'adminId': adminId,
+        'is_synced': 0, // Ensure seeded categories are marked for sync
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+  }
+
+  Future<void> clearLocalData() async {
+    Database db = await database;
+    // Clear all business-related tables
+    // We keep 'users' to allow offline login if needed, or clear all for maximum security
+    List<String> tables = [
+      'products', 'customers', 'sales', 'sale_items', 
+      'expenses', 'suppliers', 'categories', 'settings'
+    ];
+    
+    for (var table in tables) {
+      await db.delete(table);
     }
   }
 

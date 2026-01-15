@@ -42,6 +42,9 @@ class AuthController extends GetxController {
     currentUser.value = {};
     userPermissions.value = [];
     
+    // Clear local business data on logout to prevent sharing data on shared devices
+    await _dbHelper.clearLocalData();
+    
     // Reset currency service cache
     CurrencyService().resetCache();
     
@@ -101,6 +104,12 @@ class AuthController extends GetxController {
           final localUser = await _dbHelper.getUserByEmail(email);
           if (localUser != null) {
             login(localUser);
+            
+            // 5. Pull all remote data immediately after login
+            // Run in background so it doesn't block UI immediately, 
+            // but user will see data populate
+            SupabaseService().pullRemoteData(); 
+            
             return true;
           }
         }
