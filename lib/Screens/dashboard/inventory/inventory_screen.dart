@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pos/widgets/currency_text.dart';
 import 'package:pos/Screens/dashboard/inventory/add_product_screen.dart';
 import 'package:pos/widgets/action_card.dart';
 import 'package:pos/widgets/custom_button.dart';
@@ -162,8 +163,21 @@ class InventoryScreen extends StatelessWidget {
                     final item = controller.inventoryItems[index];
                     return ListTile(
                       title: Text(item.name),
-                      subtitle: Text(
-                          'Price: Rs. ${item.price.toStringAsFixed(2)}${item.barcode != null ? " | QR: ${item.barcode}" : ""}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text('Price: '),
+                              CurrencyText(
+                                price: item.price,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          if (item.barcode != null) Text('QR: ${item.barcode}'),
+                        ],
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

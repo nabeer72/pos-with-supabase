@@ -86,6 +86,11 @@ class SupabaseService {
       'categories', 
       'name',
       onConflict: 'name', // Fix duplicate key error
+      mapLocalToRemote: (localMap) {
+        return {
+          'name': localMap['name'],
+        };
+      }
     ); 
     
     // 2. Products
@@ -140,6 +145,15 @@ class SupabaseService {
         'name': localMap['name'],
         'contact': localMap['contact'],
         'lastOrder': localMap['lastOrder'],
+      };
+    });
+
+    // 7. Settings (Currency and other preferences)
+    await _syncTable('settings', 'id', mapLocalToRemote: (localMap) {
+      return {
+        'key': localMap['key'],
+        'value': localMap['value'],
+        'admin_id': localMap['adminId'],
       };
     });
   }

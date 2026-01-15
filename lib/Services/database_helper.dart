@@ -24,7 +24,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'pos_database.db');
     final db = await openDatabase(
       path,
-      version: 8, // Incremented version to 8 for Admin Isolation
+      version: 9, // Incremented version to 9 for Admin-specific Settings
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -129,11 +129,43 @@ class DatabaseHelper {
       }
     }
 
+
     if (oldVersion < 8) {
       // Add adminId column to enforce multi-tenancy
       await db.execute('ALTER TABLE products ADD COLUMN adminId TEXT');
       await db.execute('ALTER TABLE categories ADD COLUMN adminId TEXT');
       await db.execute('ALTER TABLE users ADD COLUMN adminId TEXT');
+    }
+
+    if (oldVersion < 9) {
+      // Migrate settings table to support admin-specific settings
+      // Since we can't easily alter the primary key, we'll recreate the table
+      await db.execute('ALTER TABLE settings RENAME TO settings_old');
+      
+      await db.execute('''
+        CREATE TABLE settings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          key TEXT NOT NULL,
+          value TEXT,
+          adminId TEXT,
+          UNIQUE(key, adminId)
+        )
+      ''');
+      
+      // Migrate old data (assign to admin '1' as default)
+      await db.execute('''
+        INSERT INTO settings (key, value, adminId)
+        SELECT key, value, '1' FROM settings_old
+      ''');
+      
+      await db.execute('DROP TABLE settings_old');
+      
+      // Initialize default currency for existing admin
+      await db.insert('settings', {
+        'key': 'currency',
+        'value': 'USD',
+        'adminId': '1'
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
   }
 
@@ -230,8 +262,11 @@ class DatabaseHelper {
 
     await db.execute('''
       CREATE TABLE settings (
-        key TEXT PRIMARY KEY,
-        value TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key TEXT NOT NULL,
+        value TEXT,
+        adminId TEXT,
+        UNIQUE(key, adminId)
       )
     ''');
     
@@ -544,26 +579,35 @@ class DatabaseHelper {
   }
 
   // Settings
-  Future<void> updateSetting(String key, String value) async {
+  Future<void> updateSetting(String key, String value, {String? adminId}) async {
     Database db = await database;
     await db.insert(
       'settings',
-      {'key': key, 'value': value},
+      {'key': key, 'value': value, 'adminId': adminId},
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  Future<String?> getSetting(String key) async {
+  Future<String?> getSetting(String key, {String? adminId}) async {
     Database db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'settings',
-      where: 'key = ?',
-      whereArgs: [key],
+      where: 'key = ? AND adminId = ?',
+      whereArgs: [key, adminId],
     );
     if (maps.isNotEmpty) {
       return maps.first['value'] as String?;
     }
     return null;
+  }
+
+  // Currency-specific methods
+  Future<void> setCurrency(String currencyCode, {required String adminId}) async {
+    await updateSetting('currency', currencyCode, adminId: adminId);
+  }
+
+  Future<String?> getCurrency({required String adminId}) async {
+    return await getSetting('currency', adminId: adminId);
   }
 
   Future<void> clearAllData() async {

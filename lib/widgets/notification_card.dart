@@ -2,25 +2,27 @@ import 'package:flutter/material.dart';
 
 class CustomCardWidget extends StatelessWidget {
   final String title;
-  final String subtitle;
+  final String? subtitle;
+  final Widget? subtitleWidget; // New parameter for flexible subtitles
   final String trailingText;
   final VoidCallback onAvatarTap;
   final VoidCallback onCardTap;
-  final VoidCallback? onEdit; // Made optional
+  final VoidCallback? onEdit;
   final VoidCallback onDelete;
   final IconData avatarIcon;
-  final bool showEditIcon; // New parameter to control edit icon visibility
+  final bool showEditIcon;
 
   const CustomCardWidget({
     required this.title,
-    required this.subtitle,
+    this.subtitle,
+    this.subtitleWidget,
     required this.trailingText,
     required this.onAvatarTap,
     required this.onCardTap,
     this.onEdit,
     required this.onDelete,
     this.avatarIcon = Icons.person,
-    this.showEditIcon = true, // Default to true for other screens
+    this.showEditIcon = true,
   });
 
   @override
@@ -59,10 +61,12 @@ class CustomCardWidget extends StatelessWidget {
               color: Colors.black87,
             ),
           ),
-          subtitle: Text(
-            subtitle,
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-          ),
+          subtitle: subtitleWidget ?? (subtitle != null
+              ? Text(
+                  subtitle!,
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                )
+              : null),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

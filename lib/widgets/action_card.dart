@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pos/widgets/currency_text.dart';
 
 class QuickActionCard extends StatelessWidget {
   final String title;
@@ -85,14 +86,12 @@ class QuickActionCard extends StatelessWidget {
                     ),
                     if (price != null) ...[
                       const SizedBox(height: 4),
-                      Text(
-                        'Rs. ${price!.toDouble().toStringAsFixed(2)}',
+                      CurrencyText(
+                        price: price!.toDouble(),
                         style: TextStyle(
                           fontSize: priceFontSize,
                           color: Colors.grey[600],
                         ),
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ],

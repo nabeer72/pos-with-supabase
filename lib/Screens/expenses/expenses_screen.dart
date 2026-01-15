@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
+import 'package:pos/widgets/currency_text.dart';
 import 'package:pos/Services/database_helper.dart';
 
 class ExpensesScreen extends StatefulWidget {
@@ -293,7 +294,10 @@ void _showExpenseDialog({Map<String, dynamic>? expense, int? index}) {
                 final expense = expenses[index];
                 return CustomCardWidget(
                   title: expense['category']!,
-                  subtitle: 'Rs. ${expense['amount']}',
+                  subtitleWidget: CurrencyText(
+                    price: (expense['amount'] as num).toDouble(),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
                   trailingText: expense['date']!,
                   avatarIcon: Icons.account_balance_wallet,
                   onAvatarTap: () {

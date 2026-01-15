@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'dart:convert';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/supabase_service.dart';
+import 'package:pos/Services/currency_service.dart';
 
 class AuthController extends GetxController {
   var isLoggedIn = false.obs;
@@ -25,12 +26,25 @@ class AuthController extends GetxController {
       print('Error parsing permissions: $e');
       userPermissions.value = [];
     }
+    
+    // Initialize currency service for this admin
+    final currencyService = CurrencyService();
+    final currentAdminId = adminId;
+    if (currentAdminId != null) {
+      currencyService.setCurrentAdminId(currentAdminId);
+      currencyService.loadCurrency(); // Load currency asynchronously
+      currencyService.initializeCurrencyForAdmin(currentAdminId); // Ensure default currency is set
+    }
   }
 
   void logout() async {
     isLoggedIn.value = false;
     currentUser.value = {};
     userPermissions.value = [];
+    
+    // Reset currency service cache
+    CurrencyService().resetCache();
+    
     try {
       await SupabaseService().signOut();
     } catch(e) {

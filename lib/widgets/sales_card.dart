@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pos/widgets/currency_text.dart';
 
 class SalesAndTransactionsWidget extends StatelessWidget {
   final double screenWidth;
@@ -45,8 +46,8 @@ class SalesAndTransactionsWidget extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          'Rs. ${salesData['amount'] is num ? (salesData['amount'] as num).toDouble().toStringAsFixed(2) : '0.00'}',
+        CurrencyText(
+          price: salesData['amount'] is num ? (salesData['amount'] as num).toDouble() : 0.0,
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,

@@ -8,6 +8,8 @@ import 'package:printing/printing.dart';
 
 import 'package:pos/Services/Controllers/report_controller.dart';
 import 'package:pos/widgets/sales_card.dart';
+import 'package:pos/widgets/currency_text.dart';
+import 'package:pos/Services/currency_service.dart';
 
 // COLORS
 class AppColors {
@@ -224,13 +226,17 @@ class ReportScreen extends StatelessWidget {
                 sideTitles: SideTitles(
                   showTitles: true,
                   interval: maxY / 5,
-                  getTitlesWidget: (value, _) => Text(
-                    'Rs. ${value.toInt()}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color:
-                          AppColors.gradientStart.withOpacity(0.7),
-                    ),
+                  getTitlesWidget: (value, _) => FutureBuilder<String>(
+                    future: CurrencyService().getCurrencySymbol(),
+                    builder: (context, snapshot) {
+                      return Text(
+                        '${snapshot.data ?? '\$'}${value.toInt()}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.gradientStart.withOpacity(0.7),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -327,7 +333,7 @@ Future<void> _printReport(ReportController controller) async {
               pw.Divider(),
 
               pw.Text(
-                'Total Sales: Rs. ${summary['totalAmount'] ?? 0}',
+                'Total Sales: ${CurrencyService().getCurrencySymbolSync()} ${summary['totalAmount'] ?? 0}',
               ),
               pw.Text(
                 'Total Transactions: ${summary['totalCount'] ?? 0}',
@@ -381,7 +387,7 @@ Future<void> _printReport(ReportController controller) async {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
                           child: pw.Text(
-                            'Rs. ${item['amount'] ?? 0}',
+                            '${CurrencyService().getCurrencySymbolSync()} ${item['amount'] ?? 0}',
                           ),
                         ),
                       ],

@@ -7,6 +7,7 @@ import 'package:pos/Services/backup_service.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/Services/sync_service.dart';
+import 'package:pos/Services/currency_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pos/widgets/currency_text.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:pos/Services/Controllers/add_customer_controller.dart';
 import 'package:pos/Services/Controllers/new_sales_controller.dart';
@@ -279,7 +280,12 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               final item = e.value;
               return ListTile(
                 title: Text(item['name']),
-                subtitle: Text('Rs. ${item['price']} x ${item['quantity']}'),
+                subtitle: Row(
+                  children: [
+                    CurrencyText(price: item['price'].toDouble()),
+                    Text(' x ${item['quantity']}'),
+                  ],
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -303,7 +309,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  Text('Rs. ${_controller.totalAmount.value.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blueAccent)),
+                  CurrencyText(
+                    price: _controller.totalAmount.value,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blueAccent),
+                  ),
                 ],
               ),
             ),

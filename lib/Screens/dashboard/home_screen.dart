@@ -19,6 +19,8 @@ import 'package:pos/widgets/action_card.dart';
 import 'package:pos/widgets/sales_card.dart';
 import 'package:pos/Screens/dashboard/backup_screen.dart';
 import 'package:pos/Screens/login_screen/login_screen.dart';
+import 'package:pos/Screens/settings/settings_screen.dart';
+import 'package:pos/Services/currency_service.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -331,68 +333,8 @@ class DashboardScreen extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("$title coming soon!")),
         );
-    }
   }
 }
-
-// Simple Placeholder Screens to "Enable" features
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blue[900],
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Text('Database Management', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          ListTile(
-            title: const Text('Reset All Data', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-            subtitle: const Text('This will permanently delete all products, sales, customers, and expenses.'),
-            leading: const Icon(Icons.delete_forever, color: Colors.red),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.redAccent)),
-            onTap: () => _showResetConfirmation(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showResetConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Reset All Data?'),
-        content: const Text('Are you sure? This action is irreversible and will wipe all your business data.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await DatabaseHelper().clearAllData();
-              Get.snackbar(
-                'Database Wiped',
-                'All data has been successfully cleared.',
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: Colors.red,
-                colorText: Colors.white,
-              );
-              // Refresh app state if needed
-              Get.find<DashboardController>().fetchDashboardData(); 
-              Get.offAll(() => const DashboardScreen());
-            },
-            child: const Text('Reset Now', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class AnalyticsScreen extends StatelessWidget {

@@ -82,6 +82,16 @@ create table public.suppliers (
   "lastOrder" text
 );
 
+-- Settings Table (for currency and other preferences)
+create table public.settings (
+  id uuid default uuid_generate_v4() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  key text not null,
+  value text,
+  admin_id text,
+  unique(key, admin_id)
+);
+
 -- Enable Row Level Security (RLS) - Optional but recommended
 alter table public.users enable row level security;
 alter table public.categories enable row level security;
@@ -91,6 +101,7 @@ alter table public.sales enable row level security;
 alter table public.sale_items enable row level security;
 alter table public.expenses enable row level security;
 alter table public.suppliers enable row level security;
+alter table public.settings enable row level security;
 
 -- Create policies to allow public access (Since we are using Anon Key for now in the app)
 -- Ideally, you should restrict this in production.
@@ -102,3 +113,4 @@ create policy "Allow all access" on public.sales for all using (true);
 create policy "Allow all access" on public.sale_items for all using (true);
 create policy "Allow all access" on public.expenses for all using (true);
 create policy "Allow all access" on public.suppliers for all using (true);
+create policy "Allow all access" on public.settings for all using (true);
