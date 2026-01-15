@@ -427,22 +427,21 @@ class SupabaseService {
         }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace to link local by name
       }
     } catch (e) {
-      print('Error pulling expenses: $e');
+      print('Error pulling customers: $e');
     }
 
     // Pull Sales
     try {
       final remoteSales = await _supabase.from('sales').select().eq('admin_id', adminId);
       for (var s in remoteSales) {
-        // Insert sale and keep track of its local ID
         int localSaleId = await db.insert('sales', {
           'saleDate': s['saleDate'],
           'totalAmount': s['totalAmount'],
-          'customerId': null, // Need customer UUID to local ID mapping if we want to restore this
+          'customerId': null, 
           'adminId': adminId,
           'supabase_id': s['id'],
           'is_synced': 1
-        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+        }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace based on supabase_id unique index
 
         if (localSaleId > 0) {
           // Pull and link sale items
@@ -461,7 +460,7 @@ class SupabaseService {
                 'adminId': adminId,
                 'supabase_id': item['id'],
                 'is_synced': 1
-              }, conflictAlgorithm: ConflictAlgorithm.ignore);
+              }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace based on supabase_id
             }
           }
         }

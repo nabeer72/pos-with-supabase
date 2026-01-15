@@ -14,40 +14,64 @@ void main() async {
   print('Application starting...');
   
   try {
+    print('Starting initialization sequence...');
     // Initialize Database
-    print('Initializing Database...');
+    print('Step 1: Initializing Database...');
     final dbHelper = DatabaseHelper();
     await dbHelper.database;
-    print('Database initialized.');
+    print('Step 1: Database initialized successfully.');
     
     // Initialize AuthController globally
+    print('Step 2: Initializing AuthController...');
     Get.put(AuthController());
+    print('Step 2: AuthController initialized.');
     
     // Check and perform backup if 15 days passed
-    print('Checking backup...');
+    print('Step 3: Checking backup status...');
     final backupService = BackupService();
     await backupService.checkAndPerformBackup();
-    print('Backup check completed.');
+    print('Step 3: Backup check completed.');
     
     // Initialize Supabase
-    print('Initializing Supabase...');
+    print('Step 4: Initializing Supabase...');
     final supabaseService = SupabaseService();
-    await supabaseService.initialize().timeout(const Duration(seconds: 10), onTimeout: () {
-      print('Supabase initialization timed out.');
+    await supabaseService.initialize().timeout(const Duration(seconds: 15), onTimeout: () {
+      print('Supabase initialization timed out (15s).');
     });
-    print('Supabase initialized.');
+    print('Step 4: Supabase initialized.');
     
     // Start Sync Service
+    print('Step 5: Starting Sync Service...');
     final syncService = SyncService();
     syncService.startSyncMonitoring();
+    print('Step 5: Sync Service started.');
     
-    print('Running App...');
+    print('All initialization steps completed. Launching MyApp...');
     runApp(const MyApp());
   } catch (e, stack) {
-    print('Fatal Error during initialization: $e');
-    print(stack);
-    // Run app with error screen or minimal app to show error
-    runApp(MaterialApp(home: Scaffold(body: Center(child: Text('Error: $e')))));
+    print('CRITICAL FAILURE during initialization: $e');
+    print('Stack trace: $stack');
+    runApp(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 60),
+                const SizedBox(height: 20),
+                const Text('App Failed to Start', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                Text(e.toString(), textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ));
   }
 }
 

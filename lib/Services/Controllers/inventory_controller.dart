@@ -24,11 +24,16 @@ class InventoryController extends GetxController {
     try {
       final authController = Get.find<AuthController>();
       
-      // Pull latest data from Supabase first (ensure real-time sync when loading screen)
-      await SupabaseService().syncData(); 
-      
+      // Load local data first for instant UI response
       final items = await _dbHelper.getProducts(adminId: authController.adminId);
       inventoryItems.assignAll(items);
+      
+      // Trigger sync in background without blocking UI
+      SupabaseService().syncData().then((_) async {
+         // Refresh local list once sync is done to show any new remote items
+         final updatedItems = await _dbHelper.getProducts(adminId: authController.adminId);
+         inventoryItems.assignAll(updatedItems);
+      });
     } finally {
       isLoading.value = false;
     }

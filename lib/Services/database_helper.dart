@@ -9,7 +9,7 @@ import 'package:pos/Services/models/sale_item_model.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
-  static const int _databaseVersion = 11;
+  static const int _databaseVersion = 12;
 
   factory DatabaseHelper() => _instance;
 
@@ -215,6 +215,120 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE settings ADD COLUMN supabase_id TEXT');
       }
     }
+
+    if (oldVersion < 12) {
+      // Get existing tables
+      var tableNames = (await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'")).map((m) => m['name']).toList();
+
+      // CATEGORIES: unique(name, adminId)
+      if (tableNames.contains('categories')) {
+          await db.execute('''
+            DELETE FROM categories WHERE id NOT IN (
+              SELECT MAX(id) FROM categories GROUP BY name, adminId
+            )
+          ''');
+          
+          if (!tableNames.contains('categories_old')) {
+            await db.execute('ALTER TABLE categories RENAME TO categories_old');
+          }
+      }
+      
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          adminId TEXT,
+          supabase_id TEXT,
+          is_synced INTEGER DEFAULT 0,
+          UNIQUE(name, adminId)
+        )
+      ''');
+      
+      if (tableNames.contains('categories_old') || tableNames.contains('categories')) {
+          await db.execute('''
+            INSERT OR IGNORE INTO categories (id, name, adminId, supabase_id, is_synced)
+            SELECT id, name, adminId, supabase_id, is_synced FROM ${tableNames.contains('categories_old') ? 'categories_old' : 'categories'}
+          ''');
+      }
+      
+      if (tableNames.contains('categories_old')) {
+        await db.execute('DROP TABLE categories_old');
+      }
+
+      // PRODUCTS: unique(barcode, adminId) - Only for barcodes that are NOT NULL
+      await db.execute('''
+        DELETE FROM products WHERE barcode IS NOT NULL AND id NOT IN (
+          SELECT MAX(id) FROM products GROUP BY barcode, adminId
+        )
+      ''');
+      await db.execute('''
+        DELETE FROM products WHERE barcode IS NULL AND id NOT IN (
+          SELECT MAX(id) FROM products GROUP BY name, adminId
+        )
+      ''');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_products_barcode_admin ON products (barcode, adminId) WHERE barcode IS NOT NULL');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_products_name_admin ON products (name, adminId) WHERE barcode IS NULL');
+      
+      // CUSTOMERS: unique(name, adminId)
+      if (tableNames.contains('customers')) {
+          await db.execute('''
+            DELETE FROM customers WHERE id NOT IN (
+              SELECT MAX(id) FROM customers GROUP BY name, adminId
+            )
+          ''');
+          
+          if (!tableNames.contains('customers_old')) {
+             await db.execute('ALTER TABLE customers RENAME TO customers_old');
+          }
+      }
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS customers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          address TEXT,
+          cellNumber TEXT,
+          email TEXT,
+          type INTEGER NOT NULL,
+          isActive INTEGER NOT NULL DEFAULT 1,
+          supabase_id TEXT,
+          is_synced INTEGER DEFAULT 0,
+          adminId TEXT,
+          UNIQUE(name, adminId)
+        )
+      ''');
+      
+      if (tableNames.contains('customers_old') || tableNames.contains('customers')) {
+          await db.execute('''
+            INSERT OR IGNORE INTO customers (id, name, address, cellNumber, email, type, isActive, supabase_id, is_synced, adminId)
+            SELECT id, name, address, cellNumber, email, type, isActive, supabase_id, is_synced, adminId FROM ${tableNames.contains('customers_old') ? 'customers_old' : 'customers'}
+          ''');
+      }
+
+      if (tableNames.contains('customers_old')) {
+         await db.execute('DROP TABLE customers_old');
+      }
+      
+      // Ensure supabase_id is UNIQUE in all tables to prevent duplication by remote ID
+      for (var table in ['categories', 'products', 'customers', 'sales', 'sale_items', 'expenses', 'suppliers']) {
+        // Double check table exists before cleanup
+        if (tableNames.contains(table)) {
+            await db.execute('''
+              DELETE FROM $table WHERE supabase_id IS NOT NULL AND id NOT IN (
+                SELECT MAX(id) FROM $table GROUP BY supabase_id
+              )
+            ''');
+        }
+      }
+      
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_supabase_id ON categories (supabase_id) WHERE supabase_id IS NOT NULL');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_products_supabase_id ON products (supabase_id) WHERE supabase_id IS NOT NULL');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_supabase_id ON customers (supabase_id) WHERE supabase_id IS NOT NULL');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_supabase_id ON sales (supabase_id) WHERE supabase_id IS NOT NULL');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_sale_items_supabase_id ON sale_items (supabase_id) WHERE supabase_id IS NOT NULL');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_expenses_supabase_id ON expenses (supabase_id) WHERE supabase_id IS NOT NULL');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_suppliers_supabase_id ON suppliers (supabase_id) WHERE supabase_id IS NOT NULL');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -235,6 +349,8 @@ class DatabaseHelper {
         adminId TEXT
       )
     ''');
+    await db.execute('CREATE UNIQUE INDEX idx_products_barcode_admin ON products (barcode, adminId) WHERE barcode IS NOT NULL');
+    await db.execute('CREATE UNIQUE INDEX idx_products_name_admin ON products (name, adminId) WHERE barcode IS NULL');
 
     await db.execute('''
       CREATE TABLE customers (
@@ -312,6 +428,15 @@ class DatabaseHelper {
         adminId TEXT
       )
     ''');
+
+     // Create Unique Indexes for Sync - AFTER all tables are created
+    await db.execute('CREATE UNIQUE INDEX idx_categories_supabase_id ON categories (supabase_id) WHERE supabase_id IS NOT NULL');
+    await db.execute('CREATE UNIQUE INDEX idx_products_supabase_id ON products (supabase_id) WHERE supabase_id IS NOT NULL');
+    await db.execute('CREATE UNIQUE INDEX idx_customers_supabase_id ON customers (supabase_id) WHERE supabase_id IS NOT NULL');
+    await db.execute('CREATE UNIQUE INDEX idx_sales_supabase_id ON sales (supabase_id) WHERE supabase_id IS NOT NULL');
+    await db.execute('CREATE UNIQUE INDEX idx_sale_items_supabase_id ON sale_items (supabase_id) WHERE supabase_id IS NOT NULL');
+    await db.execute('CREATE UNIQUE INDEX idx_expenses_supabase_id ON expenses (supabase_id) WHERE supabase_id IS NOT NULL');
+    await db.execute('CREATE UNIQUE INDEX idx_suppliers_supabase_id ON suppliers (supabase_id) WHERE supabase_id IS NOT NULL');
 
     await db.execute('''
       CREATE TABLE settings (
