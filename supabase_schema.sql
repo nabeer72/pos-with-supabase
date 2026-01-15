@@ -21,7 +21,8 @@ create table public.categories (
   id uuid default uuid_generate_v4() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name text,
-  admin_id text -- Added for multi-tenancy
+  admin_id text,
+  unique(name, admin_id)
 );
 
 -- Products Table
@@ -36,7 +37,8 @@ create table public.products (
   color integer,
   icon integer,
   admin_id text, -- Added for multi-tenancy
-  "purchasePrice" numeric -- Corrected case to match local DB
+  "purchasePrice" numeric, -- Corrected case to match local DB
+  unique(barcode, admin_id)
 );
 
 -- Customers Table
@@ -49,7 +51,8 @@ create table public.customers (
   email text,
   type integer,
   "isActive" integer,
-  admin_id text -- Added for multi-tenancy
+  admin_id text,
+  unique(name, admin_id)
 );
 
 -- Sales Table

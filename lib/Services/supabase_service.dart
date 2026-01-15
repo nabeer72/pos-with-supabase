@@ -60,111 +60,168 @@ class SupabaseService {
 
     try {
       await pushUnsyncedData();
+    } catch (e) {
+      print('Push sync error: $e');
+    }
+    
+    try {
       await pullRemoteData();
     } catch (e) {
-      print('Sync error: $e');
+      print('Pull sync error: $e');
     }
   }
 
   Future<void> pushUnsyncedData() async {
-    // 0. Users (Sync first so foreign keys might work if needed, though usually unrelated)
-    await _syncTable(
-      'users', 
-      'id', 
-      onConflict: 'email', // Handle duplicate emails by updating
-      mapLocalToRemote: (localMap) {
-        return {
-          'name': localMap['name'],
-          'email': localMap['email'],
-          'role': localMap['role'],
-          'permissions': localMap['permissions'],
-          'last_active': localMap['lastActive'], // Mapped to snake_case for Supabase
-          'password': localMap['password'], // Syncing password as requested
-        };
-      }
-    );
+    // 0. Users
+    try {
+      await _syncTable(
+        'users', 
+        'id', 
+        onConflict: 'email', 
+        mapLocalToRemote: (localMap) {
+          return {
+            'name': localMap['name'],
+            'email': localMap['email'],
+            'role': localMap['role'],
+            'permissions': localMap['permissions'],
+            'last_active': localMap['lastActive'],
+            'password': localMap['password'],
+            'admin_id': localMap['adminId'],
+          };
+        }
+      );
+    } catch (e) {
+      print('Error syncing users: $e');
+    }
 
     // 1. Categories
-    await _syncTable(
-      'categories', 
-      'name',
-      onConflict: 'name', // Fix duplicate key error
-      mapLocalToRemote: (localMap) {
-        return {
-          'name': localMap['name'],
-          'admin_id': localMap['adminId'], // Added admin_id
-        };
-      }
-    ); 
+    try {
+      await _syncTable(
+        'categories', 
+        'id',
+        onConflict: 'name,admin_id', // Handle composite unique constraint
+        mapLocalToRemote: (localMap) {
+          return {
+            'name': localMap['name'],
+            'admin_id': localMap['adminId'],
+          };
+        }
+      );
+    } catch (e) {
+      print('Error syncing categories: $e');
+    }
     
     // 2. Products
-    await _syncTable('products', 'id', mapLocalToRemote: (localMap) {
-      int colorVal = localMap['color'] ?? 0;
-      int iconVal = localMap['icon'] ?? 0;
+    try {
+      await _syncTable(
+        'products', 
+        'id', 
+        onConflict: 'barcode,admin_id', // Handle barcode collision for the same admin
+        mapLocalToRemote: (localMap) {
+          int colorVal = localMap['color'] ?? 0;
+          int iconVal = localMap['icon'] ?? 0;
 
-      return {
-        'name': localMap['name'],
-        'price': localMap['price'],
-        'category': localMap['category'], 
-        'quantity': localMap['quantity'],
-        'barcode': localMap['barcode'],
-        'color': colorVal.toSigned(32),
-        'icon': iconVal.toSigned(32),
-        'admin_id': localMap['adminId'], // Added admin_id
-        'purchasePrice': localMap['purchasePrice'] ?? 0.0,
-      };
-    });
+          return {
+            'name': localMap['name'],
+            'price': localMap['price'],
+            'category': localMap['category'], 
+            'quantity': localMap['quantity'],
+            'barcode': localMap['barcode'],
+            'color': colorVal.toSigned(32),
+            'icon': iconVal.toSigned(32),
+            'admin_id': localMap['adminId'],
+            'purchasePrice': localMap['purchasePrice'] ?? 0.0,
+          };
+        }
+      );
+    } catch (e) {
+      print('Error syncing products: $e');
+    }
 
     // 3. Customers
-    await _syncTable('customers', 'id', mapLocalToRemote: (localMap) {
-      return {
-        'name': localMap['name'],
-        'address': localMap['address'],
-        'cellNumber': localMap['cellNumber'],
-        'email': localMap['email'],
-        'type': localMap['type'],
-        'isActive': localMap['isActive'],
-        'admin_id': localMap['adminId'], // Added admin_id
-      };
-    });
+    try {
+      await _syncTable(
+        'customers', 
+        'id', 
+        onConflict: 'name,admin_id', // Handle name collision for the same admin
+        mapLocalToRemote: (localMap) {
+          return {
+            'name': localMap['name'],
+            'address': localMap['address'],
+            'cellNumber': localMap['cellNumber'],
+            'email': localMap['email'],
+            'type': localMap['type'],
+            'isActive': localMap['isActive'],
+            'admin_id': localMap['adminId'],
+          };
+        }
+      );
+    } catch (e) {
+      print('Error syncing customers: $e');
+    }
 
     // 4. Sales & SaleItems
-    // Sales need to be synced first, then items with valid sale_id (UUID)
-    await _syncSales();
+    try {
+      await _syncSales();
+    } catch (e) {
+      print('Error syncing sales: $e');
+    }
     
     // 5. Expenses
-    await _syncTable('expenses', 'id', mapLocalToRemote: (localMap) {
-      return {
-        'category': localMap['category'],
-        'amount': localMap['amount'],
-        'date': localMap['date'],
-        'admin_id': localMap['adminId'], // Added admin_id
-      };
-    });
+    try {
+      await _syncTable('expenses', 'id', mapLocalToRemote: (localMap) {
+        return {
+          'category': localMap['category'],
+          'amount': localMap['amount'],
+          'date': localMap['date'],
+          'admin_id': localMap['adminId'],
+        };
+      });
+    } catch (e) {
+      print('Error syncing expenses: $e');
+    }
 
     // 6. Suppliers
-    await _syncTable('suppliers', 'id', mapLocalToRemote: (localMap) {
-      return {
-        'name': localMap['name'],
-        'contact': localMap['contact'],
-        'lastOrder': localMap['lastOrder'],
-        'admin_id': localMap['adminId'], // Added admin_id
-      };
-    });
+    try {
+      await _syncTable(
+        'suppliers', 
+        'id', 
+        onConflict: 'name,admin_id',
+        mapLocalToRemote: (localMap) {
+          return {
+            'name': localMap['name'],
+            'contact': localMap['contact'],
+            'lastOrder': localMap['lastOrder'],
+            'admin_id': localMap['adminId'],
+          };
+        }
+      );
+    } catch (e) {
+      print('Error syncing suppliers: $e');
+    }
 
-    // 7. Settings (Currency and other preferences)
-    await _syncTable('settings', 'id', mapLocalToRemote: (localMap) {
-      return {
-        'key': localMap['key'],
-        'value': localMap['value'],
-        'admin_id': localMap['adminId'],
-      };
-    });
+    // 7. Settings
+    try {
+      await _syncTable(
+        'settings', 
+        'id', 
+        onConflict: 'key,admin_id', // Fix duplicate key error for settings
+        mapLocalToRemote: (localMap) {
+          return {
+            'key': localMap['key'],
+            'value': localMap['value'],
+            'admin_id': localMap['adminId'],
+          };
+        }
+      );
+    } catch (e) {
+      print('Error syncing settings: $e');
+    }
   }
 
   Future<void> _syncTable(String tableName, String localIdColumn, {Map<String, dynamic> Function(Map<String, dynamic>)? mapLocalToRemote, String? onConflict}) async {
     final db = await _dbHelper.database;
-    final unsyncedRows = await db.query(tableName, where: 'is_synced = 0');
+    final unsyncedRows = await db.query(tableName, where: 'is_synced = 0 OR is_synced IS NULL');
 
     for (var row in unsyncedRows) {
       try {
@@ -209,7 +266,7 @@ class SupabaseService {
 
   Future<void> _syncSales() async {
     final db = await _dbHelper.database;
-    final unsyncedSales = await db.query('sales', where: 'is_synced = 0');
+    final unsyncedSales = await db.query('sales', where: 'is_synced = 0 OR is_synced IS NULL');
 
     for (var sale in unsyncedSales) {
       try {
@@ -317,61 +374,77 @@ class SupabaseService {
     final db = await _dbHelper.database;
 
     // Pull Categories
-    final remoteCategories = await _supabase.from('categories').select().eq('admin_id', adminId);
-    for (var cat in remoteCategories) {
-      await db.insert('categories', {
-        'name': cat['name'],
-        'adminId': adminId,
-        'supabase_id': cat['id'],
-        'is_synced': 1
-      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    try {
+      final remoteCategories = await _supabase.from('categories').select().eq('admin_id', adminId);
+      for (var cat in remoteCategories) {
+        await db.insert('categories', {
+          'name': cat['name'],
+          'adminId': adminId,
+          'supabase_id': cat['id'],
+          'is_synced': 1
+        }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace to update supabase_id if name matches
+      }
+    } catch (e) {
+      print('Error pulling categories: $e');
     }
 
     // Pull Products
-    final remoteProducts = await _supabase.from('products').select().eq('admin_id', adminId);
-    for (var p in remoteProducts) {
-      await db.insert('products', {
-        'name': p['name'],
-        'barcode': p['barcode'],
-        'price': p['price'],
-        'category': p['category'],
-        'quantity': p['quantity'],
-        'color': p['color'],
-        'icon': p['icon'],
-        'purchasePrice': p['purchasePrice'] ?? 0.0,
-        'adminId': adminId,
-        'supabase_id': p['id'],
-        'is_synced': 1
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    try {
+      final remoteProducts = await _supabase.from('products').select().eq('admin_id', adminId);
+      for (var p in remoteProducts) {
+        await db.insert('products', {
+          'name': p['name'],
+          'barcode': p['barcode'],
+          'price': p['price'],
+          'category': p['category'],
+          'quantity': p['quantity'],
+          'color': p['color'],
+          'icon': p['icon'],
+          'purchasePrice': p['purchasePrice'] ?? 0.0,
+          'adminId': adminId,
+          'supabase_id': p['id'],
+          'is_synced': 1
+        }, conflictAlgorithm: ConflictAlgorithm.ignore); // Use ignore to avoid changing local IDs
+      }
+    } catch (e) {
+      print('Error pulling products: $e');
     }
 
     // Pull Customers
-    final remoteCustomers = await _supabase.from('customers').select().eq('admin_id', adminId);
-    for (var c in remoteCustomers) {
-      await db.insert('customers', {
-        'name': c['name'],
-        'address': c['address'],
-        'cellNumber': c['cellNumber'],
-        'email': c['email'],
-        'type': c['type'],
-        'isActive': c['isActive'],
-        'adminId': adminId,
-        'supabase_id': c['id'],
-        'is_synced': 1
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    try {
+      final remoteCustomers = await _supabase.from('customers').select().eq('admin_id', adminId);
+      for (var c in remoteCustomers) {
+        await db.insert('customers', {
+          'name': c['name'],
+          'address': c['address'],
+          'cellNumber': c['cellNumber'],
+          'email': c['email'],
+          'type': c['type'],
+          'isActive': c['isActive'],
+          'adminId': adminId,
+          'supabase_id': c['id'],
+          'is_synced': 1
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+    } catch (e) {
+      print('Error pulling customers: $e');
     }
     
-    // Note: Pulling Sales/Expenses could be more complex due to volume, but let's implement for small sets
-    final remoteExpenses = await _supabase.from('expenses').select().eq('admin_id', adminId);
-    for (var e in remoteExpenses) {
-      await db.insert('expenses', {
-        'category': e['category'],
-        'amount': e['amount'],
-        'date': e['date'],
-        'adminId': adminId,
-        'supabase_id': e['id'],
-        'is_synced': 1
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    // Pull Expenses
+    try {
+      final remoteExpenses = await _supabase.from('expenses').select().eq('admin_id', adminId);
+      for (var e in remoteExpenses) {
+        await db.insert('expenses', {
+          'category': e['category'],
+          'amount': e['amount'],
+          'date': e['date'],
+          'adminId': adminId,
+          'supabase_id': e['id'],
+          'is_synced': 1
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    } catch (e) {
+      print('Error pulling expenses: $e');
     }
   }
   Future<void> deleteRow(String tableName, String supabaseId) async {
