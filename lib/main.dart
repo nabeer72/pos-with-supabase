@@ -8,6 +8,7 @@ import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/Services/sync_service.dart';
 import 'package:pos/Services/currency_service.dart';
+import 'package:pos/Services/loyalty_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,11 @@ void main() async {
     final syncService = SyncService();
     syncService.startSyncMonitoring();
     print('Step 5: Sync Service started.');
+    
+    // Initialize LoyaltyService
+    print('Step 6: Initializing LoyaltyService...');
+    Get.put(LoyaltyService());
+    print('Step 6: LoyaltyService initialized.');
     
     print('All initialization steps completed. Launching MyApp...');
     runApp(const MyApp());

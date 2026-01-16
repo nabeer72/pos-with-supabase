@@ -8,6 +8,9 @@ import 'package:pos/Services/models/sale_item_model.dart';
 import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/Services/receipt_service.dart';
+import 'package:pos/Services/loyalty_service.dart';
+import 'package:pos/Services/models/loyalty_account_model.dart';
+import 'package:pos/Services/models/customer_model.dart';
 
 // QR Scanner Service to handle QR scanning logic
 class QRScannerService {
@@ -48,6 +51,12 @@ class NewSaleController extends GetxController {
   final isScanning = false.obs;
   final products = <Product>[].obs;
   
+  // Loyalty Observables
+  final pointsToRedeem = 0.0.obs;
+  final cashbackToUse = 0.0.obs;
+  final loyaltyAccount = Rxn<LoyaltyAccount>();
+  final selectedCustomerModel = Rxn<CustomerModel>();
+
   late QRScannerService qrScannerService;
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
@@ -55,6 +64,30 @@ class NewSaleController extends GetxController {
   void onInit() {
     super.onInit();
     _loadProducts();
+    LoyaltyService.to.init(); // Ensure loyalty service is ready
+  }
+
+  Future<void> onCustomerSelected(String? customerName) async {
+    pointsToRedeem.value = 0.0;
+    cashbackToUse.value = 0.0;
+    
+    if (customerName == null) {
+      loyaltyAccount.value = null;
+      selectedCustomerModel.value = null;
+      return;
+    }
+
+    final authController = Get.find<AuthController>();
+    final customers = await _dbHelper.getCustomers(adminId: authController.adminId);
+    final customer = customers.firstWhereOrNull((c) => c.name == customerName);
+    
+    if (customer != null && customer.id != null) {
+      selectedCustomerModel.value = customer;
+      loyaltyAccount.value = await LoyaltyService.to.getAccount(customer.id!);
+    } else {
+      loyaltyAccount.value = null;
+      selectedCustomerModel.value = null;
+    }
   }
 
   Future<void> _loadProducts() async {
@@ -192,12 +225,23 @@ class NewSaleController extends GetxController {
     
     double subtotal = totalAmount.value;
     double discountAmount = (subtotal * discountPercent) / 100;
-    double finalTotal = subtotal - discountAmount;
+    
+    // Redemption Values (Converted to Currency)
+    double pointsValue = 0.0;
+    final rules = LoyaltyService.to.currentRules;
+    if (rules != null && pointsToRedeem.value > 0) {
+      // For now assume 100 points = 1 unit of currency if not configurable
+      pointsValue = pointsToRedeem.value / 100; 
+    }
+    
+    double finalTotal = subtotal - discountAmount - pointsValue - cashbackToUse.value;
+    if (finalTotal < 0) finalTotal = 0;
 
     final sale = Sale(
       saleDate: DateTime.now(),
       totalAmount: finalTotal,
       adminId: authController.adminId, // Include adminId
+      customerId: selectedCustomerModel.value?.id,
     );
     
     final items = cartItems.map((item) => SaleItem(
@@ -210,6 +254,17 @@ class NewSaleController extends GetxController {
 
     int saleId = await _dbHelper.insertSale(sale, items);
     
+    // Process Loyalty Points/Cashback Update
+    if (selectedCustomerModel.value != null && selectedCustomerModel.value!.id != null) {
+      await LoyaltyService.to.processSaleLoyalty(
+        customerId: selectedCustomerModel.value!.id!,
+        billAmount: subtotal, // Earn based on subtotal before points redemption usually? Or final? Let's use subtotal.
+        invoiceId: saleId,
+        pointsRedeemed: pointsToRedeem.value,
+        cashbackUsed: cashbackToUse.value,
+      );
+    }
+
     // Trigger sync to Supabase
     SupabaseService().syncData();
 

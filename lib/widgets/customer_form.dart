@@ -143,13 +143,12 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                 child: ElevatedButton(
                   onPressed: () {
                     widget.controller.addCustomer(
-                      context,
-                      _nameController.text,
-                      _addressController.text,
-                      _cellNumberController.text,
-                      _emailController.text,
-                      _selectedType,
-                      double.tryParse(_discountController.text) ?? 0.0,
+                      name: _nameController.text,
+                      address: _addressController.text,
+                      cellNumber: _cellNumberController.text,
+                      email: _emailController.text,
+                      type: _selectedType,
+                      discount: double.tryParse(_discountController.text) ?? 0.0,
                     );
                     setState(() {
                       _nameController.clear();

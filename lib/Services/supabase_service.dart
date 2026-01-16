@@ -218,6 +218,36 @@ class SupabaseService {
     } catch (e) {
       print('Error syncing settings: $e');
     }
+
+    // 8. Loyalty Accounts
+    try {
+      await _syncTable('loyalty_accounts', 'id', mapLocalToRemote: (localMap) {
+        return {
+          'customer_id': null, // Needs UUID mapping, but for now we skip complex links if not using UUIDs everywhere
+          'total_points': localMap['total_points'],
+          'cashback_balance': localMap['cashback_balance'],
+          'current_tier': localMap['current_tier'],
+          'lifetime_spend': localMap['lifetime_spend'],
+          'admin_id': localMap['admin_id'],
+        };
+      }, onConflict: 'customer_id,admin_id');
+    } catch (e) {
+      print('Error syncing loyalty_accounts: $e');
+    }
+
+    // 9. Loyalty Rules
+    try {
+      await _syncTable('loyalty_rules', 'id', mapLocalToRemote: (localMap) {
+        return {
+          'points_per_currency_unit': localMap['points_per_currency_unit'],
+          'cashback_percentage': localMap['cashback_percentage'],
+          'points_expiry_months': localMap['points_expiry_months'],
+          'admin_id': localMap['admin_id'],
+        };
+      }, onConflict: 'admin_id');
+    } catch (e) {
+      print('Error syncing loyalty_rules: $e');
+    }
   }
 
   Future<void> _syncTable(String tableName, String localIdColumn, {Map<String, dynamic> Function(Map<String, dynamic>)? mapLocalToRemote, String? onConflict}) async {
@@ -466,6 +496,23 @@ class SupabaseService {
       }
     } catch (e) {
       print('Error pulling sales: $e');
+    }
+
+    // Pull Loyalty Rules
+    try {
+      final remoteRules = await _supabase.from('loyalty_rules').select().eq('admin_id', adminId);
+      for (var rule in remoteRules) {
+        await db.insert('loyalty_rules', {
+          'points_per_currency_unit': rule['points_per_currency_unit'],
+          'cashback_percentage': rule['cashback_percentage'],
+          'points_expiry_months': rule['points_expiry_months'],
+          'admin_id': adminId,
+          'supabase_id': rule['id'],
+          'is_synced': 1
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    } catch (e) {
+      print('Error pulling loyalty rules: $e');
     }
   }
 

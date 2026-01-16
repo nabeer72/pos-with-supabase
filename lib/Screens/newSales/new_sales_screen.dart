@@ -36,10 +36,8 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   void initState() {
     super.initState();
     _controller = Get.put(NewSaleController());
-    _customerController = CustomerController();
-    _customerController.loadCustomers().then((_) {
-      if (mounted) setState(() {});
-    });
+    _customerController = Get.put(CustomerController());
+    _customerController.loadCustomers();
   }
 
   // ... (Add Customer & Select Customer Dialogs remain same, but update _controller calls)
@@ -84,12 +82,122 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               title: _dialogHeader('Select Customer', dialogContext),
-              content: DropdownButtonFormField<String>(
-                dropdownColor: Colors.white,
-                value: selectedCustomer,
-                decoration: _inputDecoration('Select Customer'),
-                items: customers.map((name) => DropdownMenuItem(value: name, child: Text(name, style: const TextStyle(color: Colors.black)))).toList(),
-                onChanged: (val) => setDialogState(() => selectedCustomer = val),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Obx(() => DropdownButtonFormField<String>(
+                      dropdownColor: Colors.white,
+                      value: selectedCustomer,
+                      decoration: _inputDecoration('Select Customer'),
+                      items: _customerController.customers.map((c) => DropdownMenuItem(value: c.name, child: Text(c.name, style: const TextStyle(color: Colors.black)))).toList(),
+                      onChanged: (val) async {
+                        setState(() => selectedCustomer = val);
+                        setDialogState(() => selectedCustomer = val);
+                        await _controller.onCustomerSelected(val);
+                        setDialogState(() {}); // Refresh with loyalty account info
+                      },
+                    )),
+                    const SizedBox(height: 16),
+                    // Loyalty Account Card
+                    Obx(() {
+                      final acc = _controller.loyaltyAccount.value;
+                      if (acc == null) return const SizedBox();
+                      
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Tier: ${acc.currentTier}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                                Text('Spend: \$${acc.lifetimeSpend.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12)),
+                              ],
+                            ),
+                            const Divider(),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Column(
+                                  children: [
+                                    const Text('Points', style: TextStyle(fontSize: 10)),
+                                    Text('${acc.totalPoints.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  ],
+                                ),
+                                Column(
+                                  children: [
+                                    const Text('Cashback', style: TextStyle(fontSize: 10)),
+                                    Text('\$${acc.cashbackBalance.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 16),
+                    // Redemption Details
+                    Obx(() {
+                      final acc = _controller.loyaltyAccount.value;
+                      if (acc == null) return const SizedBox();
+                      
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(labelText: 'Redeem Points', suffixText: 'pts'),
+                                  onChanged: (v) {
+                                    double val = double.tryParse(v) ?? 0.0;
+                                    if (val > acc.totalPoints) val = acc.totalPoints;
+                                    _controller.pointsToRedeem.value = val;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(labelText: 'Use Cashback', prefixText: '\$'),
+                                  onChanged: (v) {
+                                    double val = double.tryParse(v) ?? 0.0;
+                                    if (val > acc.cashbackBalance) val = acc.cashbackBalance;
+                                    _controller.cashbackToUse.value = val;
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Total Savings:', style: TextStyle(fontSize: 12)),
+                                Obx(() {
+                                  double savings = (_controller.pointsToRedeem.value / 100) + _controller.cashbackToUse.value;
+                                  return Text('-\$${savings.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green));
+                                }),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
               ),
               actions: [
                 _gradientButton(

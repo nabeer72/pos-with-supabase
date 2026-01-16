@@ -7,24 +7,33 @@ import 'package:pos/Services/supabase_service.dart';
 
 enum CustomerType { regular, vip, wholesale }
 
-class CustomerController {
-  List<CustomerModel> customers = [];
+class CustomerController extends GetxController {
+  final customers = <CustomerModel>[].obs;
+  final isLoading = true.obs;
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  Future<void> loadCustomers() async {
-    final authController = Get.find<AuthController>();
-    customers = await _dbHelper.getCustomers(adminId: authController.adminId);
+  @override
+  void onInit() {
+    super.onInit();
+    loadCustomers();
   }
 
-  Future<void> addCustomer(
-    BuildContext context,
-    String name,
-    String address,
-    String cellNumber,
-    String email,
-    CustomerType type,
-    double discount,
-  ) async {
+  Future<void> loadCustomers() async {
+    isLoading.value = true;
+    final authController = Get.find<AuthController>();
+    final list = await _dbHelper.getCustomers(adminId: authController.adminId);
+    customers.assignAll(list);
+    isLoading.value = false;
+  }
+
+  Future<void> addCustomer({
+    required String name,
+    required String address,
+    required String cellNumber,
+    required String email,
+    required CustomerType type,
+    required double discount,
+  }) async {
     final authController = Get.find<AuthController>();
     final newCustomer = CustomerModel(
       name: name,

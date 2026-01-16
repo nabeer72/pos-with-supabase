@@ -21,6 +21,7 @@ import 'package:pos/Screens/dashboard/backup_screen.dart';
 import 'package:pos/Screens/login_screen/login_screen.dart';
 import 'package:pos/Screens/settings/settings_screen.dart';
 import 'package:pos/Services/currency_service.dart';
+import 'package:pos/Screens/reports/loyalty_report_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -254,7 +255,7 @@ class DashboardScreen extends StatelessWidget {
         Get.to(() => const StockReportScreen());
         break;
       case 'Loyalty Program':
-        Get.to(() => const LoyaltyProgramScreen());
+        Get.to(() => const LoyaltyReportScreen());
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(

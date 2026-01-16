@@ -6,6 +6,7 @@ import 'package:pos/Services/backup_service.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/models/currency_model.dart';
+import 'package:pos/Screens/settings/loyalty_config_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -375,6 +376,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               )
                             : const Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: _isSaving ? null : _showCurrencyPicker,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Loyalty Settings Section
+                Card(
+                  color: Colors.white,
+                  elevation: 2,
+                  shadowColor: Colors.grey.withOpacity(0.15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text(
+                          'Loyalty & Rewards',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.orange,
+                          child: const Icon(Icons.card_membership, color: Colors.white),
+                        ),
+                        title: const Text('Loyalty Configuration', style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: const Text('Configure points, cashback, and tiers'),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () => Get.to(() => const DefaultTabController(length: 2, child: LoyaltyConfigScreen())),
                       ),
                     ],
                   ),

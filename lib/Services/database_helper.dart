@@ -9,7 +9,7 @@ import 'package:pos/Services/models/sale_item_model.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
-  static const int _databaseVersion = 13;
+  static const int _databaseVersion = 14;
 
   factory DatabaseHelper() => _instance;
 
@@ -333,6 +333,65 @@ class DatabaseHelper {
     if (oldVersion < 13) {
       await db.execute('ALTER TABLE customers ADD COLUMN discount REAL DEFAULT 0.0');
     }
+
+    if (oldVersion < 14) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS loyalty_accounts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          customer_id INTEGER NOT NULL UNIQUE,
+          total_points REAL DEFAULT 0.0,
+          cashback_balance REAL DEFAULT 0.0,
+          current_tier TEXT DEFAULT 'Bronze',
+          lifetime_spend REAL DEFAULT 0.0,
+          admin_id TEXT,
+          supabase_id TEXT,
+          is_synced INTEGER DEFAULT 0,
+          FOREIGN KEY (customer_id) REFERENCES customers (id)
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS loyalty_transactions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          invoice_id INTEGER,
+          customer_id INTEGER NOT NULL,
+          points_earned REAL DEFAULT 0.0,
+          points_redeemed REAL DEFAULT 0.0,
+          cashback_earned REAL DEFAULT 0.0,
+          cashback_used REAL DEFAULT 0.0,
+          admin_id TEXT,
+          supabase_id TEXT,
+          is_synced INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS loyalty_tier_settings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          tier_name TEXT NOT NULL,
+          spend_range_min REAL DEFAULT 0.0,
+          spend_range_max REAL DEFAULT 0.0,
+          discount_percentage REAL DEFAULT 0.0,
+          admin_id TEXT,
+          supabase_id TEXT,
+          is_synced INTEGER DEFAULT 0,
+          UNIQUE(tier_name, admin_id)
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS loyalty_rules (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          points_per_currency_unit REAL DEFAULT 1.0,
+          cashback_percentage REAL DEFAULT 0.0,
+          points_expiry_months INTEGER DEFAULT 12,
+          admin_id TEXT UNIQUE,
+          supabase_id TEXT,
+          is_synced INTEGER DEFAULT 0
+        )
+      ''');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -473,6 +532,64 @@ class DatabaseHelper {
         supabase_id TEXT,
         is_synced INTEGER DEFAULT 0,
         adminId TEXT
+      )
+    ''');
+
+    // Loyalty Tables
+    await db.execute('''
+      CREATE TABLE loyalty_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL UNIQUE,
+        total_points REAL DEFAULT 0.0,
+        cashback_balance REAL DEFAULT 0.0,
+        current_tier TEXT DEFAULT 'Bronze',
+        lifetime_spend REAL DEFAULT 0.0,
+        admin_id TEXT,
+        supabase_id TEXT,
+        is_synced INTEGER DEFAULT 0,
+        FOREIGN KEY (customer_id) REFERENCES customers (id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE loyalty_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_id INTEGER,
+        customer_id INTEGER NOT NULL,
+        points_earned REAL DEFAULT 0.0,
+        points_redeemed REAL DEFAULT 0.0,
+        cashback_earned REAL DEFAULT 0.0,
+        cashback_used REAL DEFAULT 0.0,
+        admin_id TEXT,
+        supabase_id TEXT,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE loyalty_tier_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tier_name TEXT NOT NULL,
+        spend_range_min REAL DEFAULT 0.0,
+        spend_range_max REAL DEFAULT 0.0,
+        discount_percentage REAL DEFAULT 0.0,
+        admin_id TEXT,
+        supabase_id TEXT,
+        is_synced INTEGER DEFAULT 0,
+        UNIQUE(tier_name, admin_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE loyalty_rules (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        points_per_currency_unit REAL DEFAULT 1.0,
+        cashback_percentage REAL DEFAULT 0.0,
+        points_expiry_months INTEGER DEFAULT 12,
+        admin_id TEXT UNIQUE,
+        supabase_id TEXT,
+        is_synced INTEGER DEFAULT 0
       )
     ''');
 
@@ -854,8 +971,108 @@ class DatabaseHelper {
     await db.delete('expenses');
     await db.delete('suppliers');
     await db.delete('categories');
+    await db.delete('loyalty_accounts');
+    await db.delete('loyalty_transactions');
+    await db.delete('loyalty_tier_settings');
+    await db.delete('loyalty_rules');
     // Note: We might want to keep users or settings, but "clean all database" usually refers to business data.
     // To be safe, let's keep the admin user.
     await _seedCategories(db, '1');
+  }
+
+  // Loyalty Methods
+  Future<int> insertLoyaltyAccount(Map<String, dynamic> account) async {
+    Database db = await database;
+    return await db.insert('loyalty_accounts', account);
+  }
+
+  Future<Map<String, dynamic>?> getLoyaltyAccount(int customerId) async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'loyalty_accounts',
+      where: 'customer_id = ?',
+      whereArgs: [customerId],
+    );
+    if (maps.isNotEmpty) return maps.first;
+    return null;
+  }
+
+  Future<int> updateLoyaltyAccount(Map<String, dynamic> account) async {
+    Database db = await database;
+    return await db.update(
+      'loyalty_accounts',
+      account,
+      where: 'id = ?',
+      whereArgs: [account['id']],
+    );
+  }
+
+  Future<int> insertLoyaltyTransaction(Map<String, dynamic> transaction) async {
+    Database db = await database;
+    return await db.insert('loyalty_transactions', transaction);
+  }
+
+  Future<List<Map<String, dynamic>>> getLoyaltyTransactions(int customerId) async {
+    Database db = await database;
+    return await db.query(
+      'loyalty_transactions',
+      where: 'customer_id = ?',
+      whereArgs: [customerId],
+      orderBy: 'created_at DESC',
+    );
+  }
+
+  Future<void> updateLoyaltyRules(Map<String, dynamic> rules) async {
+    Database db = await database;
+    await db.insert(
+      'loyalty_rules',
+      rules,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<Map<String, dynamic>?> getLoyaltyRules(String adminId) async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'loyalty_rules',
+      where: 'admin_id = ?',
+      whereArgs: [adminId],
+    );
+    if (maps.isNotEmpty) return maps.first;
+    return null;
+  }
+
+  Future<int> insertLoyaltyTier(Map<String, dynamic> tier) async {
+    Database db = await database;
+    return await db.insert('loyalty_tier_settings', tier);
+  }
+
+  Future<List<Map<String, dynamic>>> getLoyaltyTiers(String adminId) async {
+    Database db = await database;
+    return await db.query(
+      'loyalty_tier_settings',
+      where: 'admin_id = ?',
+      whereArgs: [adminId],
+      orderBy: 'spend_range_min ASC',
+    );
+  }
+
+  Future<int> updateLoyaltyTier(Map<String, dynamic> tier) async {
+    Database db = await database;
+    return await db.update(
+      'loyalty_tier_settings',
+      tier,
+      where: 'id = ?',
+      whereArgs: [tier['id']],
+    );
+  }
+
+  Future<int> deleteLoyaltyTier(int id) async {
+    Database db = await database;
+    return await db.delete(
+      'loyalty_tier_settings',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 }
