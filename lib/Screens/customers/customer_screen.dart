@@ -138,10 +138,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                               color: customer.isActive ? Colors.green : Colors.grey,
                               size: 20,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _controller.toggleCustomerStatus(index);
-                              });
+                            onPressed: () async {
+                              await _controller.toggleCustomerStatus(index);
+                              setState(() {});
                             },
                           ),
                         ),

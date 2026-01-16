@@ -130,7 +130,7 @@ class SupabaseService {
             'color': colorVal.toSigned(32),
             'icon': iconVal.toSigned(32),
             'admin_id': localMap['adminId'],
-            'purchasePrice': localMap['purchasePrice'] ?? 0.0,
+            'purchase_price': localMap['purchasePrice'] ?? 0.0,
           };
         }
       );
@@ -148,11 +148,12 @@ class SupabaseService {
           return {
             'name': localMap['name'],
             'address': localMap['address'],
-            'cellNumber': localMap['cellNumber'],
+            'cell_number': localMap['cellNumber'],
             'email': localMap['email'],
             'type': localMap['type'],
-            'isActive': localMap['isActive'],
+            'is_active': localMap['isActive'] == 1,
             'admin_id': localMap['adminId'],
+            'discount': localMap['discount'],
           };
         }
       );
@@ -191,7 +192,7 @@ class SupabaseService {
           return {
             'name': localMap['name'],
             'contact': localMap['contact'],
-            'lastOrder': localMap['lastOrder'],
+            'last_order': localMap['lastOrder'],
             'admin_id': localMap['adminId'],
           };
         }
@@ -283,8 +284,8 @@ class SupabaseService {
         }
 
         final saleData = {
-          'saleDate': sale['saleDate'],
-          'totalAmount': sale['totalAmount'],
+          'sale_date': sale['saleDate'],
+          'total_amount': sale['totalAmount'],
           'customer_id': customerUuid, // Assuming remote column is customer_id
           'admin_id': sale['adminId'], // Added admin_id
         };
@@ -344,7 +345,7 @@ class SupabaseService {
            'sale_id': remoteSaleId,
            'product_id': productUuid,
            'quantity': item['quantity'],
-           'unitPrice': item['unitPrice'],
+           'unit_price': item['unitPrice'],
            'admin_id': item['adminId'], // Added admin_id
          };
 
@@ -353,16 +354,15 @@ class SupabaseService {
          
          if (response != null) {
            await db.update(
-             'sale_items',
-             {'is_synced': 1, 'supabase_id': response['id']},
-             where: 'id = ?',
-             whereArgs: [item['id']],
-           );
-         }
-
-       } catch (e) {
-         print('Error syncing sale item ${item['id']}: $e');
-       }
+            'sale_items',
+            {'is_synced': 1, 'supabase_id': response['id']},
+            where: 'id = ?',
+            whereArgs: [item['id']],
+          );
+        }
+      } catch (e) {
+        print('Error syncing sale item ${item['id']}: $e');
+      }
     }
   }
 
@@ -382,7 +382,7 @@ class SupabaseService {
           'adminId': adminId,
           'supabase_id': cat['id'],
           'is_synced': 1
-        }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace to update supabase_id if name matches
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
     } catch (e) {
       print('Error pulling categories: $e');
@@ -400,11 +400,11 @@ class SupabaseService {
           'quantity': p['quantity'],
           'color': p['color'],
           'icon': p['icon'],
-          'purchasePrice': p['purchasePrice'] ?? 0.0,
+          'purchasePrice': p['purchase_price'] ?? 0.0,
           'adminId': adminId,
           'supabase_id': p['id'],
           'is_synced': 1
-        }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace to link local by barcode
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
     } catch (e) {
       print('Error pulling products: $e');
@@ -417,14 +417,15 @@ class SupabaseService {
         await db.insert('customers', {
           'name': c['name'],
           'address': c['address'],
-          'cellNumber': c['cellNumber'],
+          'cellNumber': c['cell_number'],
           'email': c['email'],
           'type': c['type'],
-          'isActive': c['isActive'],
+          'isActive': c['is_active'] == true ? 1 : 0,
           'adminId': adminId,
           'supabase_id': c['id'],
-          'is_synced': 1
-        }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace to link local by name
+          'is_synced': 1,
+          'discount': (c['discount'] as num?)?.toDouble() ?? 0.0,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
     } catch (e) {
       print('Error pulling customers: $e');
@@ -435,19 +436,17 @@ class SupabaseService {
       final remoteSales = await _supabase.from('sales').select().eq('admin_id', adminId);
       for (var s in remoteSales) {
         int localSaleId = await db.insert('sales', {
-          'saleDate': s['saleDate'],
-          'totalAmount': s['totalAmount'],
+          'saleDate': s['sale_date'],
+          'totalAmount': s['total_amount'],
           'customerId': null, 
           'adminId': adminId,
           'supabase_id': s['id'],
           'is_synced': 1
-        }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace based on supabase_id unique index
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
 
         if (localSaleId > 0) {
-          // Pull and link sale items
           final remoteItems = await _supabase.from('sale_items').select().eq('sale_id', s['id']);
           for (var item in remoteItems) {
-            // Resolve local product ID from remote product UUID
             final remoteProductId = item['product_id'];
             final localProduct = await db.query('products', where: 'supabase_id = ?', whereArgs: [remoteProductId]);
             
@@ -456,11 +455,11 @@ class SupabaseService {
                 'saleId': localSaleId,
                 'productId': localProduct.first['id'],
                 'quantity': item['quantity'],
-                'unitPrice': item['unitPrice'],
+                'unitPrice': item['unit_price'],
                 'adminId': adminId,
                 'supabase_id': item['id'],
                 'is_synced': 1
-              }, conflictAlgorithm: ConflictAlgorithm.replace); // Use replace based on supabase_id
+              }, conflictAlgorithm: ConflictAlgorithm.replace);
             }
           }
         }
@@ -469,6 +468,7 @@ class SupabaseService {
       print('Error pulling sales: $e');
     }
   }
+
   Future<void> deleteRow(String tableName, String supabaseId) async {
     try {
       await _supabase.from(tableName).delete().eq('id', supabaseId);

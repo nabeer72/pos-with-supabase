@@ -36,8 +36,8 @@ create table public.products (
   quantity integer,
   color integer,
   icon integer,
-  admin_id text, -- Added for multi-tenancy
-  "purchasePrice" numeric, -- Corrected case to match local DB
+  admin_id text,
+  purchase_price numeric,
   unique(barcode, admin_id)
 );
 
@@ -47,11 +47,12 @@ create table public.customers (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name text,
   address text,
-  "cellNumber" text,
+  cell_number text,
   email text,
   type integer,
-  "isActive" integer,
+  is_active boolean default true,
   admin_id text,
+  discount decimal default 0.0,
   unique(name, admin_id)
 );
 
@@ -59,10 +60,10 @@ create table public.customers (
 create table public.sales (
   id uuid default uuid_generate_v4() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  "saleDate" text,
-  "totalAmount" numeric,
+  sale_date text,
+  total_amount numeric,
   customer_id uuid references public.customers(id),
-  admin_id text -- Added for multi-tenancy
+  admin_id text
 );
 
 -- Sale Items Table
@@ -72,8 +73,8 @@ create table public.sale_items (
   sale_id uuid references public.sales(id),
   product_id uuid references public.products(id),
   quantity integer,
-  "unitPrice" numeric,
-  admin_id text -- Added for multi-tenancy
+  unit_price numeric,
+  admin_id text
 );
 
 -- Expenses Table
@@ -83,7 +84,7 @@ create table public.expenses (
   category text,
   amount numeric,
   date text,
-  admin_id text -- Added for multi-tenancy
+  admin_id text
 );
 
 -- Suppliers Table
@@ -92,8 +93,8 @@ create table public.suppliers (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name text,
   contact text,
-  "lastOrder" text,
-  admin_id text -- Added for multi-tenancy
+  last_order text,
+  admin_id text
 );
 
 -- Settings Table

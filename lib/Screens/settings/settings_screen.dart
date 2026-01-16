@@ -34,7 +34,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _storeAddressController = TextEditingController();
   final _storePhoneController = TextEditingController();
   final _footerController = TextEditingController();
-  final _discountController = TextEditingController();
 
   @override
   void initState() {
@@ -50,7 +49,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       final currency = await _currencyService.getCurrentCurrency();
       final receiptSettings = await _receiptService.getReceiptSettings();
-      final discount = await _receiptService.getDefaultDiscount();
       
       final autoBackup = await _backupService.isAutoBackupEnabled(adminId);
       final manualBackup = await _backupService.isManualBackupEnabled(adminId);
@@ -67,7 +65,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _storeAddressController.text = receiptSettings['store_address'] ?? '';
         _storePhoneController.text = receiptSettings['store_phone'] ?? '';
         _footerController.text = receiptSettings['receipt_footer'] ?? '';
-        _discountController.text = discount.toString();
         _isLoading = false;
       });
     } catch (e) {
@@ -132,9 +129,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'receipt_footer': _footerController.text,
       });
       
-      final discount = double.tryParse(_discountController.text) ?? 0.0;
-      await _receiptService.setDefaultDiscount(discount);
-      
       await _saveBackupFrequency();
 
       setState(() => _isSaving = false);
@@ -165,7 +159,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _storeAddressController.clear();
     _storePhoneController.clear();
     _footerController.clear();
-    _discountController.clear();
     _frequencyValueController.clear();
     setState(() {
       _selectedCurrency = null;
@@ -523,39 +516,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _buildSettingsField('Contact Number', _storePhoneController, Icons.phone, darkThemeBlue),
                         const SizedBox(height: 12),
                         _buildSettingsField('Receipt Footer', _footerController, Icons.message, darkThemeBlue),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Discounts Section
-                Card(
-                  color : Colors.white,
-                  elevation: 2,
-                  shadowColor: Colors.grey.withOpacity(0.15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Discounts',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSettingsField(
-                          'Default Discount (%)', 
-                          _discountController, 
-                          Icons.percent,
-                          darkThemeBlue,
-                          keyboardType: TextInputType.number,
-                        ),
                       ],
                     ),
                   ),

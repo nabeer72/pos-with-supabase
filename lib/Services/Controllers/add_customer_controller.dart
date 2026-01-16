@@ -3,6 +3,7 @@ import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/models/customer_model.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
+import 'package:pos/Services/supabase_service.dart';
 
 enum CustomerType { regular, vip, wholesale }
 
@@ -22,6 +23,7 @@ class CustomerController {
     String cellNumber,
     String email,
     CustomerType type,
+    double discount,
   ) async {
     final authController = Get.find<AuthController>();
     final newCustomer = CustomerModel(
@@ -30,13 +32,35 @@ class CustomerController {
       cellNumber: cellNumber.isEmpty ? null : cellNumber,
       email: email.isEmpty ? null : email,
       type: type,
-      adminId: authController.adminId, // Include adminId
+      adminId: authController.adminId,
+      discount: discount,
     );
     await _dbHelper.insertCustomer(newCustomer);
     await loadCustomers();
+    
+    // Trigger sync to Supabase
+    SupabaseService().syncData();
   }
 
-  void toggleCustomerStatus(int index) {
-     // Optional: Implement toggle status in DB
+  Future<void> toggleCustomerStatus(int index) async {
+    final customer = customers[index];
+    final updatedCustomer = CustomerModel(
+      id: customer.id,
+      name: customer.name,
+      address: customer.address,
+      cellNumber: customer.cellNumber,
+      email: customer.email,
+      type: customer.type,
+      isActive: !customer.isActive,
+      supabaseId: customer.supabaseId,
+      isSynced: false,
+      adminId: customer.adminId,
+      discount: customer.discount,
+    );
+    await _dbHelper.updateCustomer(updatedCustomer);
+    await loadCustomers();
+    
+    // Trigger sync to Supabase
+    SupabaseService().syncData();
   }
 }

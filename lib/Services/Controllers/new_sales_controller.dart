@@ -180,8 +180,15 @@ class NewSaleController extends GetxController {
     if (cartItems.isEmpty) return null;
 
     final authController = Get.find<AuthController>();
-    final receiptService = ReceiptService();
-    final discountPercent = await receiptService.getDefaultDiscount();
+    double discountPercent = 0.0;
+    
+    if (selectedCustomer != null) {
+      final customers = await _dbHelper.getCustomers(adminId: authController.adminId);
+      final customer = customers.firstWhereOrNull((c) => c.name == selectedCustomer);
+      if (customer != null) {
+        discountPercent = customer.discount ?? 0.0;
+      }
+    }
     
     double subtotal = totalAmount.value;
     double discountAmount = (subtotal * discountPercent) / 100;

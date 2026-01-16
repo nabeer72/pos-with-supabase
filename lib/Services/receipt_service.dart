@@ -34,30 +34,13 @@ class ReceiptService {
   }
 
   Future<void> updateReceiptSettings(Map<String, String> settings) async {
-    final adminId = _currentAdminId ?? Get.find<AuthController>().adminId;
+    final authController = Get.find<AuthController>();
+    final adminId = authController.adminId;
     if (adminId == null) return;
 
     for (var entry in settings.entries) {
       await _dbHelper.updateSetting(entry.key, entry.value, adminId: adminId);
     }
-    
-    // Trigger sync
-    SupabaseService().syncData();
-  }
-
-  Future<double> getDefaultDiscount() async {
-    final adminId = _currentAdminId ?? Get.find<AuthController>().adminId;
-    if (adminId == null) return 0.0;
-    
-    final discountStr = await _dbHelper.getSetting('default_discount', adminId: adminId) ?? '0.0';
-    return double.tryParse(discountStr) ?? 0.0;
-  }
-
-  Future<void> setDefaultDiscount(double discount) async {
-    final adminId = _currentAdminId ?? Get.find<AuthController>().adminId;
-    if (adminId == null) return;
-    
-    await _dbHelper.updateSetting('default_discount', discount.toString(), adminId: adminId);
     
     // Trigger sync
     SupabaseService().syncData();

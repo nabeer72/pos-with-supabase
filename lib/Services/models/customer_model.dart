@@ -11,6 +11,7 @@ class CustomerModel {
   final String? supabaseId;
   final bool isSynced;
   final String? adminId; // Added for multi-tenancy
+  final double? discount;
 
   CustomerModel({
     this.id,
@@ -23,6 +24,7 @@ class CustomerModel {
     this.supabaseId,
     this.isSynced = false,
     this.adminId,
+    this.discount = 0.0,
   });
 
   Map<String, dynamic> toMap() {
@@ -37,6 +39,7 @@ class CustomerModel {
       'supabase_id': supabaseId,
       'is_synced': isSynced ? 1 : 0,
       'adminId': adminId,
+      'discount': discount,
     };
   }
 
@@ -52,6 +55,7 @@ class CustomerModel {
       supabaseId: map['supabase_id'],
       isSynced: map['is_synced'] == 1,
       adminId: map['adminId'],
+      discount: (map['discount'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }

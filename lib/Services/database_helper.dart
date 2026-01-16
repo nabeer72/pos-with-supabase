@@ -9,7 +9,7 @@ import 'package:pos/Services/models/sale_item_model.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
-  static const int _databaseVersion = 12;
+  static const int _databaseVersion = 13;
 
   factory DatabaseHelper() => _instance;
 
@@ -329,6 +329,10 @@ class DatabaseHelper {
       await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_expenses_supabase_id ON expenses (supabase_id) WHERE supabase_id IS NOT NULL');
       await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_suppliers_supabase_id ON suppliers (supabase_id) WHERE supabase_id IS NOT NULL');
     }
+
+    if (oldVersion < 13) {
+      await db.execute('ALTER TABLE customers ADD COLUMN discount REAL DEFAULT 0.0');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -363,7 +367,8 @@ class DatabaseHelper {
         isActive INTEGER NOT NULL DEFAULT 1,
         supabase_id TEXT,
         is_synced INTEGER DEFAULT 0,
-        adminId TEXT
+        adminId TEXT,
+        discount REAL DEFAULT 0.0
       )
     ''');
 

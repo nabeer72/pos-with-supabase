@@ -21,6 +21,7 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _cellNumberController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _discountController = TextEditingController();
   CustomerType _selectedType = CustomerType.regular;
 
   @override
@@ -29,6 +30,7 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
     _addressController.dispose();
     _cellNumberController.dispose();
     _emailController.dispose();
+    _discountController.dispose();
     super.dispose();
   }
 
@@ -77,6 +79,13 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
               hintText: 'Email',
               icon: Icons.email,
               keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 12),
+            CustomTextField(
+              controller: _discountController,
+              hintText: 'Default Discount (%)',
+              icon: Icons.percent,
+              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<CustomerType>(
@@ -140,12 +149,14 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                       _cellNumberController.text,
                       _emailController.text,
                       _selectedType,
+                      double.tryParse(_discountController.text) ?? 0.0,
                     );
                     setState(() {
                       _nameController.clear();
                       _addressController.clear();
                       _cellNumberController.clear();
                       _emailController.clear();
+                      _discountController.clear();
                       _selectedType = CustomerType.regular;
                     });
                     widget.onCustomerAdded();

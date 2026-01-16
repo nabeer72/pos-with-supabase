@@ -37,6 +37,9 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     super.initState();
     _controller = Get.put(NewSaleController());
     _customerController = CustomerController();
+    _customerController.loadCustomers().then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   // ... (Add Customer & Select Customer Dialogs remain same, but update _controller calls)
@@ -70,7 +73,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
   void _showCustomerSelectionDialog() {
     String? selectedCustomer;
-    final customers = ['John Doe', 'Jane Smith', 'Alex Johnson', 'Emily Brown'];
+    final customers = _customerController.customers.map((c) => c.name).toList();
 
     showDialog(
       context: context,
