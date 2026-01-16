@@ -35,7 +35,23 @@ class BackupService {
     }
 
     DateTime lastBackup = DateTime.parse(lastBackupStr);
-    if (now.difference(lastBackup).inDays >= 7) { // Changed to 7 days (weekly)
+    
+    // Fetch custom frequency settings
+    int freqValue = await getBackupFrequency(adminId);
+    String freqUnit = await getBackupFrequencyUnit(adminId);
+
+    bool isDue = false;
+    if (freqUnit == 'days') {
+      isDue = now.difference(lastBackup).inDays >= freqValue;
+    } else if (freqUnit == 'months') {
+      DateTime nextBackupDate = DateTime(lastBackup.year, lastBackup.month + freqValue, lastBackup.day);
+      isDue = now.isAfter(nextBackupDate) || now.isAtSameMomentAs(nextBackupDate);
+    } else if (freqUnit == 'years') {
+      DateTime nextBackupDate = DateTime(lastBackup.year + freqValue, lastBackup.month, lastBackup.day);
+      isDue = now.isAfter(nextBackupDate) || now.isAtSameMomentAs(nextBackupDate);
+    }
+
+    if (isDue) {
       await performBackup(adminId: adminId);
     }
   }
@@ -91,5 +107,23 @@ class BackupService {
 
   Future<void> setManualBackupEnabled(String adminId, bool enabled) async {
     await _dbHelper.updateSetting('manual_backup_enabled', enabled.toString(), adminId: adminId);
+  }
+
+  Future<int> getBackupFrequency(String adminId) async {
+    String? val = await _dbHelper.getSetting('backup_frequency_value', adminId: adminId);
+    return int.tryParse(val ?? '7') ?? 7;
+  }
+
+  Future<void> setBackupFrequency(String adminId, int value) async {
+    await _dbHelper.updateSetting('backup_frequency_value', value.toString(), adminId: adminId);
+  }
+
+  Future<String> getBackupFrequencyUnit(String adminId) async {
+    String? val = await _dbHelper.getSetting('backup_frequency_unit', adminId: adminId);
+    return val ?? 'days';
+  }
+
+  Future<void> setBackupFrequencyUnit(String adminId, String unit) async {
+    await _dbHelper.updateSetting('backup_frequency_unit', unit, adminId: adminId);
   }
 }

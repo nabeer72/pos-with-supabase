@@ -26,6 +26,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Backup Settings
   bool _isAutoBackupEnabled = true;
   bool _isManualBackupEnabled = true;
+  final _frequencyValueController = TextEditingController();
+  String _selectedFrequencyUnit = 'days';
 
   // Receipt Settings
   final _storeNameController = TextEditingController();
@@ -52,11 +54,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       
       final autoBackup = await _backupService.isAutoBackupEnabled(adminId);
       final manualBackup = await _backupService.isManualBackupEnabled(adminId);
+      final freqValue = await _backupService.getBackupFrequency(adminId);
+      final freqUnit = await _backupService.getBackupFrequencyUnit(adminId);
 
       setState(() {
         _selectedCurrency = currency;
         _isAutoBackupEnabled = autoBackup;
         _isManualBackupEnabled = manualBackup;
+        _frequencyValueController.text = freqValue.toString();
+        _selectedFrequencyUnit = freqUnit;
         _storeNameController.text = receiptSettings['store_name'] ?? '';
         _storeAddressController.text = receiptSettings['store_address'] ?? '';
         _storePhoneController.text = receiptSettings['store_phone'] ?? '';
@@ -90,6 +96,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _backupService.setManualBackupEnabled(adminId, enabled);
   }
 
+  Future<void> _saveBackupFrequency() async {
+    final adminId = Get.find<AuthController>().adminId;
+    if (adminId == null) return;
+
+    final value = int.tryParse(_frequencyValueController.text) ?? 7;
+    await _backupService.setBackupFrequency(adminId, value);
+    await _backupService.setBackupFrequencyUnit(adminId, _selectedFrequencyUnit);
+  }
+
   Future<void> _performManualBackup() async {
     setState(() => _isSaving = true);
     try {
@@ -119,6 +134,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       
       final discount = double.tryParse(_discountController.text) ?? 0.0;
       await _receiptService.setDefaultDiscount(discount);
+      
+      await _saveBackupFrequency();
 
       setState(() => _isSaving = false);
       if (mounted) {
@@ -128,8 +145,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        // DISPOSE FORM (Navigate back)
-        Navigator.pop(context);
+        _clearFields();
       }
     } catch (e) {
       setState(() => _isSaving = false);
@@ -142,6 +158,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     }
+  }
+
+  void _clearFields() {
+    _storeNameController.clear();
+    _storeAddressController.clear();
+    _storePhoneController.clear();
+    _footerController.clear();
+    _discountController.clear();
+    _frequencyValueController.clear();
+    setState(() {
+      _selectedCurrency = null;
+      _selectedFrequencyUnit = 'days';
+      _isAutoBackupEnabled = false;
+      _isManualBackupEnabled = false;
+    });
   }
 
   Future<void> _saveCurrency(Currency currency) async {
@@ -378,12 +409,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 16),
                         _buildBackupToggle(
                           title: 'Automatic Backup',
-                          subtitle: 'Performs backup every week (7 days)',
+                          subtitle: 'Performs backup every ${_frequencyValueController.text} $_selectedFrequencyUnit',
                           icon: Icons.auto_mode,
                           isActive: _isAutoBackupEnabled,
                           onChanged: _toggleAutoBackup,
                           iconColor: darkThemeBlue,
                         ),
+                        if (_isAutoBackupEnabled) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const SizedBox(width: 44),
+                              Expanded(
+                                flex: 2,
+                                child: _buildSettingsField(
+                                  'Interval', 
+                                  _frequencyValueController, 
+                                  Icons.timer, 
+                                  darkThemeBlue,
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (val) => setState(() {}),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.grey[200]!),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _selectedFrequencyUnit,
+                                      isExpanded: true,
+                                      items: const [
+                                        DropdownMenuItem(value: 'days', child: Text('Days')),
+                                        DropdownMenuItem(value: 'months', child: Text('Months')),
+                                        DropdownMenuItem(value: 'years', child: Text('Years')),
+                                      ],
+                                      onChanged: (val) {
+                                        if (val != null) {
+                                          setState(() => _selectedFrequencyUnit = val);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         const Divider(height: 24),
                         _buildBackupToggle(
                           title: 'Manual Backup',
@@ -420,6 +498,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 // Receipt Customization Section
                 Card(
+                  color: Colors.white,
                   elevation: 2,
                   shadowColor: Colors.grey.withOpacity(0.15),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -543,10 +622,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingsField(String label, TextEditingController controller, IconData icon, Color iconColor, {TextInputType? keyboardType}) {
+  Widget _buildSettingsField(String label, TextEditingController controller, IconData icon, Color iconColor, {TextInputType? keyboardType, Function(String)? onChanged}) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Colors.grey[600]),
@@ -591,36 +671,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildToggleButton('Active', true, isActive, () => onChanged(true)),
-            const SizedBox(width: 8),
-            _buildToggleButton('Deactive', false, !isActive, () => onChanged(false)),
-          ],
+        Switch(
+          value: isActive,
+          onChanged: onChanged,
+          activeColor: const Color.fromRGBO(59, 130, 246, 1),
         ),
       ],
-    );
-  }
-
-  Widget _buildToggleButton(String label, bool value, bool isSelected, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? (value ? Colors.green : Colors.red) : Colors.grey[200],
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black54,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
     );
   }
 }
