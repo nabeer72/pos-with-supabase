@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:convert';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/Services/currency_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthController extends GetxController {
   var isLoggedIn = false.obs;
@@ -115,6 +117,14 @@ class AuthController extends GetxController {
         }
       }
       return false;
+    } on AuthException catch (e) {
+      if (e.message.toLowerCase().contains('email not confirmed')) {
+         Get.snackbar('Verification Required', 'Please confirm your email before logging in.', 
+            backgroundColor: const Color(0xFFF59E0B), colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+      } else {
+        print('Supabase Auth Error: ${e.message}');
+      }
+      return false;
     } catch (e) {
       print('LoginWithSupabase Error: $e');
       return false;
@@ -151,10 +161,6 @@ class AuthController extends GetxController {
       
       // Seed default categories for this new admin
       await _dbHelper.seedCategoriesForAdmin(adminIdForNewUser);
-      final createdUser = await _dbHelper.getUserByEmail(email);
-      if (createdUser != null) {
-        login(createdUser);
-      }
       
       // Trigger sync to push user to Supabase
       SupabaseService().syncData();

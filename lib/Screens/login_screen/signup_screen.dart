@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:pos/Screens/login_screen/login_screen.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/widgets/custom_button.dart';
 import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/Screens/button_bar.dart'; // BottomNavigation
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -208,20 +210,39 @@ class _SignUpScreenState extends State<SignUpScreen> {
     try {
       // 1. SignUp via Supabase (Remote)
       final supabase = SupabaseService();
-      await supabase.signUp(email, password);
-      
-      // 2. Create Local Account (Local)
-      final success = await authController.signUp(name, email, password);
+      final response = await supabase.signUp(email, password);
       
       setState(() => _isLoading = false);
 
+      // If session is null, it typically means email verification is required
+      if (response.user != null && response.session == null) {
+        Get.snackbar(
+          'Verification Required',
+          'Please check your email and click the verification link to activate your account.',
+          backgroundColor: Colors.blueAccent,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 8),
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        Get.back(); // Go back to Login screen
+        return;
+      }
+      
+      // 2. Create Local Account (Local) - Only if already verified or verification disabled
+      final success = await authController.signUp(name, email, password);
+      
       if (success) {
-        Get.snackbar('Success', 'Account created successfully', backgroundColor: Colors.green, colorText: Colors.white);
-        Get.offAll(() => BottomNavigation());
+        Get.snackbar(
+          'Account Created', 
+          'Your account has been created. Please log in to continue.', 
+          backgroundColor: Colors.green, 
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM
+        );
+        Get.offAll(() => const LoginScreen());
       } else {
          Get.snackbar('Error', 'Account created remotely but failed locally (Email exists?)', backgroundColor: Colors.redAccent, colorText: Colors.white);
       }
-
     } catch (e) {
       setState(() => _isLoading = false);
       Get.snackbar('Error', 'Sign Up Failed: $e', backgroundColor: Colors.redAccent, colorText: Colors.white);

@@ -20,8 +20,8 @@ class SupabaseService {
 
   // Auth Methods
   // Auth Methods
-  Future<void> signUp(String email, String password) async {
-    await _supabase.auth.signUp(email: email, password: password);
+  Future<AuthResponse> signUp(String email, String password) async {
+    return await _supabase.auth.signUp(email: email, password: password);
   }
 
   Future<AuthResponse> signIn(String email, String password) async {
