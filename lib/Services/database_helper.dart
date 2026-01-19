@@ -9,7 +9,7 @@ import 'package:pos/Services/models/sale_item_model.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
-  static const int _databaseVersion = 14;
+  static const int _databaseVersion = 15;
 
   factory DatabaseHelper() => _instance;
 
@@ -392,6 +392,20 @@ class DatabaseHelper {
         )
       ''');
     }
+
+    if (oldVersion < 15) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS expense_heads (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          adminId TEXT,
+          supabase_id TEXT,
+          is_synced INTEGER DEFAULT 0,
+          UNIQUE(name, adminId)
+        )
+      ''');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_expense_heads_supabase_id ON expense_heads (supabase_id) WHERE supabase_id IS NOT NULL');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -592,6 +606,18 @@ class DatabaseHelper {
         is_synced INTEGER DEFAULT 0
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE expense_heads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        adminId TEXT,
+        supabase_id TEXT,
+        is_synced INTEGER DEFAULT 0,
+        UNIQUE(name, adminId)
+      )
+    ''');
+    await db.execute('CREATE UNIQUE INDEX idx_expense_heads_supabase_id ON expense_heads (supabase_id) WHERE supabase_id IS NOT NULL');
 
     // Seed initial users
     await db.insert('users', {
@@ -806,6 +832,25 @@ class DatabaseHelper {
   Future<int> deleteCategory(String name) async {
     Database db = await database;
     return await db.delete('categories', where: 'name = ?', whereArgs: [name]);
+  }
+
+  // Expense Heads
+  Future<int> insertExpenseHead(String name, {String? adminId}) async {
+    Database db = await database;
+    return await db.insert('expense_heads', {'name': name, 'adminId': adminId}, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  Future<List<String>> getExpenseHeads({String? adminId}) async {
+    Database db = await database;
+    final String? whereClause = adminId != null ? 'adminId = ?' : null;
+    final List<Object?>? whereArgs = adminId != null ? [adminId] : null;
+    final List<Map<String, dynamic>> maps = await db.query('expense_heads', where: whereClause, whereArgs: whereArgs);
+    return List.generate(maps.length, (i) => maps[i]['name'] as String);
+  }
+
+  Future<int> deleteExpenseHead(String name, {String? adminId}) async {
+    Database db = await database;
+    return await db.delete('expense_heads', where: 'name = ? AND adminId = ?', whereArgs: [name, adminId]);
   }
 
   // Sales

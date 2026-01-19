@@ -182,6 +182,23 @@ class SupabaseService {
       print('Error syncing expenses: $e');
     }
 
+    // 5.5 Expense Heads
+    try {
+      await _syncTable(
+        'expense_heads', 
+        'id', 
+        onConflict: 'name,admin_id',
+        mapLocalToRemote: (localMap) {
+          return {
+            'name': localMap['name'],
+            'admin_id': localMap['adminId'],
+          };
+        }
+      );
+    } catch (e) {
+      print('Error syncing expense_heads: $e');
+    }
+
     // 6. Suppliers
     try {
       await _syncTable(
@@ -496,6 +513,38 @@ class SupabaseService {
       }
     } catch (e) {
       print('Error pulling sales: $e');
+    }
+
+    // Pull Expenses
+    try {
+      final remoteExpenses = await _supabase.from('expenses').select().eq('admin_id', adminId);
+      for (var exp in remoteExpenses) {
+        await db.insert('expenses', {
+          'category': exp['category'],
+          'amount': exp['amount'],
+          'date': exp['date'],
+          'adminId': adminId,
+          'supabase_id': exp['id'],
+          'is_synced': 1
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    } catch (e) {
+      print('Error pulling expenses: $e');
+    }
+
+    // Pull Expense Heads
+    try {
+      final remoteHeads = await _supabase.from('expense_heads').select().eq('admin_id', adminId);
+      for (var head in remoteHeads) {
+        await db.insert('expense_heads', {
+          'name': head['name'],
+          'adminId': adminId,
+          'supabase_id': head['id'],
+          'is_synced': 1
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    } catch (e) {
+      print('Error pulling expense heads: $e');
     }
 
     // Pull Loyalty Rules

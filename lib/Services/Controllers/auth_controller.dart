@@ -118,12 +118,7 @@ class AuthController extends GetxController {
       }
       return false;
     } on AuthException catch (e) {
-      if (e.message.toLowerCase().contains('email not confirmed')) {
-         Get.snackbar('Verification Required', 'Please confirm your email before logging in.', 
-            backgroundColor: const Color(0xFFF59E0B), colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
-      } else {
-        print('Supabase Auth Error: ${e.message}');
-      }
+      print('Supabase Auth Error: ${e.message}');
       return false;
     } catch (e) {
       print('LoginWithSupabase Error: $e');

@@ -214,21 +214,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       
       setState(() => _isLoading = false);
 
-      // If session is null, it typically means email verification is required
-      if (response.user != null && response.session == null) {
-        Get.snackbar(
-          'Verification Required',
-          'Please check your email and click the verification link to activate your account.',
-          backgroundColor: Colors.blueAccent,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 8),
-          snackPosition: SnackPosition.BOTTOM,
-        );
-        Get.back(); // Go back to Login screen
-        return;
-      }
-      
-      // 2. Create Local Account (Local) - Only if already verified or verification disabled
+      // 2. Create Local Account (Local)
       final success = await authController.signUp(name, email, password);
       
       if (success) {

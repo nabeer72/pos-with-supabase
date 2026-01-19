@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pos/widgets/notification_card.dart';
 import 'package:pos/widgets/currency_text.dart';
 import 'package:pos/Services/database_helper.dart';
+import 'package:pos/Services/supabase_service.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 
@@ -13,11 +14,26 @@ class ExpensesScreen extends StatefulWidget {
 class _ExpensesScreenState extends State<ExpensesScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   List<Map<String, dynamic>> expenses = [];
+  List<String> expenseHeads = [];
+  String? selectedHead;
 
   @override
   void initState() {
     super.initState();
-    _loadExpenses();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    await _loadExpenseHeads();
+    await _loadExpenses();
+  }
+
+  Future<void> _loadExpenseHeads() async {
+    final authController = Get.find<AuthController>();
+    final data = await _dbHelper.getExpenseHeads(adminId: authController.adminId);
+    setState(() {
+      expenseHeads = data;
+    });
   }
 
   Future<void> _loadExpenses() async {
@@ -28,163 +44,254 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     });
   }
 
+  // Function to show dialog for managing expense heads
+  void _showManageHeadsDialog() {
+    final headController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text('Manage Expense Heads'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: headController,
+                decoration: const InputDecoration(hintText: 'New Head Name (e.g., Rent)'),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 200,
+                width: double.maxFinite,
+                child: expenseHeads.isEmpty
+                    ? const Center(child: Text('No heads added yet'))
+                    : ListView.builder(
+                        itemCount: expenseHeads.length,
+                        itemBuilder: (context, index) => ListTile(
+                          title: Text(expenseHeads[index]),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.redAccent),
+                            onPressed: () async {
+                              final authController = Get.find<AuthController>();
+                              await _dbHelper.deleteExpenseHead(expenseHeads[index], adminId: authController.adminId);
+                              await _loadExpenseHeads();
+                              setDialogState(() {});
+                            },
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+            ElevatedButton(
+              onPressed: () async {
+                final name = headController.text.trim();
+                if (name.isNotEmpty) {
+                  final authController = Get.find<AuthController>();
+                  await _dbHelper.insertExpenseHead(name, adminId: authController.adminId);
+                  headController.clear();
+                  SupabaseService().syncData();
+                  await _loadExpenseHeads();
+                  setDialogState(() {});
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Function to show dialog for adding or editing an expense
-void _showExpenseDialog({Map<String, dynamic>? expense, int? index}) {
-  final categoryController = TextEditingController(text: expense?['category'] ?? '');
-  final amountController = TextEditingController(text: expense?['amount']?.toString().replaceAll('Rs.', '').trim() ?? '');
+  void _showExpenseDialog({Map<String, dynamic>? expense, int? index}) {
+  selectedHead = expense?['category']; // Keeping 'category' in DB but mapping to Head name in UI
+  final amountController = TextEditingController(text: expense?['amount']?.toString() ?? '');
   final isEdit = expense != null;
 
   showDialog(
     context: context,
     barrierDismissible: true, // Tap outside to close
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      backgroundColor: Colors.white,
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            isEdit ? 'Edit Expense' : 'Add Expense',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          // Close icon added here
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.redAccent),
-            onPressed: () => Navigator.pop(context),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            iconSize: 20,
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: categoryController,
-            decoration: InputDecoration(
-              hintText: 'Category (e.g., Utilities)',
-              hintStyle: TextStyle(color: Colors.grey[400]),
-              filled: true,
-              fillColor: Colors.grey[100],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: Colors.white,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              isEdit ? 'Edit Expense' : 'Add Expense',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
               ),
             ),
-            style: const TextStyle(fontSize: 14),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: amountController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              hintText: 'Amount (e.g., 150.00)',
-              hintStyle: TextStyle(color: Colors.grey[400]),
-              filled: true,
-              fillColor: Colors.grey[100],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.redAccent),
+              onPressed: () => Navigator.pop(context),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              iconSize: 20,
             ),
-            style: const TextStyle(fontSize: 14),
-          ),
-        ],
-      ),
-      actions: [
-        // Only the gradient Add/Update button (no Cancel button)
-        ElevatedButton(
-            onPressed: () async {
-            final category = categoryController.text.trim();
-            final amountText = amountController.text.trim();
-
-            if (category.isEmpty || amountText.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Please fill all fields'),
-                  backgroundColor: Colors.redAccent,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              return;
-            }
-
-            final amount = double.tryParse(amountText);
-            if (amount == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Please enter a valid amount'),
-                  backgroundColor: Colors.redAccent,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              return;
-            }
-
-            final authController = Get.find<AuthController>();
-            final newExpense = {
-              'category': category,
-              'amount': amount,
-              'date': isEdit ? expense['date']! : DateTime.now().toIso8601String(),
-              'adminId': authController.adminId, // Include adminId
-            };
-
-            if (isEdit) {
-              await _dbHelper.updateExpense(int.parse(expense['id']!), newExpense);
-            } else {
-              await _dbHelper.insertExpense(newExpense);
-            }
-            await _loadExpenses();
-
-            Navigator.pop(context);
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(isEdit ? 'Expense updated' : 'Expense added'),
-                backgroundColor: Colors.deepOrangeAccent,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-          ),
-          child: Ink(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color.fromRGBO(30, 58, 138, 1),
-                  Color.fromRGBO(59, 130, 246, 1),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.all(Radius.circular(10)),
-            ),
-            child: Container(
-              alignment: Alignment.center,
-              constraints: const BoxConstraints(minHeight: 40),
-              child: Text(
-                isEdit ? 'Update' : 'Add',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
+          ],
         ),
-      ],
-      actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedHead,
+                    items: expenseHeads.map((head) => DropdownMenuItem(
+                      value: head,
+                      child: Text(head, style: const TextStyle(fontSize: 14)),
+                    )).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedHead = val;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Select Head',
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add_circle, color: Colors.blueAccent),
+                  onPressed: () async {
+                    _showManageHeadsDialog();
+                    // After returning, refresh heads in this dialog
+                    await _loadExpenseHeads();
+                    setDialogState(() {});
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: amountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                hintText: 'Amount (e.g., 150.00)',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              style: const TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+              onPressed: () async {
+              final head = selectedHead;
+              final amountText = amountController.text.trim();
+  
+              if (head == null || amountText.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please fill all fields'),
+                    backgroundColor: Colors.redAccent,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+  
+              final amount = double.tryParse(amountText);
+              if (amount == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid amount'),
+                    backgroundColor: Colors.redAccent,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+  
+              final authController = Get.find<AuthController>();
+              final newExpense = {
+                'category': head, // Save Head name as category for now to maintain consistency
+                'amount': amount,
+                'date': isEdit ? expense['date']! : DateTime.now().toIso8601String(),
+                'adminId': authController.adminId,
+                'is_synced': 0, // Mark for sync
+              };
+  
+              if (isEdit) {
+                await _dbHelper.updateExpense(expense['id'], newExpense);
+              } else {
+                await _dbHelper.insertExpense(newExpense);
+              }
+              
+              // Trigger background sync
+              SupabaseService().syncData();
+              
+              await _loadExpenses();
+  
+              Navigator.pop(context);
+  
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(isEdit ? 'Expense updated' : 'Expense added'),
+                  backgroundColor: Colors.deepOrangeAccent,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+            ),
+            child: Ink(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromRGBO(30, 58, 138, 1),
+                    Color.fromRGBO(59, 130, 246, 1),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.all(Radius.circular(10)),
+              ),
+              child: Container(
+                alignment: Alignment.center,
+                constraints: const BoxConstraints(minHeight: 40),
+                child: Text(
+                  isEdit ? 'Update' : 'Add',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
     ),
   );
 }
@@ -196,7 +303,7 @@ void _showExpenseDialog({Map<String, dynamic>? expense, int? index}) {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: Colors.white,
-        title: Text(
+        title: const Text(
           'Delete Expense',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
         ),
@@ -214,11 +321,21 @@ void _showExpenseDialog({Map<String, dynamic>? expense, int? index}) {
           ),
           ElevatedButton(
             onPressed: () async {
-              await _dbHelper.deleteExpense(expenses[index]['id']);
+              final expense = expenses[index];
+              final supabaseId = expense['supabase_id'];
+              
+              // 1. Delete Locally
+              await _dbHelper.deleteExpense(expense['id']);
+              
+              // 2. Delete Remotely if it exists in Supabase
+              if (supabaseId != null) {
+                await SupabaseService().deleteRow('expenses', supabaseId);
+              }
+              
               await _loadExpenses();
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text('Expense deleted'),
                   backgroundColor: Colors.deepOrangeAccent,
                   duration: Duration(seconds: 2),
@@ -228,9 +345,9 @@ void _showExpenseDialog({Map<String, dynamic>? expense, int? index}) {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: Text(
+            child: const Text(
               'Delete',
               style: TextStyle(color: Colors.white, fontSize: 14),
             ),
