@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pos/widgets/notification_card.dart';
+import 'package:pos/widgets/expense_card.dart';
 import 'package:pos/widgets/currency_text.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/supabase_service.dart';
@@ -426,32 +426,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               itemCount: expenses.length,
               itemBuilder: (context, index) {
                 final expense = expenses[index];
-                return CustomCardWidget(
-                  title: expense['category']!,
-                  subtitleWidget: CurrencyText(
-                    price: (expense['amount'] as num).toDouble(),
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                  ),
-                  trailingText: expense['date']!,
-                  avatarIcon: Icons.account_balance_wallet,
-                  onAvatarTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Tapped: ${expense['category']}'),
-                        backgroundColor: const Color.fromARGB(255, 75, 91, 234),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  onCardTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Selected: ${expense['category']}'),
-                        backgroundColor: Colors.deepOrangeAccent,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
+                return ExpenseCard(
+                  category: expense['category']!,
+                  amount: (expense['amount'] as num).toDouble(),
+                  date: expense['date']!,
                   onEdit: () => _showExpenseDialog(expense: expense, index: index),
                   onDelete: () => _deleteExpense(index),
                 );
