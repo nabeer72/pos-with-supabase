@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/widgets/expense_card.dart';
+import 'package:pos/widgets/custom_loader.dart';
 import 'package:pos/widgets/currency_text.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/supabase_service.dart';
@@ -16,6 +17,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   List<Map<String, dynamic>> expenses = [];
   List<Map<String, dynamic>> expenseHeads = [];
   String? selectedHead;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -24,10 +26,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   Future<void> _loadInitialData() async {
+    setState(() => _isLoading = true);
     await _loadExpenseHeads();
     await _loadExpenses();
     await SupabaseService().syncData();
     await _loadExpenseHeads();
+    setState(() => _isLoading = false);
   }
 
   Future<void> _loadExpenseHeads() async {
@@ -52,6 +56,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text('Manage Expense Heads'),
           content: Column(
@@ -104,11 +109,24 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 final name = headController.text.trim();
                 if (name.isNotEmpty) {
                   final authController = Get.find<AuthController>();
+                  
+                  // Show loader, close dialog first or handle state?
+                  // User wants loader shown on screen. 
+                  Navigator.pop(context); 
+                  setState(() => _isLoading = true);
+                  
                   await _dbHelper.insertExpenseHead(name, adminId: authController.adminId);
                   headController.clear();
-                  SupabaseService().syncData();
+                  await SupabaseService().syncData();
                   await _loadExpenseHeads();
-                  setDialogState(() {});
+                  
+                  setState(() => _isLoading = false);
+                  // Re-open dialog? logic implies we are managing heads. 
+                  // Usually we'd keep dialog open. But if we show loader in body, we need to see body.
+                  // Or we can show loader IN dialog.
+                  // User said "loader in expenses screen". 
+                  // Let's assume body loader.
+                  _showManageHeadsDialog(); // Re-open to continue managing
                 }
               },
               child: const Text('Add'),
@@ -134,7 +152,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         backgroundColor: Colors.white,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
+          children: [ // ...
             Text(
               isEdit ? 'Edit Expense' : 'Add Expense',
               style: const TextStyle(
@@ -160,6 +178,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: selectedHead,
+                    dropdownColor: Colors.white,
                     items: expenseHeads.map((head) => DropdownMenuItem(
                       value: head['name'] as String,
                       child: Text(head['name'], style: const TextStyle(fontSize: 14)),
@@ -240,6 +259,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 return;
               }
   
+              Navigator.pop(context); // Close dialog first to show loader on screen
+              setState(() => _isLoading = true);
+              
               final authController = Get.find<AuthController>();
               final newExpense = {
                 'category': head, // Save Head name as category for now to maintain consistency
@@ -256,18 +278,21 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               }
               
               // Trigger background sync
-              SupabaseService().syncData();
+              await SupabaseService().syncData();
               
               await _loadExpenses();
+              
+              setState(() => _isLoading = false);
   
-              Navigator.pop(context);
-  
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(isEdit ? 'Expense updated' : 'Expense added'),
-                  backgroundColor: Colors.deepOrangeAccent,
-                  duration: const Duration(seconds: 2),
-                ),
+              Get.snackbar(
+                isEdit ? 'Success' : 'Success',
+                isEdit ? 'Expense updated' : 'Expense added',
+                snackPosition: SnackPosition.TOP,
+                backgroundColor: Colors.green,
+                colorText: Colors.white,
+                margin: const EdgeInsets.all(16),
+                borderRadius: 12,
+                duration: const Duration(seconds: 2),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -334,6 +359,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+
               final expense = expenses[index];
               final supabaseId = expense['supabase_id'];
               
@@ -346,13 +374,16 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               }
               
               await _loadExpenses();
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Expense deleted'),
-                  backgroundColor: Colors.deepOrangeAccent,
-                  duration: Duration(seconds: 2),
-                ),
+              setState(() => _isLoading = false);
+              Get.snackbar(
+                'Success',
+                'Expense deleted',
+                snackPosition: SnackPosition.TOP,
+                backgroundColor: Colors.deepOrangeAccent,
+                colorText: Colors.white,
+                margin: const EdgeInsets.all(16),
+                borderRadius: 12,
+                duration: const Duration(seconds: 2),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -403,7 +434,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
         ),
       ),
-      body: expenses.isEmpty
+      body: _isLoading 
+          ? const Center(child: LoadingWidget()) 
+          : expenses.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
