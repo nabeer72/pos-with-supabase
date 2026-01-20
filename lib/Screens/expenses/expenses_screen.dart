@@ -14,7 +14,7 @@ class ExpensesScreen extends StatefulWidget {
 class _ExpensesScreenState extends State<ExpensesScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   List<Map<String, dynamic>> expenses = [];
-  List<String> expenseHeads = [];
+  List<Map<String, dynamic>> expenseHeads = [];
   String? selectedHead;
 
   @override
@@ -26,6 +26,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   Future<void> _loadInitialData() async {
     await _loadExpenseHeads();
     await _loadExpenses();
+    await SupabaseService().syncData();
+    await _loadExpenseHeads();
   }
 
   Future<void> _loadExpenseHeads() async {
@@ -44,10 +46,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     });
   }
 
-  // Function to show dialog for managing expense heads
-  void _showManageHeadsDialog() {
+  Future<void> _showManageHeadsDialog() async {
     final headController = TextEditingController();
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -68,24 +69,36 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ? const Center(child: Text('No heads added yet'))
                     : ListView.builder(
                         itemCount: expenseHeads.length,
-                        itemBuilder: (context, index) => ListTile(
-                          title: Text(expenseHeads[index]),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.redAccent),
-                            onPressed: () async {
-                              final authController = Get.find<AuthController>();
-                              await _dbHelper.deleteExpenseHead(expenseHeads[index], adminId: authController.adminId);
-                              await _loadExpenseHeads();
-                              setDialogState(() {});
-                            },
-                          ),
-                        ),
+                        itemBuilder: (context, index) {
+                          final head = expenseHeads[index];
+                          return ListTile(
+                            title: Text(head['name']),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.redAccent),
+                              onPressed: () async {
+                                final authController = Get.find<AuthController>();
+                                // Delete locally
+                                await _dbHelper.deleteExpenseHead(head['name'], adminId: authController.adminId);
+                                
+                                // Delete remotely
+                                if (head['supabase_id'] != null) {
+                                  await SupabaseService().deleteRow('expense_heads', head['supabase_id']);
+                                }
+
+                                await _loadExpenseHeads();
+                                setDialogState(() {});
+                              },
+                            ),
+                          );
+                        },
                       ),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close')),
             ElevatedButton(
               onPressed: () async {
                 final name = headController.text.trim();
@@ -148,8 +161,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   child: DropdownButtonFormField<String>(
                     value: selectedHead,
                     items: expenseHeads.map((head) => DropdownMenuItem(
-                      value: head,
-                      child: Text(head, style: const TextStyle(fontSize: 14)),
+                      value: head['name'] as String,
+                      child: Text(head['name'], style: const TextStyle(fontSize: 14)),
                     )).toList(),
                     onChanged: (val) {
                       setDialogState(() {
@@ -172,7 +185,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 IconButton(
                   icon: const Icon(Icons.add_circle, color: Colors.blueAccent),
                   onPressed: () async {
-                    _showManageHeadsDialog();
+                    await _showManageHeadsDialog();
                     // After returning, refresh heads in this dialog
                     await _loadExpenseHeads();
                     setDialogState(() {});

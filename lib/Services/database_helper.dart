@@ -840,12 +840,11 @@ class DatabaseHelper {
     return await db.insert('expense_heads', {'name': name, 'adminId': adminId}, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
-  Future<List<String>> getExpenseHeads({String? adminId}) async {
+  Future<List<Map<String, dynamic>>> getExpenseHeads({String? adminId}) async {
     Database db = await database;
     final String? whereClause = adminId != null ? 'adminId = ?' : null;
     final List<Object?>? whereArgs = adminId != null ? [adminId] : null;
-    final List<Map<String, dynamic>> maps = await db.query('expense_heads', where: whereClause, whereArgs: whereArgs);
-    return List.generate(maps.length, (i) => maps[i]['name'] as String);
+    return await db.query('expense_heads', where: whereClause, whereArgs: whereArgs);
   }
 
   Future<int> deleteExpenseHead(String name, {String? adminId}) async {

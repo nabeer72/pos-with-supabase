@@ -154,6 +154,15 @@ create table public.loyalty_rules (
   admin_id text unique
 );
 
+-- Expense Heads Table
+create table public.expense_heads (
+  id uuid default uuid_generate_v4() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  name text,
+  admin_id text,
+  unique(name, admin_id)
+);
+
 -- Enable Row Level Security (RLS)
 alter table public.users enable row level security;
 alter table public.categories enable row level security;
@@ -168,6 +177,7 @@ alter table public.loyalty_accounts enable row level security;
 alter table public.loyalty_transactions enable row level security;
 alter table public.loyalty_tier_settings enable row level security;
 alter table public.loyalty_rules enable row level security;
+alter table public.expense_heads enable row level security;
 
 -- Create policies to allow access
 create policy "Allow all access" on public.users for all using (true);
@@ -183,3 +193,4 @@ create policy "Allow all access" on public.loyalty_accounts for all using (true)
 create policy "Allow all access" on public.loyalty_transactions for all using (true);
 create policy "Allow all access" on public.loyalty_tier_settings for all using (true);
 create policy "Allow all access" on public.loyalty_rules for all using (true);
+create policy "Allow all access" on public.expense_heads for all using (true);
