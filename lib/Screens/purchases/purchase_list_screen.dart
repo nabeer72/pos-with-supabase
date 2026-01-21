@@ -70,22 +70,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
       ),
       body: Column(
         children: [
-          // Filters
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip('All'),
-                  _buildFilterChip('Draft'),
-                  _buildFilterChip('Ordered'),
-                  _buildFilterChip('Partial'),
-                  _buildFilterChip('Received'),
-                ],
-              ),
-            ),
-          ),
+  
           // List
           Expanded(
             child: Obx(() {
@@ -275,42 +260,6 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    Color color;
-    Color bgColor;
-    switch (status) {
-      case 'Received': 
-        color = const Color(0xFF10B981);
-        bgColor = const Color(0xFFD1FAE5);
-        break;
-      case 'Partial': 
-        color = const Color(0xFFF59E0B);
-        bgColor = const Color(0xFFFEF3C7);
-        break;
-      case 'Draft': 
-        color = const Color(0xFF64748B);
-        bgColor = const Color(0xFFF1F5F9);
-        break;
-      case 'Ordered': 
-        color = const Color(0xFF3B82F6);
-        bgColor = const Color(0xFFDBEAFE);
-        break;
-      default: 
-        color = Colors.black;
-        bgColor = Colors.grey[200]!;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        status, 
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)
-      ),
-    );
-  }
 
   void _showActionSheet(BuildContext context, PurchaseOrder po) {
     Get.bottomSheet(

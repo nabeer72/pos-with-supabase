@@ -173,6 +173,10 @@ create table public.purchase_orders (
   status text not null default 'Draft',
   total_amount numeric default 0.0,
   notes text,
+  invoice_number text,
+  payment_type text,
+  bank_name text,
+  cheque_number text,
   admin_id text
 );
 

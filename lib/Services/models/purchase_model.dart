@@ -7,6 +7,10 @@ class PurchaseOrder {
   String status; // 'Draft', 'Ordered', 'Partial', 'Received', 'Cancelled'
   double totalAmount;
   String? notes;
+  String? invoiceNumber;
+  String? paymentType;
+  String? bankName;
+  String? chequeNumber;
   String? adminId;
   String? supabaseId;
   int isSynced;
@@ -21,6 +25,10 @@ class PurchaseOrder {
     this.status = 'Draft',
     this.totalAmount = 0.0,
     this.notes,
+    this.invoiceNumber,
+    this.paymentType,
+    this.bankName,
+    this.chequeNumber,
     this.adminId,
     this.supabaseId,
     this.isSynced = 0,
@@ -37,6 +45,10 @@ class PurchaseOrder {
       'status': status,
       'totalAmount': totalAmount,
       'notes': notes,
+      'invoice_number': invoiceNumber,
+      'payment_type': paymentType,
+      'bank_name': bankName,
+      'cheque_number': chequeNumber,
       'adminId': adminId,
       'supabase_id': supabaseId,
       'is_synced': isSynced,
@@ -52,6 +64,10 @@ class PurchaseOrder {
       status: map['status'] ?? 'Draft',
       totalAmount: map['totalAmount'] ?? 0.0,
       notes: map['notes'],
+      invoiceNumber: map['invoice_number'],
+      paymentType: map['payment_type'],
+      bankName: map['bank_name'],
+      chequeNumber: map['cheque_number'],
       adminId: map['adminId'],
       supabaseId: map['supabase_id'],
       isSynced: map['is_synced'] ?? 0,

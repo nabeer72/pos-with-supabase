@@ -83,9 +83,70 @@ class PurchaseController extends GetxController {
       Get.snackbar('Success', 'Purchase order created');
       
       _supabaseService.pushUnsyncedData();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> createDirectPurchase(PurchaseOrder po) async {
+    isLoading.value = true;
+    final db = await _dbHelper.database;
+    try {
+      await db.transaction((txn) async {
+        // Force status to Received for direct purchase
+        po.status = 'Received';
+        int poId = await txn.insert('purchase_orders', po.toMap());
+        po.id = poId;
+
+        for (var item in po.items) {
+          item.purchaseId = poId;
+          item.adminId = po.adminId;
+          item.receivedQuantity = item.quantity; // Mark all as received
+          item.isSynced = 0;
+          await txn.insert('purchase_items', item.toMap());
+
+          // Update Inventory & Cost immediately
+          final productId = item.productId;
+          final List<Map<String, dynamic>> productMap = await txn.query(
+            'products',
+            where: 'id = ?',
+            whereArgs: [productId]
+          );
+
+          if (productMap.isNotEmpty) {
+            Product product = Product.fromMap(productMap.first);
+
+            // Weighted Average Cost Calculation
+            double oldTotalValue = product.quantity * product.purchasePrice;
+            double incomingValue = item.quantity * item.unitCost;
+            int newTotalQty = product.quantity + item.quantity;
+
+            double newAvgCost = newTotalQty > 0
+                ? (oldTotalValue + incomingValue) / newTotalQty
+                : product.purchasePrice;
+
+            // Update Product
+            await txn.update(
+              'products',
+              {
+                'quantity': newTotalQty,
+                'purchasePrice': newAvgCost,
+                'is_synced': 0
+              },
+              where: 'id = ?',
+              whereArgs: [productId]
+            );
+          }
+        }
+      });
+      await loadPurchaseOrders();
+      Get.back(); // Close form
+      Get.snackbar('Success', 'Direct purchase successful and inventory updated');
+      
+      _supabaseService.pushUnsyncedData();
     } catch (e) {
-      print('Error creating PO: $e');
-      Get.snackbar('Error', 'Failed to create purchase order');
+      print('Error creating direct purchase: $e');
+      Get.snackbar('Error', 'Failed to create direct purchase');
     } finally {
       isLoading.value = false;
     }

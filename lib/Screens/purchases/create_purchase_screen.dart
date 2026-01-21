@@ -26,6 +26,10 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
   
   final TextEditingController notesController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
+  final TextEditingController invoiceController = TextEditingController();
+  final TextEditingController bankNameController = TextEditingController();
+  final TextEditingController chequeNumberController = TextEditingController();
+  String selectedPaymentType = 'Cash';
   
   List<PurchaseItem> items = [];
   
@@ -81,6 +85,16 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
                     },
                   ),
                   const SizedBox(height: 10),
+                  if (selectedProduct != null) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Sale Price: $currencySymbol${selectedProduct!.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.blueGrey)),
+                        Text('Last Cost: $currencySymbol${selectedProduct!.purchasePrice.toStringAsFixed(2)}', style: const TextStyle(color: Colors.blueGrey)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                   TextField(
                     controller: qtyController,
                     decoration: const InputDecoration(labelText: 'Quantity', border: OutlineInputBorder()),
@@ -137,14 +151,18 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
     final newPO = PurchaseOrder(
       supplierId: selectedSupplierId,
       orderDate: dateController.text,
-      status: status, 
+      status: 'Received', 
       totalAmount: grandTotal,
       notes: notesController.text,
+      invoiceNumber: invoiceController.text,
+      paymentType: selectedPaymentType,
+      bankName: selectedPaymentType == 'Bank' ? bankNameController.text : null,
+      chequeNumber: selectedPaymentType == 'Cheque' ? chequeNumberController.text : null,
       adminId: Get.find<AuthController>().adminId,
       items: items,
     );
     
-    controller.createPurchaseOrder(newPO);
+    controller.createDirectPurchase(newPO);
   }
 
   @override
@@ -225,6 +243,65 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
                 fillColor: Colors.grey[50]
               ),
             ),
+            const SizedBox(height: 16),
+            // Invoice & Payment
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: invoiceController,
+                    decoration: InputDecoration(
+                      labelText: 'Invoice Number', 
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Colors.grey[50]
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedPaymentType,
+                    decoration: InputDecoration(
+                      labelText: 'Payment Type', 
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Colors.grey[50]
+                    ),
+                    items: ['Cash', 'Bank', 'Cheque'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        selectedPaymentType = val!;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+            if (selectedPaymentType == 'Bank') ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: bankNameController,
+                decoration: InputDecoration(
+                  labelText: 'Bank Name', 
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey[50]
+                ),
+              ),
+            ],
+            if (selectedPaymentType == 'Cheque') ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: chequeNumberController,
+                decoration: InputDecoration(
+                  labelText: 'Cheque Number', 
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey[50]
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             
             // Items Header
@@ -284,46 +361,31 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
             ),
             const SizedBox(height: 20),
             
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      side: const BorderSide(color: Colors.grey, width: 1.5),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 5,
+                ),
+                onPressed: () => _saveOrder('Received'),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color.fromRGBO(30, 58, 138, 1), Color.fromRGBO(59, 130, 246, 1)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    onPressed: () => _saveOrder('Draft'),
-                    child: const Text('Save as Draft', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    alignment: Alignment.center,
+                    child: const Text('Save Purchase', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 5,
-                    ),
-                    onPressed: () => _saveOrder('Ordered'),
-                    child: Ink(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color.fromRGBO(30, 58, 138, 1), Color.fromRGBO(59, 130, 246, 1)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        alignment: Alignment.center,
-                        child: const Text('Place Order', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             )
           ],
         ),
