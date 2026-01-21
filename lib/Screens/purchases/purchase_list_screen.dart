@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:pos/Services/Controllers/purchase_controller.dart';
 import 'package:pos/Services/models/purchase_model.dart';
 import 'package:pos/Screens/purchases/create_purchase_screen.dart';
+import 'package:pos/Screens/purchases/receive_purchase_screen.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/Services/currency_service.dart';
 
@@ -69,6 +70,22 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
       ),
       body: Column(
         children: [
+          // Filters
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('All'),
+                  _buildFilterChip('Draft'),
+                  _buildFilterChip('Ordered'),
+                  _buildFilterChip('Partial'),
+                  _buildFilterChip('Received'),
+                ],
+              ),
+            ),
+          ),
           // List
           Expanded(
             child: Obx(() {
@@ -125,6 +142,31 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
             ]
           ),
           child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: InkWell(
+        onTap: () => controller.loadPurchaseOrders(statusFilter: label),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey[300]!),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))
+            ]
+          ),
+          child: Text(
+            label, 
+            style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w500)
+          ),
         ),
       ),
     );
@@ -209,19 +251,63 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                   ),
                 ),
 
-                // Amount
-                Text(
-                  '$currencySymbol${po.totalAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1E293B),
-                  ),
+                // Amount & Status
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '$currencySymbol${po.totalAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStatusBadge(po.status),
+                  ],
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    Color color;
+    Color bgColor;
+    switch (status) {
+      case 'Received': 
+        color = const Color(0xFF10B981);
+        bgColor = const Color(0xFFD1FAE5);
+        break;
+      case 'Partial': 
+        color = const Color(0xFFF59E0B);
+        bgColor = const Color(0xFFFEF3C7);
+        break;
+      case 'Draft': 
+        color = const Color(0xFF64748B);
+        bgColor = const Color(0xFFF1F5F9);
+        break;
+      case 'Ordered': 
+        color = const Color(0xFF3B82F6);
+        bgColor = const Color(0xFFDBEAFE);
+        break;
+      default: 
+        color = Colors.black;
+        bgColor = Colors.grey[200]!;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        status, 
+        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)
       ),
     );
   }
@@ -240,6 +326,19 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
               padding: const EdgeInsets.only(left: 20, bottom: 10),
               child: Text('Actions for Purchase #${po.id}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
             ),
+            if (po.status != 'Received' && po.status != 'Cancelled')
+              ListTile(
+                leading: Container(
+                   padding: const EdgeInsets.all(8),
+                   decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(8)),
+                   child: const Icon(Icons.inventory, color: Colors.green)
+                ),
+                title: const Text('Receive Goods', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () {
+                   Get.back();
+                   Get.to(() => ReceivePurchaseScreen(poId: po.id!));
+                },
+              ),
             ListTile(
               leading: Container(
                  padding: const EdgeInsets.all(8),

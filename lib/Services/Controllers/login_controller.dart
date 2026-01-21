@@ -50,6 +50,19 @@ class LoginController extends GetxController {
          // Attempt Remote Login first
          await _authController.loginWithSupabase(email, password);
          loggedInStart = true;
+         
+         Get.snackbar('Syncing', 'Restoring your data...', 
+             snackPosition: SnackPosition.BOTTOM, 
+             backgroundColor: Colors.blueAccent, 
+             colorText: Colors.white,
+             duration: const Duration(seconds: 2));
+
+         try {
+           await _supabaseService.pullRemoteData();
+         } catch (e) {
+           print("Initial sync warning: $e");
+         }
+
          // If successful, navigate
          Get.offAll(() => BottomNavigation());
       } on AuthException catch (e) {

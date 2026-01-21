@@ -190,6 +190,7 @@ class SuppliersScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(isEdit ? 'Edit Supplier' : 'Add Supplier', style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(

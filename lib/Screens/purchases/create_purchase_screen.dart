@@ -64,6 +64,7 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              backgroundColor: Colors.white,
               title: const Text('Add Item'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -123,7 +124,7 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
     return items.fold(0.0, (sum, item) => sum + (item.quantity * item.unitCost));
   }
 
-  void _saveOrder() {
+  void _saveOrder(String status) {
     if (selectedSupplierId == null) {
       Get.snackbar('Error', 'Please select a supplier');
       return;
@@ -133,11 +134,10 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
       return;
     }
 
-    // Status is forcefully 'Received' in Controller, but we set it here for model integrity
     final newPO = PurchaseOrder(
       supplierId: selectedSupplierId,
       orderDate: dateController.text,
-      status: 'Received', 
+      status: status, 
       totalAmount: grandTotal,
       notes: notesController.text,
       adminId: Get.find<AuthController>().adminId,
@@ -150,6 +150,7 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('New Purchase', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
@@ -174,6 +175,7 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
           children: [
             // Supplier
             DropdownButtonFormField<int>(
+             
               value: selectedSupplierId,
               decoration: InputDecoration(
                 labelText: 'Supplier', 
@@ -280,32 +282,48 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
             
-            SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 5,
-                ),
-                onPressed: _saveOrder, 
-                child: Ink(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color.fromRGBO(30, 58, 138, 1), Color.fromRGBO(59, 130, 246, 1)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      side: const BorderSide(color: Colors.grey, width: 1.5),
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Container(
-                    alignment: Alignment.center,
-                    child: const Text('Save Purchase', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    onPressed: () => _saveOrder('Draft'),
+                    child: const Text('Save as Draft', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 5,
+                    ),
+                    onPressed: () => _saveOrder('Ordered'),
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color.fromRGBO(30, 58, 138, 1), Color.fromRGBO(59, 130, 246, 1)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        alignment: Alignment.center,
+                        child: const Text('Place Order', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             )
           ],
         ),
