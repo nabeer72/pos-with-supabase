@@ -22,7 +22,7 @@ class PurchaseController extends GetxController {
     loadPurchaseOrders();
   }
 
-  Future<void> loadPurchaseOrders({String? statusFilter}) async {
+  Future<void> loadPurchaseOrders() async {
     isLoading.value = true;
     try {
       final db = await _dbHelper.database;
@@ -37,11 +37,6 @@ class PurchaseController extends GetxController {
         args.add(adminId);
       }
       
-      if (statusFilter != null && statusFilter != 'All') {
-        whereArgs.add('po.status = ?');
-        args.add(statusFilter);
-      }
-
       if (whereArgs.isNotEmpty) {
         query += ' WHERE ${whereArgs.join(' AND ')}';
       }
@@ -64,20 +59,52 @@ class PurchaseController extends GetxController {
     final db = await _dbHelper.database;
     try {
       await db.transaction((txn) async {
+        // Enforce 'Received' status
+        po.status = 'Received';
+
         // Insert PO
         int poId = await txn.insert('purchase_orders', po.toMap());
         po.id = poId;
 
-        // Insert Items
+        // Insert Items and Update Inventory
         for (var item in po.items) {
           item.purchaseId = poId;
           item.adminId = po.adminId;
+          item.receivedQuantity = item.quantity; // Auto-receive full quantity
+          item.isSynced = 0;
           await txn.insert('purchase_items', item.toMap());
+
+          // Inventory & Cost Update
+          final productId = item.productId;
+          final List<Map<String, dynamic>> productMap = await txn.query('products', where: 'id = ?', whereArgs: [productId]);
+          
+          if (productMap.isNotEmpty) {
+             Product product = Product.fromMap(productMap.first);
+             
+             // Weighted Average Cost Calculation
+             double oldTotalValue = product.quantity * product.purchasePrice; 
+             double incomingValue = item.quantity * item.unitCost;
+             int newTotalQty = product.quantity + item.quantity;
+             
+             double newAvgCost = newTotalQty > 0 ? (oldTotalValue + incomingValue) / newTotalQty : product.purchasePrice;
+             
+             // Update Product
+             await txn.update(
+               'products', 
+               {
+                 'quantity': newTotalQty,
+                 'purchasePrice': newAvgCost, 
+                 'is_synced': 0
+               },
+               where: 'id = ?',
+               whereArgs: [productId]
+             );
+          }
         }
       });
       await loadPurchaseOrders();
       Get.back(); // Close form
-      Get.snackbar('Success', 'Purchase Order created successfully');
+      Get.snackbar('Success', 'Purchase created and inventory updated');
       
       _supabaseService.pushUnsyncedData();
     } catch (e) {
@@ -114,108 +141,6 @@ class PurchaseController extends GetxController {
     }
   }
 
-  Future<void> receiveItems(int poId, List<PurchaseItem> receivedItems) async {
-    // receivedItems contains items with UPDATED receivedQuantity (delta or total?)
-    // Strategy: We pass the LIST of items that are being received in this session (delta).
-    // Or we pass the state of the form. Let's assume we pass the User's input for "Buying Now" or "Receiving Now".
-    
-    // Easier approach: Pass the items with the QUANTITY BEING RECEIVED NOW.
-    isLoading.value = true;
-    final db = await _dbHelper.database;
-    
-    try {
-      await db.transaction((txn) async {
-        bool allFullyReceived = true;
-        
-        for (var receivedItem in receivedItems) {
-           if (receivedItem.receivedQuantity > 0) { // Quantity being received NOW
-             // 1. Fetch current item state to get total received so far
-             final List<Map<String, dynamic>> currentItem = await txn.query('purchase_items', where: 'id = ?', whereArgs: [receivedItem.id]);
-             if (currentItem.isEmpty) continue;
-             
-             int oldReceivedTotal = currentItem.first['receivedQuantity'] as int;
-             int orderedQty = currentItem.first['quantity'] as int;
-             int newReceivedTotal = oldReceivedTotal + receivedItem.receivedQuantity; // Add delta
-             
-             // Update Purchase Item
-             await txn.update(
-               'purchase_items', 
-               {
-                 'receivedQuantity': newReceivedTotal,
-                 'is_synced': 0
-               },
-               where: 'id = ?',
-               whereArgs: [receivedItem.id]
-             );
-
-             // 2. Update Inventory & Cost
-             final productId = currentItem.first['productId'] as int;
-             final unitCost = currentItem.first['unitCost'] as double;
-             
-             // Get Product
-             final List<Map<String, dynamic>> productMap = await txn.query('products', where: 'id = ?', whereArgs: [productId]);
-             if (productMap.isNotEmpty) {
-               Product product = Product.fromMap(productMap.first);
-               
-               // Weighted Average Cost Calculation
-               double oldTotalValue = product.quantity * product.purchasePrice; // Assuming purchasePrice is current Avg Cost
-               double incomingValue = receivedItem.receivedQuantity * unitCost;
-               int newTotalQty = product.quantity + receivedItem.receivedQuantity;
-               
-               double newAvgCost = newTotalQty > 0 ? (oldTotalValue + incomingValue) / newTotalQty : product.purchasePrice;
-               
-               // Update Product
-               await txn.update(
-                 'products', 
-                 {
-                   'quantity': newTotalQty,
-                   'purchasePrice': newAvgCost, // Update Cost
-                   'is_synced': 0
-                 },
-                 where: 'id = ?',
-                 whereArgs: [productId]
-               );
-             }
-             
-             if (newReceivedTotal < orderedQty) {
-               allFullyReceived = false;
-             }
-           } else {
-             // Check if this item was already fully received or still pending
-              final List<Map<String, dynamic>> currentItem = await txn.query('purchase_items', where: 'id = ?', whereArgs: [receivedItem.id]);
-              if (currentItem.isNotEmpty) {
-                 int r = currentItem.first['receivedQuantity'] as int;
-                 int q = currentItem.first['quantity'] as int;
-                 if (r < q) allFullyReceived = false;
-              }
-           }
-        }
-        
-        // Update PO Status
-        String newStatus = allFullyReceived ? 'Received' : 'Partial';
-        await txn.update('purchase_orders', {'status': newStatus, 'is_synced': 0}, where: 'id = ?', whereArgs: [poId]);
-      });
-      
-      await loadPurchaseOrders();
-      Get.back();
-      Get.snackbar('Success', 'Items received and inventory updated');
-      
-      _supabaseService.pushUnsyncedData();
-    } catch (e) {
-      print('Error receiving items: $e');
-      Get.snackbar('Error', 'Failed to receive items: $e');
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> updatePOStatus(int id, String status) async {
-     final db = await _dbHelper.database;
-     await db.update('purchase_orders', {'status': status, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
-     loadPurchaseOrders();
-     _supabaseService.pushUnsyncedData();
-  }
-
   Future<void> deletePO(int id) async {
     final db = await _dbHelper.database;
     // Get Supabase ID first
@@ -226,6 +151,8 @@ class PurchaseController extends GetxController {
     }
 
     await db.delete('purchase_orders', where: 'id = ?', whereArgs: [id]);
+    await db.delete('purchase_items', where: 'purchaseId = ?', whereArgs: [id]); // Also delete items
+    
     await loadPurchaseOrders();
     
     if (supabaseId != null) {
