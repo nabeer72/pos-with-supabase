@@ -629,15 +629,6 @@ class DatabaseHelper {
       'permissions': '["all"]',
       'adminId': '1'
     });
-    await db.insert('users', {
-      'name': 'Jane Smith', 
-      'role': 'Cashier', 
-      'lastActive': 'Oct 17, 2025',
-      'email': 'jane@pos.com',
-      'password': 'password123',
-      'permissions': '["sales", "customers", "reports"]',
-      'adminId': '1'
-    });
   }
 
   Future<void> seedCategoriesForAdmin(String adminId) async {
@@ -646,21 +637,7 @@ class DatabaseHelper {
   }
 
   Future<void> _seedCategories(Database db, String adminId) async {
-    final List<String> defaultCategories = [
-      'Electronics',
-      'Clothing',
-      'Accessories',
-      'Groceries',
-      'Home & Kitchen',
-    ];
-
-    for (var cat in defaultCategories) {
-      await db.insert('categories', {
-        'name': cat, 
-        'adminId': adminId,
-        'is_synced': 0, // Ensure seeded categories are marked for sync
-      }, conflictAlgorithm: ConflictAlgorithm.ignore);
-    }
+    // Seeding disabled by user request
   }
 
   Future<void> clearLocalData() async {
