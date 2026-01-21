@@ -13,30 +13,45 @@ class PurchaseListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Purchase Orders', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blueGrey,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: const Text('Purchase Orders', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () => controller.loadPurchaseOrders(),
           )
         ],
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color.fromRGBO(30, 58, 138, 1), Color.fromRGBO(59, 130, 246, 1)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: Column(
         children: [
           // Filters
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildFilterChip('All'),
-                  _buildFilterChip('Draft'),
-                  _buildFilterChip('Ordered'),
-                  _buildFilterChip('Partial'),
-                  _buildFilterChip('Received'),
+                  _buildFilterChip('All', context),
+                  _buildFilterChip('Draft', context),
+                  _buildFilterChip('Ordered', context),
+                  _buildFilterChip('Partial', context),
+                  _buildFilterChip('Received', context),
                 ],
               ),
             ),
@@ -48,11 +63,23 @@ class PurchaseListScreen extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
               if (controller.purchaseOrders.isEmpty) {
-                 return const Center(child: Text('No Purchase Orders found.'));
+                 return Center(
+                   child: Column(
+                     mainAxisAlignment: MainAxisAlignment.center,
+                     children: [
+                       Icon(Icons.shopping_bag_outlined, size: 50, color: Colors.grey[400]),
+                       const SizedBox(height: 12),
+                       Text(
+                         'No Purchase Orders',
+                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.grey[600]),
+                       ),
+                     ],
+                   ),
+                 );
               }
               return ListView.builder(
                 itemCount: controller.purchaseOrders.length,
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 itemBuilder: (context, index) {
                   final po = controller.purchaseOrders[index];
                   return _buildPOCard(context, po);
@@ -64,91 +91,243 @@ class PurchaseListScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Get.to(() => CreatePurchaseScreen()),
-        backgroundColor: Colors.blueGrey,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [Color.fromRGBO(30, 58, 138, 1), Color.fromRGBO(59, 130, 246, 1)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blueAccent,
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              )
+            ]
+          ),
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
       ),
     );
   }
 
-  Widget _buildFilterChip(String label) {
+  Widget _buildFilterChip(String label, BuildContext context) {
+    // We might want to make this reactive to show selected state, 
+    // but for now let's just style it nicely.
+    // Ideally the controller should expose 'currentFilter'.
+    // Assuming controller.currentFilter is not easily available without editing it, 
+    // we'll keep the interaction simple.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: ActionChip(
-        label: Text(label),
-        onPressed: () => controller.loadPurchaseOrders(statusFilter: label),
+      child: InkWell(
+        onTap: () => controller.loadPurchaseOrders(statusFilter: label),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey[300]!),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))
+            ]
+          ),
+          child: Text(
+            label, 
+            style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w500)
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildPOCard(BuildContext context, PurchaseOrder po) {
-    return Card(
-      elevation: 2,
+    return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
-      child: ListTile(
-        title: Text('${po.supplierName ?? 'Unknown Supplier'} (ID: ${po.id})', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text('Date: ${po.orderDate}'),
-            Text('Amount: \$${po.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-          ],
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _showActionSheet(context, po),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                // Icon
+                Container(
+                  height: 50,
+                  width: 50,
+                  decoration: BoxDecoration(
+                    color: const Color.fromRGBO(239, 246, 255, 1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.inventory_2_outlined,
+                    color: Color.fromRGBO(59, 130, 246, 1),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        po.supplierName ?? 'Unknown Supplier',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.numbers, size: 12, color: Color(0xFF64748B)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'PO #${po.id}',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                          const SizedBox(width: 12),
+                          const Icon(Icons.calendar_today_outlined, size: 12, color: Color(0xFF64748B)),
+                          const SizedBox(width: 4),
+                          Text(
+                            po.orderDate.split('T').first, // Simple date format
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Amount & Status
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '\$${po.totalAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStatusBadge(po.status),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildStatusBadge(po.status),
-          ],
-        ),
-        onTap: () {
-          _showActionSheet(context, po);
-        },
       ),
     );
   }
 
   Widget _buildStatusBadge(String status) {
     Color color;
+    Color bgColor;
     switch (status) {
-      case 'Received': color = Colors.green; break;
-      case 'Partial': color = Colors.orange; break;
-      case 'Draft': color = Colors.grey; break;
-      case 'Ordered': color = Colors.blue; break;
-      default: color = Colors.black;
+      case 'Received': 
+        color = const Color(0xFF10B981); // Emerald 500
+        bgColor = const Color(0xFFD1FAE5); // Emerald 100
+        break;
+      case 'Partial': 
+        color = const Color(0xFFF59E0B); // Amber 500
+        bgColor = const Color(0xFFFEF3C7); // Amber 100
+        break;
+      case 'Draft': 
+        color = const Color(0xFF64748B); // Slate 500
+        bgColor = const Color(0xFFF1F5F9); // Slate 100
+        break;
+      case 'Ordered': 
+        color = const Color(0xFF3B82F6); // Blue 500
+        bgColor = const Color(0xFFDBEAFE); // Blue 100
+        break;
+      default: 
+        color = Colors.black;
+        bgColor = Colors.grey[200]!;
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: color)),
-      child: Text(status, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        status, 
+        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)
+      ),
     );
   }
 
   void _showActionSheet(BuildContext context, PurchaseOrder po) {
     Get.bottomSheet(
       Container(
-        color: Colors.white,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Wrap(
           children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 20, bottom: 10),
+              child: Text('Actions for PO #${po.id}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+            ),
             if (po.status != 'Received' && po.status != 'Cancelled')
               ListTile(
-                leading: const Icon(Icons.inventory),
-                title: const Text('Receive Goods'),
+                leading: Container(
+                   padding: const EdgeInsets.all(8),
+                   decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(8)),
+                   child: const Icon(Icons.inventory, color: Colors.green)
+                ),
+                title: const Text('Receive Goods', style: TextStyle(fontWeight: FontWeight.w600)),
                 onTap: () {
                    Get.back();
                    Get.to(() => ReceivePurchaseScreen(poId: po.id!));
                 },
               ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Delete PO', style: TextStyle(color: Colors.red)),
+              leading: Container(
+                 padding: const EdgeInsets.all(8),
+                 decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(8)),
+                 child: const Icon(Icons.delete, color: Colors.red)
+              ),
+              title: const Text('Delete PO', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red)),
               onTap: () {
                 Get.back();
                 controller.deletePO(po.id!);
               },
             ),
              ListTile(
-              leading: const Icon(Icons.close),
-              title: const Text('Cancel'),
+              leading: Container(
+                 padding: const EdgeInsets.all(8),
+                 decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+                 child: const Icon(Icons.close, color: Colors.black)
+              ),
+              title: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
               onTap: () => Get.back(),
             ),
           ],

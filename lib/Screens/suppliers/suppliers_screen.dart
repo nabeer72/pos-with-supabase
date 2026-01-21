@@ -11,48 +11,173 @@ class SuppliersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50], // Match background
       appBar: AppBar(
-        title: const Text('Suppliers', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blueGrey,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => controller.loadSuppliers(),
-          )
-        ],
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: const Text(
+          'Suppliers',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color.fromRGBO(30, 58, 138, 1), Color.fromRGBO(59, 130, 246, 1)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
         }
         if (controller.suppliers.isEmpty) {
-          return const Center(child: Text('No Suppliers found.'));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people_outline, size: 50, color: Colors.grey[400]),
+                const SizedBox(height: 12),
+                Text(
+                  'No Suppliers Found',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          );
         }
-        return ListView.separated(
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
           itemCount: controller.suppliers.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (context, index) {
             final supplier = controller.suppliers[index];
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.blueGrey.withOpacity(0.1),
-                child: Text(supplier.name[0].toUpperCase(), style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold)),
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              title: Text(supplier.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(supplier.contact),
-              trailing: IconButton(
-                icon: const Icon(Icons.edit, color: Colors.blueGrey),
-                onPressed: () => _showSupplierDialog(context, supplier: supplier),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    // Icon Container
+                    Container(
+                      height: 50,
+                      width: 50,
+                      decoration: BoxDecoration(
+                        color: const Color.fromRGBO(239, 246, 255, 1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          supplier.name.isNotEmpty ? supplier.name[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                            color: Color.fromRGBO(59, 130, 246, 1),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    
+                    // Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            supplier.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.phone_outlined, size: 14, color: Color(0xFF64748B)),
+                              const SizedBox(width: 4),
+                              Text(
+                                supplier.contact,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Actions
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: () => _showSupplierDialog(context, supplier: supplier),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Icon(Icons.edit_outlined, size: 20, color: Colors.blue[600]),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => _confirmDelete(context, supplier),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red[400]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              onLongPress: () => _confirmDelete(context, supplier),
             );
           },
         );
       }),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showSupplierDialog(context),
-        backgroundColor: Colors.blueGrey,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [Color.fromRGBO(30, 58, 138, 1), Color.fromRGBO(59, 130, 246, 1)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blueAccent,
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              )
+            ]
+          ),
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
       ),
     );
   }
@@ -62,29 +187,50 @@ class SuppliersScreen extends StatelessWidget {
     final contactController = TextEditingController(text: supplier?.contact ?? '');
     final isEdit = supplier != null;
 
-    Get.dialog(
-      AlertDialog(
-        title: Text(isEdit ? 'Edit Supplier' : 'Add Supplier'),
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(isEdit ? 'Edit Supplier' : 'Add Supplier', style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Store/Supplier Name', border: OutlineInputBorder()),
+              decoration: InputDecoration(
+                labelText: 'Store/Supplier Name',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey[50]
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               controller: contactController,
-              decoration: const InputDecoration(labelText: 'Contact Info', border: OutlineInputBorder()),
+              decoration: InputDecoration(
+                labelText: 'Contact Info',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey[50]
+              ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Get.back(), 
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () {
               if (nameController.text.isNotEmpty) {
+                 Get.back(); // Close dialog first
                 if (isEdit) {
                   supplier.name = nameController.text;
                   supplier.contact = contactController.text;
@@ -94,7 +240,16 @@ class SuppliersScreen extends StatelessWidget {
                 }
               }
             },
-            child: Text(isEdit ? 'Update' : 'Add', style: const TextStyle(color: Colors.white)),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                gradient: const LinearGradient(
+                  colors: [Color.fromRGBO(30, 58, 138, 1), Color.fromRGBO(59, 130, 246, 1)],
+                )
+              ),
+              child: Text(isEdit ? 'Update' : 'Add', style: const TextStyle(color: Colors.white)),
+            ),
           )
         ],
       )
@@ -102,17 +257,30 @@ class SuppliersScreen extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context, Supplier supplier) {
-    Get.defaultDialog(
-      title: 'Delete Supplier',
-      middleText: 'Are you sure you want to delete ${supplier.name}?',
-      textConfirm: 'Delete',
-      textCancel: 'Cancel',
-      confirmTextColor: Colors.white,
-      buttonColor: Colors.red,
-      onConfirm: () {
-        Get.back();
-        controller.deleteSupplier(supplier.id!);
-      }
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Supplier'),
+        content: Text('Are you sure you want to delete ${supplier.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              Get.back();
+              controller.deleteSupplier(supplier.id!);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      )
     );
   }
 }
