@@ -1,3 +1,4 @@
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -18,7 +19,6 @@ class SupabaseService {
   static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4aWZ0bXZybmllcWRzbWRjd2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzYxMTQsImV4cCI6MjA4MzUxMjExNH0.43rUqJARm04tLrnDtgeW8KzUONNwl7iECspyHQFb3cc';
 
 
-  // Auth Methods
   // Auth Methods
   Future<AuthResponse> signUp(String email, String password) async {
     return await _supabase.auth.signUp(email: email, password: password);
@@ -99,7 +99,7 @@ class SupabaseService {
       await _syncTable(
         'categories', 
         'id',
-        onConflict: 'name,admin_id', // Handle composite unique constraint
+        onConflict: 'name,admin_id', 
         mapLocalToRemote: (localMap) {
           return {
             'name': localMap['name'],
@@ -116,7 +116,7 @@ class SupabaseService {
       await _syncTable(
         'products', 
         'id', 
-        onConflict: 'barcode,admin_id', // Handle barcode collision for the same admin
+        onConflict: 'barcode,admin_id', 
         mapLocalToRemote: (localMap) {
           int colorVal = localMap['color'] ?? 0;
           int iconVal = localMap['icon'] ?? 0;
@@ -143,7 +143,7 @@ class SupabaseService {
       await _syncTable(
         'customers', 
         'id', 
-        onConflict: 'name,admin_id', // Handle name collision for the same admin
+        onConflict: 'name,admin_id',
         mapLocalToRemote: (localMap) {
           return {
             'name': localMap['name'],
@@ -201,21 +201,48 @@ class SupabaseService {
 
     // 6. Suppliers
     try {
-      await _syncTable(
-        'suppliers', 
-        'id', 
-        onConflict: 'name,admin_id',
-        mapLocalToRemote: (localMap) {
-          return {
-            'name': localMap['name'],
-            'contact': localMap['contact'],
-            'last_order': localMap['lastOrder'],
-            'admin_id': localMap['adminId'],
+      final db = await _dbHelper.database;
+      final unsyncedSuppliers = await db.query('suppliers', where: 'is_synced = 0 OR is_synced IS NULL');
+      
+      for (var s in unsyncedSuppliers) {
+        try {
+          // Check if exists
+          final existing = await _supabase.from('suppliers')
+              .select('id')
+              .eq('name', s['name'] as String)
+              .eq('admin_id', s['adminId'] as String)
+              .maybeSingle();
+
+          dynamic response;
+          final data = {
+            'name': s['name'],
+            'contact': s['contact'],
+            'last_order': s['lastOrder'],
+            'admin_id': s['adminId'],
           };
+
+          if (existing != null) {
+             // Update
+             response = await _supabase.from('suppliers').update(data).eq('id', existing['id']).select().single();
+          } else {
+             // Insert
+             response = await _supabase.from('suppliers').insert(data).select().single();
+          }
+          
+          if (response != null) {
+            await db.update(
+              'suppliers',
+              {'is_synced': 1, 'supabase_id': response['id']},
+              where: 'id = ?',
+              whereArgs: [s['id']]
+            );
+          }
+        } catch (e) {
+          print('Error syncing supplier ${s['name']}: $e');
         }
-      );
+      }
     } catch (e) {
-      print('Error syncing suppliers: $e');
+      print('Error iterating suppliers: $e');
     }
 
     // 7. Settings
@@ -223,7 +250,7 @@ class SupabaseService {
       await _syncTable(
         'settings', 
         'id', 
-        onConflict: 'key,admin_id', // Fix duplicate key error for settings
+        onConflict: 'key,admin_id', 
         mapLocalToRemote: (localMap) {
           return {
             'key': localMap['key'],
@@ -240,7 +267,7 @@ class SupabaseService {
     try {
       await _syncTable('loyalty_accounts', 'id', mapLocalToRemote: (localMap) {
         return {
-          'customer_id': null, // Needs UUID mapping, but for now we skip complex links if not using UUIDs everywhere
+          'customer_id': null, 
           'total_points': localMap['total_points'],
           'cashback_balance': localMap['cashback_balance'],
           'current_tier': localMap['current_tier'],
@@ -265,6 +292,13 @@ class SupabaseService {
     } catch (e) {
       print('Error syncing loyalty_rules: $e');
     }
+
+    // 10. Purchase Orders & Items
+    try {
+      await _syncPurchaseOrders();
+    } catch (e) {
+      print('Error syncing purchases: $e');
+    }
   }
 
   Future<void> _syncTable(String tableName, String localIdColumn, {Map<String, dynamic> Function(Map<String, dynamic>)? mapLocalToRemote, String? onConflict}) async {
@@ -276,19 +310,16 @@ class SupabaseService {
         final supabaseId = row['supabase_id'] as String?;
         Map<String, dynamic> dataToSync = mapLocalToRemote != null ? mapLocalToRemote(row) : Map<String, dynamic>.from(row);
         
-        // Remove local-only fields if copying all
         if (mapLocalToRemote == null) {
-          dataToSync.remove('id'); // Local ID
+          dataToSync.remove('id');
           dataToSync.remove('is_synced');
           dataToSync.remove('supabase_id');
         }
 
         dynamic response;
         if (supabaseId != null) {
-          // Update existing
           response = await _supabase.from(tableName).update(dataToSync).eq('id', supabaseId).select().single();
         } else {
-          // Insert new or Upsert
           if (onConflict != null) {
              response = await _supabase.from(tableName).upsert(dataToSync, onConflict: onConflict).select().single();
           } else {
@@ -298,7 +329,6 @@ class SupabaseService {
 
         if (response != null) {
           final newSupabaseId = response['id'];
-          // Update local record
           await db.update(
             tableName,
             {'is_synced': 1, 'supabase_id': newSupabaseId},
@@ -321,7 +351,6 @@ class SupabaseService {
         final supabaseId = sale['supabase_id'] as String?;
         final customerId = sale['customerId'] as int?;
         
-        // Resolve Customer UUID if needed
         String? customerUuid;
         if (customerId != null) {
           final customer = await db.query('customers', where: 'id = ?', whereArgs: [customerId]);
@@ -333,8 +362,8 @@ class SupabaseService {
         final saleData = {
           'sale_date': sale['saleDate'],
           'total_amount': sale['totalAmount'],
-          'customer_id': customerUuid, // Assuming remote column is customer_id
-          'admin_id': sale['adminId'], // Added admin_id
+          'customer_id': customerUuid, 
+          'admin_id': sale['adminId'], 
         };
 
         dynamic response;
@@ -354,7 +383,6 @@ class SupabaseService {
             whereArgs: [sale['id']],
           );
 
-          // Now sync items for this sale
           await _syncSaleItems(sale['id'] as int, newSupabaseId);
         }
       } catch (e) {
@@ -365,15 +393,12 @@ class SupabaseService {
 
   Future<void> _syncSaleItems(int localSaleId, String remoteSaleId) async {
     final db = await _dbHelper.database;
-    // We sync all items for this sale that are not synced (or all of them if we treat sale + items as unit)
-    // Actually items might be added later? Assuming sale creation includes items.
     final items = await db.query('sale_items', where: 'saleId = ?', whereArgs: [localSaleId]);
 
     for (var item in items) {
        if (item['is_synced'] == 1) continue;
 
        try {
-         // Resolve Product UUID
          final productId = item['productId'] as int;
          final product = await db.query('products', where: 'id = ?', whereArgs: [productId]);
          String? productUuid;
@@ -381,22 +406,16 @@ class SupabaseService {
            productUuid = product.first['supabase_id'] as String?;
          }
 
-         if (productUuid == null) {
-            // Product not synced yet? Should have been synced by _syncTable('products') earlier.
-            // If not, we might fail constraint. Skip or force sync product? 
-            // For now, continue. Database constraints on Supabase might fail.
-            continue; 
-         }
+         if (productUuid == null) continue; 
 
          final itemData = {
            'sale_id': remoteSaleId,
            'product_id': productUuid,
            'quantity': item['quantity'],
            'unit_price': item['unitPrice'],
-           'admin_id': item['adminId'], // Added admin_id
+           'admin_id': item['adminId'], 
          };
 
-         // Insert item (items typically not updated individually in this POS context, but handled as part of sale)
          final response = await _supabase.from('sale_items').insert(itemData).select().single();
          
          if (response != null) {
@@ -413,12 +432,109 @@ class SupabaseService {
     }
   }
 
+  Future<void> _syncPurchaseOrders() async {
+    final db = await _dbHelper.database;
+    final unsyncedPOs = await db.query('purchase_orders', where: 'is_synced = 0 OR is_synced IS NULL');
+
+    for (var po in unsyncedPOs) {
+      try {
+        final supabaseId = po['supabase_id'] as String?;
+        final supplierId = po['supplierId'] as int?;
+        
+        String? supplierUuid;
+        if (supplierId != null) {
+          final supplier = await db.query('suppliers', where: 'id = ?', whereArgs: [supplierId]);
+          if (supplier.isNotEmpty) {
+             supplierUuid = supplier.first['supabase_id'] as String?;
+          }
+        }
+
+        final poData = {
+          'supplier_id': supplierUuid,
+          'order_date': po['orderDate'],
+          'expected_date': po['expectedDate'],
+          'status': po['status'],
+          'total_amount': po['totalAmount'],
+          'notes': po['notes'],
+          'admin_id': po['adminId'], 
+        };
+
+        dynamic response;
+        if (supabaseId != null) {
+          response = await _supabase.from('purchase_orders').update(poData).eq('id', supabaseId).select().single();
+        } else {
+          response = await _supabase.from('purchase_orders').insert(poData).select().single();
+        }
+
+        if (response != null) {
+           final newSupabaseId = response['id'];
+           await db.update(
+             'purchase_orders',
+             {'is_synced': 1, 'supabase_id': newSupabaseId},
+             where: 'id = ?',
+             whereArgs: [po['id']],
+           );
+           
+           await _syncPurchaseItems(po['id'] as int, newSupabaseId);
+        }
+      } catch (e) {
+        print('Error syncing PO ${po['id']}: $e');
+      }
+    }
+  }
+
+  Future<void> _syncPurchaseItems(int localPOId, String remotePOId) async {
+    final db = await _dbHelper.database;
+    final items = await db.query('purchase_items', where: 'purchaseId = ?', whereArgs: [localPOId]);
+    
+    for (var item in items) {
+      if (item['is_synced'] == 1 && item['supabase_id'] != null) continue; 
+      
+      try {
+         final productId = item['productId'] as int;
+         final product = await db.query('products', where: 'id = ?', whereArgs: [productId]);
+         String? productUuid;
+         if (product.isNotEmpty) {
+           productUuid = product.first['supabase_id'] as String?;
+         }
+         
+         if (productUuid == null) continue;
+
+         final itemData = {
+           'purchase_id': remotePOId,
+           'product_id': productUuid,
+           'quantity': item['quantity'],
+           'received_quantity': item['receivedQuantity'],
+           'unit_cost': item['unitCost'],
+           'admin_id': item['adminId'],
+         };
+
+         dynamic response;
+         if (item['supabase_id'] != null) {
+           response = await _supabase.from('purchase_items').update(itemData).eq('id', item['supabase_id']!).select().single();
+         } else {
+           response = await _supabase.from('purchase_items').insert(itemData).select().single();
+         }
+         
+         if (response != null) {
+           await db.update(
+             'purchase_items',
+             {'is_synced': 1, 'supabase_id': response['id']},
+             where: 'id = ?',
+             whereArgs: [item['id']]
+           );
+         }
+      } catch (e) {
+        print('Error syncing PO item ${item['id']}: $e');
+      }
+    }
+  }
+
   Future<void> pullRemoteData() async {
     final authController = Get.find<AuthController>();
     final adminId = authController.adminId;
     if (adminId == null) return;
     
-    // Explicitly await every pull operation
     print('Starting full remote data pull for admin: $adminId');
 
     final db = await _dbHelper.database;
@@ -489,11 +605,10 @@ class SupabaseService {
       print('Pulling sales...');
       final remoteSales = await _supabase.from('sales').select().eq('admin_id', adminId);
       for (var s in remoteSales) {
-        // Need to ensure we don't duplicate logic but replace is safe here
         int localSaleId = await db.insert('sales', {
           'saleDate': s['sale_date'],
           'totalAmount': s['total_amount'],
-          'customerId': null, // We might need to link customer ID properly if critical
+          'customerId': null, 
           'adminId': adminId,
           'supabase_id': s['id'],
           'is_synced': 1
@@ -503,12 +618,11 @@ class SupabaseService {
           final remoteItems = await _supabase.from('sale_items').select().eq('sale_id', s['id']);
           for (var item in remoteItems) {
             final remoteProductId = item['product_id'];
-            // Find local product ID by remote ID
             final localProduct = await db.query('products', where: 'supabase_id = ?', whereArgs: [remoteProductId]);
             
             if (localProduct.isNotEmpty) {
               await db.insert('sale_items', {
-                'saleId': localSaleId, // Link to the newly inserted/updated local sale
+                'saleId': localSaleId, 
                 'productId': localProduct.first['id'],
                 'quantity': item['quantity'],
                 'unitPrice': item['unit_price'],
@@ -574,6 +688,70 @@ class SupabaseService {
       }
     } catch (e) {
       print('Error pulling loyalty rules: $e');
+    }
+
+    // Pull Suppliers
+    try {
+      print('Pulling suppliers...');
+      final remoteSuppliers = await _supabase.from('suppliers').select().eq('admin_id', adminId);
+      for (var s in remoteSuppliers) {
+         await db.insert('suppliers', {
+           'name': s['name'],
+           'contact': s['contact'],
+           'lastOrder': s['last_order'],
+           'adminId': adminId,
+           'supabase_id': s['id'],
+           'is_synced': 1
+         }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    } catch (e) {
+      print('Error pulling suppliers: $e');
+    }
+    
+    // Pull Purchase Orders
+    try {
+      print('Pulling purchase orders...');
+      final remotePOs = await _supabase.from('purchase_orders').select().eq('admin_id', adminId);
+      for (var po in remotePOs) {
+         int? localSupplierId;
+         if (po['supplier_id'] != null) {
+           final localSupp = await db.query('suppliers', where: 'supabase_id = ?', whereArgs: [po['supplier_id']]);
+           if (localSupp.isNotEmpty) localSupplierId = localSupp.first['id'] as int;
+         }
+
+         int localPOId = await db.insert('purchase_orders', {
+           'supplierId': localSupplierId,
+           'orderDate': po['order_date'],
+           'expectedDate': po['expected_date'],
+           'status': po['status'],
+           'totalAmount': po['total_amount'],
+           'notes': po['notes'],
+           'adminId': adminId,
+           'supabase_id': po['id'],
+           'is_synced': 1
+         }, conflictAlgorithm: ConflictAlgorithm.replace);
+         
+         if (localPOId > 0) {
+            final remoteItems = await _supabase.from('purchase_items').select().eq('purchase_id', po['id']);
+            for (var item in remoteItems) {
+               final localProduct = await db.query('products', where: 'supabase_id = ?', whereArgs: [item['product_id']]);
+               if (localProduct.isNotEmpty) {
+                 await db.insert('purchase_items', {
+                   'purchaseId': localPOId,
+                   'productId': localProduct.first['id'],
+                   'quantity': item['quantity'],
+                   'receivedQuantity': item['received_quantity'],
+                   'unitCost': item['unit_cost'],
+                   'adminId': adminId,
+                   'supabase_id': item['id'],
+                   'is_synced': 1
+                 }, conflictAlgorithm: ConflictAlgorithm.replace);
+               }
+            }
+         }
+      }
+    } catch (e) {
+      print('Error pulling purchases: $e');
     }
     
     print('Remote data pull completed.');

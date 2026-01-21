@@ -1,18 +1,21 @@
+
 class Supplier {
-  final int? id;
-  final String name;
-  final String contact;
-  final String lastOrder;
-  final String? supabaseId;
-  final bool isSynced;
+  int? id;
+  String name;
+  String contact;
+  String lastOrder;
+  String? adminId;
+  String? supabaseId;
+  int isSynced;
 
   Supplier({
     this.id,
     required this.name,
     required this.contact,
     required this.lastOrder,
+    this.adminId,
     this.supabaseId,
-    this.isSynced = false,
+    this.isSynced = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -21,8 +24,9 @@ class Supplier {
       'name': name,
       'contact': contact,
       'lastOrder': lastOrder,
+      'adminId': adminId,
       'supabase_id': supabaseId,
-      'is_synced': isSynced ? 1 : 0,
+      'is_synced': isSynced,
     };
   }
 
@@ -30,11 +34,11 @@ class Supplier {
     return Supplier(
       id: map['id'],
       name: map['name'],
-      contact: map['contact'],
-      contact: map['contact'],
-      lastOrder: map['lastOrder'],
+      contact: map['contact'] ?? '',
+      lastOrder: map['lastOrder'] ?? '',
+      adminId: map['adminId'],
       supabaseId: map['supabase_id'],
-      isSynced: map['is_synced'] == 1,
+      isSynced: map['is_synced'] ?? 0,
     );
   }
 }

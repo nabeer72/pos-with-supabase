@@ -9,7 +9,7 @@ import 'package:pos/Services/models/sale_item_model.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
-  static const int _databaseVersion = 15;
+  static const int _databaseVersion = 16;
 
   factory DatabaseHelper() => _instance;
 
@@ -42,6 +42,12 @@ class DatabaseHelper {
       ''');
       await _seedCategories(db, '1');
     }
+    // ... items 3-15 omitted for brevity, assuming they are unchanged ... 
+    // To minimize context, I will just append the new version check at the end of _onUpgrade 
+    // But since replace_file_content replaces a block, I should target the end of _onUpgrade. 
+    // However, the best way for large methods is `multi_replace`. 
+    // I will use multi_replace instead to be safe and precise.
+
     if (oldVersion < 3) {
       // Ensure users table exists
       await db.execute('''
@@ -406,6 +412,41 @@ class DatabaseHelper {
       ''');
       await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_expense_heads_supabase_id ON expense_heads (supabase_id) WHERE supabase_id IS NOT NULL');
     }
+    
+    if (oldVersion < 16) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS purchase_orders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          supplierId INTEGER,
+          orderDate TEXT NOT NULL,
+          expectedDate TEXT,
+          status TEXT NOT NULL DEFAULT 'Draft',
+          totalAmount REAL DEFAULT 0.0,
+          notes TEXT,
+          adminId TEXT,
+          supabase_id TEXT,
+          is_synced INTEGER DEFAULT 0
+        )
+      ''');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_orders_supabase_id ON purchase_orders (supabase_id) WHERE supabase_id IS NOT NULL');
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS purchase_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          purchaseId INTEGER NOT NULL,
+          productId INTEGER NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 0,
+          receivedQuantity INTEGER NOT NULL DEFAULT 0,
+          unitCost REAL NOT NULL DEFAULT 0.0,
+          adminId TEXT,
+          supabase_id TEXT,
+          is_synced INTEGER DEFAULT 0,
+          FOREIGN KEY (purchaseId) REFERENCES purchase_orders (id) ON DELETE CASCADE,
+          FOREIGN KEY (productId) REFERENCES products (id)
+        )
+      ''');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_items_supabase_id ON purchase_items (supabase_id) WHERE supabase_id IS NOT NULL');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -618,6 +659,40 @@ class DatabaseHelper {
       )
     ''');
     await db.execute('CREATE UNIQUE INDEX idx_expense_heads_supabase_id ON expense_heads (supabase_id) WHERE supabase_id IS NOT NULL');
+
+    // Purchase Tables
+    await db.execute('''
+      CREATE TABLE purchase_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        supplierId INTEGER,
+        orderDate TEXT NOT NULL,
+        expectedDate TEXT,
+        status TEXT NOT NULL DEFAULT 'Draft',
+        totalAmount REAL DEFAULT 0.0,
+        notes TEXT,
+        adminId TEXT,
+        supabase_id TEXT,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+    await db.execute('CREATE UNIQUE INDEX idx_purchase_orders_supabase_id ON purchase_orders (supabase_id) WHERE supabase_id IS NOT NULL');
+
+    await db.execute('''
+      CREATE TABLE purchase_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        purchaseId INTEGER NOT NULL,
+        productId INTEGER NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 0,
+        receivedQuantity INTEGER NOT NULL DEFAULT 0,
+        unitCost REAL NOT NULL DEFAULT 0.0,
+        adminId TEXT,
+        supabase_id TEXT,
+        is_synced INTEGER DEFAULT 0,
+        FOREIGN KEY (purchaseId) REFERENCES purchase_orders (id) ON DELETE CASCADE,
+        FOREIGN KEY (productId) REFERENCES products (id)
+      )
+    ''');
+    await db.execute('CREATE UNIQUE INDEX idx_purchase_items_supabase_id ON purchase_items (supabase_id) WHERE supabase_id IS NOT NULL');
 
     // Seed initial users
     await db.insert('users', {

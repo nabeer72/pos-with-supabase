@@ -22,6 +22,7 @@ import 'package:pos/Screens/login_screen/login_screen.dart';
 import 'package:pos/Screens/settings/settings_screen.dart';
 import 'package:pos/Services/currency_service.dart';
 import 'package:pos/Screens/reports/loyalty_report_screen.dart';
+import 'package:pos/Screens/purchases/purchase_list_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -249,7 +250,7 @@ class DashboardScreen extends StatelessWidget {
         Get.to(() => const AnalyticsScreen());
         break;
       case 'Purchases':
-        Get.to(() => const PurchasesScreen());
+        Get.to(() => PurchaseListScreen());
         break;
       case 'Stock Report':
         Get.to(() => const StockReportScreen());
@@ -276,16 +277,7 @@ class AnalyticsScreen extends StatelessWidget {
   }
 }
 
-class PurchasesScreen extends StatelessWidget {
-  const PurchasesScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Purchases', style: TextStyle(color: Colors.white)), backgroundColor: Colors.teal[900]),
-      body: const Center(child: Text('Purchases Screen - Manage your inventory acquisitions.')),
-    );
-  }
-}
+
 
 class StockReportScreen extends StatelessWidget {
   const StockReportScreen({super.key});

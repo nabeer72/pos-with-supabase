@@ -1,306 +1,118 @@
+
 import 'package:flutter/material.dart';
-import 'package:pos/widgets/notification_card.dart';
-import 'package:pos/Services/database_helper.dart';
 import 'package:get/get.dart';
-import 'package:pos/Services/Controllers/auth_controller.dart';
+import 'package:pos/Services/Controllers/supplier_controller.dart';
+import 'package:pos/Services/models/supplier_model.dart';
+import 'package:intl/intl.dart';
 
-class SuppliersScreen extends StatefulWidget {
-  @override
-  _SuppliersScreenState createState() => _SuppliersScreenState();
-}
-
-class _SuppliersScreenState extends State<SuppliersScreen> {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
-  List<Map<String, dynamic>> suppliers = [];
+class SuppliersScreen extends StatelessWidget {
+  final SupplierController controller = Get.put(SupplierController());
 
   @override
-  void initState() {
-    super.initState();
-    _loadSuppliers();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Suppliers', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.blueGrey,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => controller.loadSuppliers(),
+          )
+        ],
+      ),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.suppliers.isEmpty) {
+          return const Center(child: Text('No Suppliers found.'));
+        }
+        return ListView.separated(
+          itemCount: controller.suppliers.length,
+          separatorBuilder: (_, __) => const Divider(height: 1),
+          itemBuilder: (context, index) {
+            final supplier = controller.suppliers[index];
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.blueGrey.withOpacity(0.1),
+                child: Text(supplier.name[0].toUpperCase(), style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold)),
+              ),
+              title: Text(supplier.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(supplier.contact),
+              trailing: IconButton(
+                icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                onPressed: () => _showSupplierDialog(context, supplier: supplier),
+              ),
+              onLongPress: () => _confirmDelete(context, supplier),
+            );
+          },
+        );
+      }),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showSupplierDialog(context),
+        backgroundColor: Colors.blueGrey,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
   }
 
-  Future<void> _loadSuppliers() async {
-    final authController = Get.find<AuthController>();
-    final data = await _dbHelper.getSuppliers(adminId: authController.adminId);
-    setState(() {
-      suppliers = data;
-    });
-  }
-
-  // Function to show dialog for adding or editing a supplier
-  void _showSupplierDialog({Map<String, dynamic>? supplier, int? index}) {
-    final nameController = TextEditingController(text: supplier?['name'] ?? '');
-    final contactController = TextEditingController(text: supplier?['contact'] ?? '');
+  void _showSupplierDialog(BuildContext context, {Supplier? supplier}) {
+    final nameController = TextEditingController(text: supplier?.name ?? '');
+    final contactController = TextEditingController(text: supplier?.contact ?? '');
     final isEdit = supplier != null;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFFF8FAFC),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              isEdit ? 'Edit Supplier' : 'Add Supplier',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.redAccent),
-              onPressed: () => Navigator.pop(context),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
-        ),
+    Get.dialog(
+      AlertDialog(
+        title: Text(isEdit ? 'Edit Supplier' : 'Add Supplier'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: InputDecoration(
-                hintText: 'Supplier Name',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color.fromRGBO(59, 130, 246, 1), width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                hintStyle: TextStyle(color: Colors.grey[400]),
-              ),
+              decoration: const InputDecoration(labelText: 'Store/Supplier Name', border: OutlineInputBorder()),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: contactController,
-              decoration: InputDecoration(
-                hintText: 'Contact Info (Email or Phone)',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color.fromRGBO(59, 130, 246, 1), width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                hintStyle: TextStyle(color: Colors.grey[400]),
-              ),
+              decoration: const InputDecoration(labelText: 'Contact Info', border: OutlineInputBorder()),
             ),
           ],
         ),
         actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isNotEmpty && contactController.text.isNotEmpty) {
-                final authController = Get.find<AuthController>();
-                final newSupplier = {
-                  'name': nameController.text,
-                  'contact': contactController.text,
-                  'lastOrder': isEdit ? supplier['lastOrder']! : DateTime.now().toIso8601String(),
-                  'adminId': authController.adminId, // Include adminId
-                };
-
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
+            onPressed: () {
+              if (nameController.text.isNotEmpty) {
                 if (isEdit) {
-                  await _dbHelper.updateSupplier(int.parse(supplier['id']!), newSupplier);
+                  supplier.name = nameController.text;
+                  supplier.contact = contactController.text;
+                  controller.updateSupplier(supplier);
                 } else {
-                  await _dbHelper.insertSupplier(newSupplier);
+                  controller.addSupplier(nameController.text, contactController.text);
                 }
-                await _loadSuppliers();
-
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(isEdit ? 'Supplier updated' : 'Supplier added'),
-                    backgroundColor: const Color.fromRGBO(59, 130, 246, 1),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please fill all fields'),
-                    backgroundColor: Colors.redAccent,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromRGBO(59, 130, 246, 1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              elevation: 2,
-            ),
-            child: Text(
-              isEdit ? 'Update' : 'Add',
-              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
+            child: Text(isEdit ? 'Update' : 'Add', style: const TextStyle(color: Colors.white)),
+          )
         ],
-        actionsPadding: const EdgeInsets.only(right: 16, bottom: 8),
-      ),
+      )
     );
   }
 
-  // Function to delete a supplier (unchanged)
-  void _deleteSupplier(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: const Color(0xFFF8FAFC),
-        title: const Text(
-          'Delete Supplier',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-        ),
-        content: Text(
-          'Are you sure you want to delete ${suppliers[index]['name']}?',
-          style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey[600], fontSize: 16),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await _dbHelper.deleteSupplier(suppliers[index]['id']);
-              await _loadSuppliers();
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Supplier deleted'),
-                  backgroundColor: Colors.redAccent,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        title: const Text(
-          'Suppliers',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color.fromRGBO(30, 58, 138, 1),
-                Color.fromRGBO(59, 130, 246, 1),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-      ),
-      body: suppliers.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.group_off, size: 50, color: Colors.grey[400]),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No Suppliers',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              itemCount: suppliers.length,
-              itemBuilder: (context, index) {
-                final supplier = suppliers[index];
-                return CustomCardWidget(
-                  title: supplier['name']!,
-                  subtitle: supplier['contact']!,
-                  trailingText: supplier['lastOrder']!,
-                  avatarIcon: Icons.business,
-                  onAvatarTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Tapped: ${supplier['name']}'),
-                        backgroundColor: const Color.fromRGBO(59, 130, 246, 1),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  onCardTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Selected: ${supplier['name']}'),
-                        backgroundColor: const Color.fromRGBO(59, 130, 246, 1),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  onEdit: () => _showSupplierDialog(supplier: supplier, index: index),
-                  onDelete: () => _deleteSupplier(index),
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showSupplierDialog,
-        backgroundColor: const Color.fromRGBO(59, 130, 246, 1),
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ),
+  void _confirmDelete(BuildContext context, Supplier supplier) {
+    Get.defaultDialog(
+      title: 'Delete Supplier',
+      middleText: 'Are you sure you want to delete ${supplier.name}?',
+      textConfirm: 'Delete',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.red,
+      onConfirm: () {
+        Get.back();
+        controller.deleteSupplier(supplier.id!);
+      }
     );
   }
 }

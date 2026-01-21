@@ -163,6 +163,31 @@ create table public.expense_heads (
   unique(name, admin_id)
 );
 
+-- Purchase Orders Table
+create table public.purchase_orders (
+  id uuid default uuid_generate_v4() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  supplier_id uuid references public.suppliers(id),
+  order_date text not null,
+  expected_date text,
+  status text not null default 'Draft',
+  total_amount numeric default 0.0,
+  notes text,
+  admin_id text
+);
+
+-- Purchase Items Table
+create table public.purchase_items (
+  id uuid default uuid_generate_v4() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  purchase_id uuid references public.purchase_orders(id) on delete cascade,
+  product_id uuid references public.products(id),
+  quantity integer not null default 0,
+  received_quantity integer not null default 0,
+  unit_cost numeric not null default 0.0,
+  admin_id text
+);
+
 -- Enable Row Level Security (RLS)
 alter table public.users enable row level security;
 alter table public.categories enable row level security;
@@ -178,6 +203,8 @@ alter table public.loyalty_transactions enable row level security;
 alter table public.loyalty_tier_settings enable row level security;
 alter table public.loyalty_rules enable row level security;
 alter table public.expense_heads enable row level security;
+alter table public.purchase_orders enable row level security;
+alter table public.purchase_items enable row level security;
 
 -- Create policies to allow access
 create policy "Allow all access" on public.users for all using (true);
@@ -194,3 +221,6 @@ create policy "Allow all access" on public.loyalty_transactions for all using (t
 create policy "Allow all access" on public.loyalty_tier_settings for all using (true);
 create policy "Allow all access" on public.loyalty_rules for all using (true);
 create policy "Allow all access" on public.expense_heads for all using (true);
+create policy "Allow all access" on public.purchase_orders for all using (true);
+create policy "Allow all access" on public.purchase_items for all using (true);
+
