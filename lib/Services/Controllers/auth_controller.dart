@@ -107,7 +107,8 @@ class AuthController extends GetxController {
             login(localUser);
             
             // 5. Pull all remote data immediately after login
-            SupabaseService().pullRemoteData(); 
+            print("Syncing data before proceeding...");
+            await SupabaseService().pullRemoteData(); 
             return;
           }
         }
@@ -151,8 +152,9 @@ class AuthController extends GetxController {
            final localUser = await _dbHelper.getUserByEmail(email);
            if (localUser != null) {
              login(localUser);
-             // 5. Pull remote data (might fail if RLS requires auth, but user profile was open)
-             SupabaseService().pullRemoteData(); 
+             // 5. Pull remote data and WAIT for it to complete
+             print("Syncing data before proceeding...");
+             await SupabaseService().pullRemoteData(); 
              return; // Success bypass
            }
         }

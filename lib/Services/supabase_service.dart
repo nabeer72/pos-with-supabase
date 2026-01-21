@@ -417,11 +417,15 @@ class SupabaseService {
     final authController = Get.find<AuthController>();
     final adminId = authController.adminId;
     if (adminId == null) return;
+    
+    // Explicitly await every pull operation
+    print('Starting full remote data pull for admin: $adminId');
 
     final db = await _dbHelper.database;
 
     // Pull Categories
     try {
+      print('Pulling categories...');
       final remoteCategories = await _supabase.from('categories').select().eq('admin_id', adminId);
       for (var cat in remoteCategories) {
         await db.insert('categories', {
@@ -437,6 +441,7 @@ class SupabaseService {
 
     // Pull Products
     try {
+      print('Pulling products...');
       final remoteProducts = await _supabase.from('products').select().eq('admin_id', adminId);
       for (var p in remoteProducts) {
         await db.insert('products', {
@@ -459,6 +464,7 @@ class SupabaseService {
 
     // Pull Customers
     try {
+      print('Pulling customers...');
       final remoteCustomers = await _supabase.from('customers').select().eq('admin_id', adminId);
       for (var c in remoteCustomers) {
         await db.insert('customers', {
@@ -480,12 +486,14 @@ class SupabaseService {
 
     // Pull Sales
     try {
+      print('Pulling sales...');
       final remoteSales = await _supabase.from('sales').select().eq('admin_id', adminId);
       for (var s in remoteSales) {
+        // Need to ensure we don't duplicate logic but replace is safe here
         int localSaleId = await db.insert('sales', {
           'saleDate': s['sale_date'],
           'totalAmount': s['total_amount'],
-          'customerId': null, 
+          'customerId': null, // We might need to link customer ID properly if critical
           'adminId': adminId,
           'supabase_id': s['id'],
           'is_synced': 1
@@ -495,11 +503,12 @@ class SupabaseService {
           final remoteItems = await _supabase.from('sale_items').select().eq('sale_id', s['id']);
           for (var item in remoteItems) {
             final remoteProductId = item['product_id'];
+            // Find local product ID by remote ID
             final localProduct = await db.query('products', where: 'supabase_id = ?', whereArgs: [remoteProductId]);
             
             if (localProduct.isNotEmpty) {
               await db.insert('sale_items', {
-                'saleId': localSaleId,
+                'saleId': localSaleId, // Link to the newly inserted/updated local sale
                 'productId': localProduct.first['id'],
                 'quantity': item['quantity'],
                 'unitPrice': item['unit_price'],
@@ -517,6 +526,7 @@ class SupabaseService {
 
     // Pull Expenses
     try {
+      print('Pulling expenses...');
       final remoteExpenses = await _supabase.from('expenses').select().eq('admin_id', adminId);
       for (var exp in remoteExpenses) {
         await db.insert('expenses', {
@@ -534,6 +544,7 @@ class SupabaseService {
 
     // Pull Expense Heads
     try {
+      print('Pulling expense heads...');
       final remoteHeads = await _supabase.from('expense_heads').select().eq('admin_id', adminId);
       for (var head in remoteHeads) {
         await db.insert('expense_heads', {
@@ -549,6 +560,7 @@ class SupabaseService {
 
     // Pull Loyalty Rules
     try {
+      print('Pulling loyalty rules...');
       final remoteRules = await _supabase.from('loyalty_rules').select().eq('admin_id', adminId);
       for (var rule in remoteRules) {
         await db.insert('loyalty_rules', {
@@ -563,6 +575,8 @@ class SupabaseService {
     } catch (e) {
       print('Error pulling loyalty rules: $e');
     }
+    
+    print('Remote data pull completed.');
   }
 
   Future<void> deleteRow(String tableName, String supabaseId) async {
