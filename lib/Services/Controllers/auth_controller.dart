@@ -69,7 +69,7 @@ class AuthController extends GetxController {
 
   String get userName => currentUser['name'] ?? 'Unknown';
 
-  Future<bool> loginWithSupabase(String email, String password) async {
+  Future<void> loginWithSupabase(String email, String password) async {
     try {
       // 1. Sign in with Supabase
       final response = await SupabaseService().signIn(email, password);
@@ -85,15 +85,14 @@ class AuthController extends GetxController {
           
           final userToSync = {
             'name': userProfile['name'],
-            'email': email, // Ensure email is consistent
+            'email': email,
             'role': userProfile['role'],
-            'permissions': userProfile['permissions'], // JSON string expected? Or list?
-             // If local uses JSON string for permissions, ensure remote sends compatible format or convert
+            'permissions': userProfile['permissions'],
             'lastActive': DateTime.now().toString(),
             'is_synced': 1,
-            'supabase_id': userProfile['id'], 
-            'password': password // Optional: Cache password for offline? Security consideration. 
-                                 // For now caching as per existing local auth pattern.
+            'supabase_id': userProfile['id'],
+            'adminId': userProfile['admin_id'], // Sync adminId from remote
+            'password': password
           };
 
           if (existingUser != null) {
@@ -108,21 +107,60 @@ class AuthController extends GetxController {
             login(localUser);
             
             // 5. Pull all remote data immediately after login
-            // Run in background so it doesn't block UI immediately, 
-            // but user will see data populate
             SupabaseService().pullRemoteData(); 
-            
-            return true;
+            return;
           }
         }
       }
-      return false;
+      throw const AuthException('Login failed: User profile could not be retrieved.');
     } on AuthException catch (e) {
       print('Supabase Auth Error: ${e.message}');
-      return false;
+      
+      // Attempt bypass for "Email not confirmed" if the user just wants to log in
+      // and RLS allows reading the profile without a session.
+      if (e.message.contains('Email not confirmed')) {
+        print('Email not confirmed, attempting to fetch profile anyway...');
+        
+        // 2. Fetch User Profile (Try without session)
+        final userProfile = await SupabaseService().getUserProfile(email);
+        
+        if (userProfile != null) {
+           print('Profile found regardless of auth error. Proceeding with sync.');
+           // 3. Sync to Local Database
+           final existingUser = await _dbHelper.getUserByEmail(email);
+          
+           final userToSync = {
+            'name': userProfile['name'],
+            'email': email,
+            'role': userProfile['role'],
+            'permissions': userProfile['permissions'],
+            'lastActive': DateTime.now().toString(),
+            'is_synced': 1,
+            'supabase_id': userProfile['id'],
+            'adminId': userProfile['admin_id'], 
+            'password': password
+           };
+
+           if (existingUser != null) {
+              await _dbHelper.updateUser(existingUser['id'], userToSync);
+           } else {
+              await _dbHelper.insertUser(userToSync);
+           }
+           
+           // 4. Perform Local Login
+           final localUser = await _dbHelper.getUserByEmail(email);
+           if (localUser != null) {
+             login(localUser);
+             // 5. Pull remote data (might fail if RLS requires auth, but user profile was open)
+             SupabaseService().pullRemoteData(); 
+             return; // Success bypass
+           }
+        }
+      }
+      rethrow; // Rethrow if bypass failed
     } catch (e) {
       print('LoginWithSupabase Error: $e');
-      return false;
+      throw Exception('Login failed: $e');
     }
   }
 

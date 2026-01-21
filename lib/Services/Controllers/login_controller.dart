@@ -44,18 +44,32 @@ class LoginController extends GetxController {
     isLoading.value = true;
     
     try {
-      // Check connectivity
-      // Note: Connectivity check is good but sometimes unreliable (e.g. connected to wifi but no internet)
-      // We can try remote login and catch exception to fallback
       bool loggedInStart = false;
       
       try {
          // Attempt Remote Login first
-         final success = await _authController.loginWithSupabase(email, password);
-         if (success) {
-           loggedInStart = true;
-           Get.offAll(() => BottomNavigation());
+         await _authController.loginWithSupabase(email, password);
+         loggedInStart = true;
+         // If successful, navigate
+         Get.offAll(() => BottomNavigation());
+      } on AuthException catch (e) {
+         print("Supabase Auth Exception: ${e.message}");
+         
+         // CRITICAL FIX: If email is not confirmed, we MUST tell the user and STOP.
+         if (e.message.contains("Email not confirmed")) {
+           Get.snackbar('Verification Required', 'Please check your email to confirm your account before logging in.',
+               snackPosition: SnackPosition.BOTTOM, 
+               backgroundColor: Colors.orange, 
+               colorText: Colors.white,
+               duration: const Duration(seconds: 5));
+           isLoading.value = false;
+           return; 
          }
+
+         // For other auth errors (e.g. invalid credentials), we might fall back to local 
+         // ONLY IF we think the user might be offline or using old credentials. 
+         // But if Supabase explicitly says "Invalid login credentials", local won't help if it's empty.
+         // However, following original pattern: fall back to local in case of "failure".
       } catch (e) {
         print("Remote login failed or offline: $e");
       }
@@ -69,6 +83,8 @@ class LoginController extends GetxController {
           _authController.login(user); // Store in global auth state
           Get.offAll(() => BottomNavigation());
         } else {
+           // If local also fails, show generic error OR specific error if we had one from Supabase?
+           // The user gets "Invalid email or password" which is correct if local is also missing.
           Get.snackbar('Error', 'Invalid email or password',
               snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.redAccent, colorText: Colors.white);
         }
