@@ -189,6 +189,7 @@ create table public.purchase_items (
   quantity integer not null default 0,
   received_quantity integer not null default 0,
   unit_cost numeric not null default 0.0,
+  selling_price numeric not null default 0.0,
   admin_id text
 );
 

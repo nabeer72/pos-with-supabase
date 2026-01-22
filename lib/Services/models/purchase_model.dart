@@ -84,6 +84,7 @@ class PurchaseItem {
   int quantity;
   int receivedQuantity;
   double unitCost;
+  double sellingPrice;
   String? adminId;
   String? supabaseId;
   int isSynced;
@@ -96,6 +97,7 @@ class PurchaseItem {
     this.quantity = 0,
     this.receivedQuantity = 0,
     this.unitCost = 0.0,
+    this.sellingPrice = 0.0,
     this.adminId,
     this.supabaseId,
     this.isSynced = 0,
@@ -110,6 +112,7 @@ class PurchaseItem {
       'quantity': quantity,
       'receivedQuantity': receivedQuantity,
       'unitCost': unitCost,
+      'selling_price': sellingPrice,
       'adminId': adminId,
       'supabase_id': supabaseId,
       'is_synced': isSynced,
@@ -124,6 +127,7 @@ class PurchaseItem {
       quantity: map['quantity'] ?? 0,
       receivedQuantity: map['receivedQuantity'] ?? 0,
       unitCost: map['unitCost'] ?? 0.0,
+      sellingPrice: (map['selling_price'] ?? 0.0).toDouble(),
       adminId: map['adminId'],
       supabaseId: map['supabase_id'],
       isSynced: map['is_synced'] ?? 0,

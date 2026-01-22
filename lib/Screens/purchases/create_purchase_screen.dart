@@ -64,6 +64,7 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
         Product? selectedProduct;
         final qtyController = TextEditingController(text: '1');
         final costController = TextEditingController(text: '0.0');
+        final sellPriceController = TextEditingController(text: '0.0');
         
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -81,6 +82,7 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
                        setDialogState(() {
                          selectedProduct = val;
                          costController.text = val?.purchasePrice?.toString() ?? '0.0';
+                         sellPriceController.text = val?.price.toString() ?? '0.0';
                        });
                     },
                   ),
@@ -102,8 +104,14 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
                   ),
                   const SizedBox(height: 10),
                   TextField(
+                    controller: sellPriceController,
+                    decoration: InputDecoration(labelText: 'Selling Price ($currencySymbol)', border: const OutlineInputBorder()),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
                     controller: costController,
-                    decoration: InputDecoration(labelText: 'Unit Cost ($currencySymbol)', border: const OutlineInputBorder()),
+                    decoration: InputDecoration(labelText: 'Purchase Price ($currencySymbol)', border: const OutlineInputBorder()),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
                 ],
@@ -119,6 +127,7 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
                           productName: selectedProduct!.name,
                           quantity: int.tryParse(qtyController.text) ?? 1,
                           unitCost: double.tryParse(costController.text) ?? 0.0,
+                          sellingPrice: double.tryParse(sellPriceController.text) ?? 0.0,
                         ));
                       });
                       Navigator.pop(context);

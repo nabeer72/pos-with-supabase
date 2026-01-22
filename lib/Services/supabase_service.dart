@@ -456,6 +456,10 @@ class SupabaseService {
           'status': po['status'],
           'total_amount': po['totalAmount'],
           'notes': po['notes'],
+          'invoice_number': po['invoice_number'],
+          'payment_type': po['payment_type'],
+          'bank_name': po['bank_name'],
+          'cheque_number': po['cheque_number'],
           'admin_id': po['adminId'], 
         };
 
@@ -506,6 +510,7 @@ class SupabaseService {
            'quantity': item['quantity'],
            'received_quantity': item['receivedQuantity'],
            'unit_cost': item['unitCost'],
+           'selling_price': item['selling_price'],
            'admin_id': item['adminId'],
          };
 
@@ -726,6 +731,10 @@ class SupabaseService {
            'status': po['status'],
            'totalAmount': po['total_amount'],
            'notes': po['notes'],
+           'invoice_number': po['invoice_number'],
+           'payment_type': po['payment_type'],
+           'bank_name': po['bank_name'],
+           'cheque_number': po['cheque_number'],
            'adminId': adminId,
            'supabase_id': po['id'],
            'is_synced': 1
@@ -742,6 +751,7 @@ class SupabaseService {
                    'quantity': item['quantity'],
                    'receivedQuantity': item['received_quantity'],
                    'unitCost': item['unit_cost'],
+                   'selling_price': item['selling_price'],
                    'adminId': adminId,
                    'supabase_id': item['id'],
                    'is_synced': 1

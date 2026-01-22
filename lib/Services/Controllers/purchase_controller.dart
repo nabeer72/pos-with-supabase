@@ -131,6 +131,7 @@ class PurchaseController extends GetxController {
               {
                 'quantity': newTotalQty,
                 'purchasePrice': newAvgCost,
+                'price': item.sellingPrice > 0 ? item.sellingPrice : product.price, // Update selling price
                 'is_synced': 0
               },
               where: 'id = ?',
@@ -229,6 +230,7 @@ class PurchaseController extends GetxController {
               {
                 'quantity': newTotalQty,
                 'purchasePrice': newAvgCost,
+                'price': item.sellingPrice > 0 ? item.sellingPrice : product.price, // Update selling price if provided
                 'is_synced': 0
               },
               where: 'id = ?',

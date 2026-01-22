@@ -9,7 +9,7 @@ import 'package:pos/Services/models/sale_item_model.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
-  static const int _databaseVersion = 17;
+  static const int _databaseVersion = 18;
 
   factory DatabaseHelper() => _instance;
 
@@ -454,6 +454,10 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE purchase_orders ADD COLUMN bank_name TEXT');
       await db.execute('ALTER TABLE purchase_orders ADD COLUMN cheque_number TEXT');
     }
+
+    if (oldVersion < 18) {
+      await db.execute('ALTER TABLE purchase_items ADD COLUMN selling_price REAL DEFAULT 0.0');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -696,6 +700,7 @@ class DatabaseHelper {
         quantity INTEGER NOT NULL DEFAULT 0,
         receivedQuantity INTEGER NOT NULL DEFAULT 0,
         unitCost REAL NOT NULL DEFAULT 0.0,
+        selling_price REAL NOT NULL DEFAULT 0.0,
         adminId TEXT,
         supabase_id TEXT,
         is_synced INTEGER DEFAULT 0,
