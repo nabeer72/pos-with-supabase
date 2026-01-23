@@ -241,7 +241,7 @@ class NewSaleController extends GetxController {
       saleDate: DateTime.now(),
       totalAmount: finalTotal,
       adminId: authController.adminId, // Include adminId
-      customerId: selectedCustomerModel.value?.id,
+      customerId: (selectedCustomer == null) ? null : selectedCustomerModel.value?.id,
     );
     
     final items = cartItems.map((item) => SaleItem(
@@ -290,6 +290,10 @@ class NewSaleController extends GetxController {
     
     cartItems.clear();
     totalAmount.value = 0.0;
+    selectedCustomerModel.value = null;
+    loyaltyAccount.value = null;
+    pointsToRedeem.value = 0.0;
+    cashbackToUse.value = 0.0;
     
     return {
       'sale': completedSale, 

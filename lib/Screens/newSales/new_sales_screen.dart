@@ -202,7 +202,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               actions: [
                 _gradientButton(
                   label: 'Proceed',
-                  enabled: selectedCustomer != null,
+                  enabled: true,
                   onTap: () async {
                     final result = await _controller.processCheckout(context, selectedCustomer);
                     Navigator.pop(dialogContext);
