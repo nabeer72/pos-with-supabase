@@ -18,7 +18,6 @@ class SupabaseService {
   static const String supabaseUrl = 'https://gxiftmvrnieqdsmdcwhz.supabase.co';
   static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4aWZ0bXZybmllcWRzbWRjd2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MzYxMTQsImV4cCI6MjA4MzUxMjExNH0.43rUqJARm04tLrnDtgeW8KzUONNwl7iECspyHQFb3cc';
 
-
   // Auth Methods
   Future<AuthResponse> signUp(String email, String password) async {
     return await _supabase.auth.signUp(email: email, password: password);
