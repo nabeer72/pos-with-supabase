@@ -27,6 +27,7 @@ class SupabaseService {
     return await _supabase.auth.signInWithPassword(email: email, password: password);
   }
 
+
   Future<Map<String, dynamic>?> getUserProfile(String email) async {
     try {
       final response = await _supabase.from('users').select().eq('email', email).single();
@@ -40,6 +41,7 @@ class SupabaseService {
   Future<void> signOut() async {
     await _supabase.auth.signOut();
   }
+
 
   User? get currentUser => _supabase.auth.currentUser;
 
