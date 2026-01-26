@@ -549,7 +549,11 @@ class SupabaseService {
       print('Pulling categories...');
       final remoteCategories = await _supabase.from('categories').select().eq('admin_id', adminId);
       for (var cat in remoteCategories) {
+        final localCat = await db.query('categories', where: 'supabase_id = ?', whereArgs: [cat['id']]);
+        final int? existingId = localCat.isNotEmpty ? localCat.first['id'] as int? : null;
+        
         await db.insert('categories', {
+          'id': existingId,
           'name': cat['name'],
           'adminId': adminId,
           'supabase_id': cat['id'],
@@ -565,7 +569,22 @@ class SupabaseService {
       print('Pulling products...');
       final remoteProducts = await _supabase.from('products').select().eq('admin_id', adminId);
       for (var p in remoteProducts) {
+        // Safety check: Don't overwrite if local product has unsynced changes
+        final localProduct = await db.query(
+          'products', 
+          where: 'supabase_id = ?', 
+          whereArgs: [p['id']]
+        );
+        
+        if (localProduct.isNotEmpty && localProduct.first['is_synced'] == 0) {
+          print('Skipping product ${p['name']} because it has unsynced local changes');
+          continue;
+        }
+
+        final int? existingId = localProduct.isNotEmpty ? localProduct.first['id'] as int? : null;
+
         await db.insert('products', {
+          'id': existingId, // Preserve local ID
           'name': p['name'],
           'barcode': p['barcode'],
           'price': p['price'],
@@ -588,12 +607,19 @@ class SupabaseService {
       print('Pulling customers...');
       final remoteCustomers = await _supabase.from('customers').select().eq('admin_id', adminId);
       for (var c in remoteCustomers) {
+        final localCust = await db.query('customers', where: 'supabase_id = ?', whereArgs: [c['id']]);
+        
+        if (localCust.isNotEmpty && localCust.first['is_synced'] == 0) continue;
+        
+        final int? existingId = localCust.isNotEmpty ? localCust.first['id'] as int? : null;
+
         await db.insert('customers', {
+          'id': existingId,
           'name': c['name'],
           'address': c['address'],
           'cellNumber': c['cell_number'],
           'email': c['email'],
-          'type': c['type'],
+           'type': c['type'],
           'isActive': c['is_active'] == true ? 1 : 0,
           'adminId': adminId,
           'supabase_id': c['id'],
@@ -610,7 +636,12 @@ class SupabaseService {
       print('Pulling sales...');
       final remoteSales = await _supabase.from('sales').select().eq('admin_id', adminId);
       for (var s in remoteSales) {
+        final localSale = await db.query('sales', where: 'supabase_id = ?', whereArgs: [s['id']]);
+        if (localSale.isNotEmpty && localSale.first['is_synced'] == 0) continue;
+        final int? existingId = localSale.isNotEmpty ? localSale.first['id'] as int? : null;
+
         int localSaleId = await db.insert('sales', {
+          'id': existingId,
           'saleDate': s['sale_date'],
           'totalAmount': s['total_amount'],
           'customerId': null, 
@@ -626,7 +657,11 @@ class SupabaseService {
             final localProduct = await db.query('products', where: 'supabase_id = ?', whereArgs: [remoteProductId]);
             
             if (localProduct.isNotEmpty) {
+              final localItem = await db.query('sale_items', where: 'supabase_id = ?', whereArgs: [item['id']]);
+              final int? existingId = localItem.isNotEmpty ? localItem.first['id'] as int? : null;
+
               await db.insert('sale_items', {
+                'id': existingId,
                 'saleId': localSaleId, 
                 'productId': localProduct.first['id'],
                 'quantity': item['quantity'],

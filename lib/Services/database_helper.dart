@@ -932,9 +932,9 @@ class DatabaseHelper {
           'adminId': sale.adminId, // Ensure items have the same adminId
         });
         
-        // Update product quantity (should only affect admin's product, though ID is unique)
+        // Update product quantity and mark as unsynced
         await txn.execute(
-          'UPDATE products SET quantity = quantity - ? WHERE id = ?',
+          'UPDATE products SET quantity = quantity - ?, is_synced = 0 WHERE id = ?',
           [item.quantity, item.productId],
         );
       }
