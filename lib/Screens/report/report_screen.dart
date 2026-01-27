@@ -58,12 +58,20 @@ class ReportScreen extends StatelessWidget {
             ),
             actions: [
               IconButton(
+                icon: const Icon(Icons.calendar_month, color: Colors.white),
+                onPressed: () => _selectDateRange(context, controller),
+              ),
+              IconButton(
                 icon: const Icon(Icons.refresh, color: Colors.white),
                 onPressed: controller.fetchReportData,
               ),
               IconButton(
                 icon: const Icon(Icons.print, color: Colors.white),
-                onPressed: () => _printReport(controller),
+                onPressed: () => _generatePdf(controller, isPrint: true),
+              ),
+              IconButton(
+                icon: const Icon(Icons.download, color: Colors.white),
+                onPressed: () => _generatePdf(controller, isPrint: false),
               ),
             ],
           ),
@@ -72,39 +80,71 @@ class ReportScreen extends StatelessWidget {
 
       // BODY
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.04,
-            vertical: screenHeight * 0.02,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildPeriodSelector(controller, screenWidth, isLandscape),
-              const SizedBox(height: 20),
+        child: Obx(() => controller.isLoading.value
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.04,
+                  vertical: screenHeight * 0.02,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildPeriodSelector(controller, screenWidth, isLandscape),
+                    const SizedBox(height: 20),
 
-              // SUMMARY
-              Obx(() => SalesAndTransactionsWidget(
-                    screenWidth: screenWidth,
-                    screenHeight: screenHeight,
-                    salesData: {
-                      'amount': controller.summary['totalAmount'] ?? 0,
-                      'transactionCount':
-                          controller.summary['totalCount'] ?? 0,
-                    },
-                  )),
+                    if (controller.selectedPeriod.value == 'Custom')
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Center(
+                          child: Text(
+                            'Range: ${controller.customStartDate.value!.toString().split(' ')[0]} to ${controller.customEndDate.value!.toString().split(' ')[0]}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.gradientStart),
+                          ),
+                        ),
+                      ),
 
-              const SizedBox(height: 30),
+                    // SUMMARY
+                    SalesAndTransactionsWidget(
+                      screenWidth: screenWidth,
+                      screenHeight: screenHeight,
+                      salesData: {
+                        'amount': controller.summary['totalAmount'] ?? 0,
+                        'transactionCount':
+                            controller.summary['totalCount'] ?? 0,
+                      },
+                    ),
 
-              _buildSalesChart(
-                controller,
-                screenWidth,
-                screenHeight,
-                isLandscape,
-              ),
-            ],
-          ),
-        ),
+                    const SizedBox(height: 30),
+
+                    _buildSalesChart(
+                      controller,
+                      screenWidth,
+                      screenHeight,
+                      isLandscape,
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    _buildSectionTitle('Detailed Transactions'),
+                    const SizedBox(height: 12),
+                    _buildDetailedList(controller),
+                  ],
+                ),
+              )),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppColors.gradientStart,
       ),
     );
   }
@@ -128,8 +168,7 @@ class ReportScreen extends StatelessWidget {
           return Padding(
             padding: EdgeInsets.only(right: screenWidth * 0.03),
             child: Obx(() {
-              final isSelected =
-                  controller.selectedPeriod.value == period;
+              final isSelected = controller.selectedPeriod.value == period;
 
               return GestureDetector(
                 onTap: () => controller.changePeriod(period),
@@ -161,8 +200,7 @@ class ReportScreen extends StatelessWidget {
                     period,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color:
-                          isSelected ? Colors.white : Colors.black,
+                      color: isSelected ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
@@ -181,105 +219,143 @@ class ReportScreen extends StatelessWidget {
     double screenHeight,
     bool isLandscape,
   ) {
-    return Obx(() {
-      final data = controller.salesData;
+    final data = controller.salesData;
 
-      if (data.isEmpty) {
-        return _emptyChartWidget(screenHeight, isLandscape);
-      }
+    if (data.isEmpty) {
+      return _emptyChartWidget(screenHeight, isLandscape);
+    }
 
-      final values = data
-          .map((e) => (e['amount'] as num?)?.toDouble() ?? 0)
-          .toList();
+    final values = data.map((e) => (e['amount'] as num?)?.toDouble() ?? 0).toList();
+    final maxY = max(values.reduce(max).toDouble(), 100.0) * 1.2;
 
-      final maxY = max(values.reduce(max), 100) * 1.2;
-
-      return Container(
-        height: isLandscape ? screenHeight * 0.7 : screenHeight * 0.45,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-        child: BarChart(
-          BarChartData(
-            maxY: maxY,
-            borderData: FlBorderData(show: false),
-            gridData: FlGridData(
-              drawVerticalLine: false,
-              horizontalInterval: maxY / 5,
-              getDrawingHorizontalLine: (_) =>
-                  FlLine(color: Colors.grey.shade200),
-            ),
-            titlesData: FlTitlesData(
-              topTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: maxY / 5,
-                  getTitlesWidget: (value, _) => FutureBuilder<String>(
-                    future: CurrencyService().getCurrencySymbol(),
-                    builder: (context, snapshot) {
-                      return Text(
-                        '${snapshot.data ?? '\$'}${value.toInt()}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.gradientStart.withOpacity(0.7),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  getTitlesWidget: (value, _) {
-                    final i = value.toInt();
-                    if (i >= data.length) return const SizedBox();
+    return Container(
+      height: isLandscape ? screenHeight * 0.7 : screenHeight * 0.45,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: BarChart(
+        BarChartData(
+          maxY: maxY,
+          borderData: FlBorderData(show: false),
+          gridData: FlGridData(
+            drawVerticalLine: false,
+            horizontalInterval: maxY / 5,
+            getDrawingHorizontalLine: (_) => FlLine(color: Colors.grey.shade200),
+          ),
+          titlesData: FlTitlesData(
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: maxY / 5,
+                getTitlesWidget: (value, _) => FutureBuilder<String>(
+                  future: CurrencyService().getCurrencySymbol(),
+                  builder: (context, snapshot) {
                     return Text(
-                      data[i]['date'] ?? '',
-                      style: const TextStyle(fontSize: 10),
+                      '${snapshot.data ?? '\$'}${value.toInt()}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.gradientStart.withOpacity(0.7),
+                      ),
                     );
                   },
                 ),
               ),
             ),
-            barGroups: values.asMap().entries.map((e) {
-              return BarChartGroupData(
-                x: e.key,
-                barRods: [
-                  BarChartRodData(
-                    toY: e.value,
-                    width: 16,
-                    gradient: const LinearGradient(
-                      colors: [
-                        AppColors.gradientStart,
-                        AppColors.gradientEnd
-                      ],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, _) {
+                  final i = value.toInt();
+                  if (i < 0 || i >= data.length) return const SizedBox();
+                  return Text(
+                    data[i]['date']?.toString().substring(5) ?? '', // MM-DD
+                    style: const TextStyle(fontSize: 10),
+                  );
+                },
+              ),
+            ),
           ),
+          barGroups: values.asMap().entries.map((e) {
+            return BarChartGroupData(
+              x: e.key,
+              barRods: [
+                BarChartRodData(
+                  toY: e.value,
+                  width: 16,
+                  gradient: const LinearGradient(
+                    colors: [AppColors.gradientStart, AppColors.gradientEnd],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
         ),
-      );
-    });
+      ),
+    );
   }
 
-  // EMPTY STATE
+  Widget _buildDetailedList(ReportController controller) {
+    if (controller.detailedSales.isEmpty) {
+      return const Center(child: Text('No transactions for this period'));
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: controller.detailedSales.length,
+        separatorBuilder: (context, index) => const Divider(height: 1, indent: 70),
+        itemBuilder: (context, index) {
+          final sale = controller.detailedSales[index];
+          final date = DateTime.tryParse(sale['saleDate'] ?? '');
+          final formattedDate = date != null ? '${date.day}/${date.month} ${date.hour}:${date.minute.toString().padLeft(2, '0')}' : '-';
+
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundColor: AppColors.gradientStart.withOpacity(0.1),
+              child: const Icon(Icons.receipt_long, color: AppColors.gradientStart),
+            ),
+            title: Text(
+              sale['customerName'] ?? 'Walk-in Customer',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(formattedDate),
+            trailing: CurrencyText(
+              price: (sale['totalAmount'] as num).toDouble(),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+                fontSize: 16,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _emptyChartWidget(double screenHeight, bool isLandscape) {
     return Container(
       height: isLandscape ? screenHeight * 0.6 : screenHeight * 0.4,
@@ -296,129 +372,99 @@ class ReportScreen extends StatelessWidget {
     );
   }
 
-  // =======================
-  // PRINT PDF REPORT
-  // =======================
-Future<void> _printReport(ReportController controller) async {
-  try {
-    final pdf = pw.Document();
+  Future<void> _selectDateRange(BuildContext context, ReportController controller) async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: controller.customStartDate.value != null && controller.customEndDate.value != null
+          ? DateTimeRange(start: controller.customStartDate.value!, end: controller.customEndDate.value!)
+          : null,
+    );
 
-    // SAFETY CHECK
-    final salesData = controller.salesData;
-    final summary = controller.summary;
+    if (picked != null) {
+      controller.setCustomRange(picked.start, picked.end);
+    }
+  }
 
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(24),
-        build: (context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                'Sales Report',
-                style: pw.TextStyle(
-                  fontSize: 24,
-                  fontWeight: pw.FontWeight.bold,
+  Future<void> _generatePdf(ReportController controller, {required bool isPrint}) async {
+    try {
+      final pdf = pw.Document();
+      final salesData = controller.detailedSales;
+      final summary = controller.summary;
+      final currencySymbol = CurrencyService().getCurrencySymbolSync();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(24),
+          build: (context) {
+            return [
+              pw.Header(
+                level: 0,
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Detailed Sales Report',
+                        style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                    pw.Text(DateTime.now().toString().split('.')[0]),
+                  ],
                 ),
               ),
-
-              pw.SizedBox(height: 8),
-
-              pw.Text(
-                'Period: ${controller.selectedPeriod.value}',
-                style: const pw.TextStyle(fontSize: 14),
-              ),
-
+              pw.SizedBox(height: 10),
+              pw.Text('Period: ${controller.selectedPeriod.value}'),
+              if (controller.selectedPeriod.value == 'Custom')
+                pw.Text('${controller.customStartDate.value!.toString().split(' ')[0]} to ${controller.customEndDate.value!.toString().split(' ')[0]}'),
               pw.Divider(),
-
-              pw.Text(
-                'Total Sales: ${CurrencyService().getCurrencySymbolSync()} ${summary['totalAmount'] ?? 0}',
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                   pw.Text('Total Transactions: ${summary['totalCount']}'),
+                   pw.Text('Total Amount: $currencySymbol ${summary['totalAmount']}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                ],
               ),
-              pw.Text(
-                'Total Transactions: ${summary['totalCount'] ?? 0}',
-              ),
-
               pw.SizedBox(height: 20),
-
               pw.Table(
                 border: pw.TableBorder.all(),
-                columnWidths: const {
-                  0: pw.FlexColumnWidth(2),
-                  1: pw.FlexColumnWidth(1),
-                },
                 children: [
                   pw.TableRow(
-                    decoration: const pw.BoxDecoration(
-                      color: PdfColors.grey300,
-                    ),
+                    decoration: const pw.BoxDecoration(color: PdfColors.grey300),
                     children: [
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text(
-                          'Date',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text(
-                          'Amount',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      _pdfCell('Date/Time', isHeader: true),
+                      _pdfCell('Customer', isHeader: true),
+                      _pdfCell('Amount', isHeader: true),
                     ],
                   ),
-
-                  // DATA ROWS
-                  ...salesData.map((item) {
+                  ...salesData.map((sale) {
                     return pw.TableRow(
                       children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text(
-                            item['date']?.toString() ?? '-',
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text(
-                            '${CurrencyService().getCurrencySymbolSync()} ${item['amount'] ?? 0}',
-                          ),
-                        ),
+                        _pdfCell(sale['saleDate']?.toString() ?? '-'),
+                        _pdfCell(sale['customerName']?.toString() ?? 'Walk-in'),
+                        _pdfCell('$currencySymbol ${(sale['totalAmount'] as num).toStringAsFixed(2)}'),
                       ],
                     );
                   }).toList(),
                 ],
               ),
+            ];
+          },
+        ),
+      );
 
-              pw.SizedBox(height: 20),
+      if (isPrint) {
+        await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+      } else {
+        await Printing.sharePdf(bytes: await pdf.save(), filename: 'Sales_Report_${DateTime.now().toIso8601String()}.pdf');
+      }
+    } catch (e) {
+      Get.snackbar('Error', e.toString(), backgroundColor: Colors.red, colorText: Colors.white);
+    }
+  }
 
-              pw.Text(
-                'Generated on: ${DateTime.now()}',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    // THIS LINE OPENS PREVIEW (MOST IMPORTANT)
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
-  } catch (e) {
-    Get.snackbar(
-      'Print Error',
-      e.toString(),
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
+  pw.Widget _pdfCell(String text, {bool isHeader = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(5),
+      child: pw.Text(text, style: pw.TextStyle(fontWeight: isHeader ? pw.FontWeight.bold : null, fontSize: 10)),
     );
   }
-}
 }

@@ -1006,6 +1006,58 @@ class DatabaseHelper {
     return maps;
   }
 
+  Future<List<Map<String, dynamic>>> getDetailedSales({String? adminId, String? startDate, String? endDate, String? period}) async {
+    Database db = await database;
+    String query = '''
+      SELECT s.*, c.name as customerName 
+      FROM sales s
+      LEFT JOIN customers c ON s.customerId = c.id
+    ''';
+    List<Object?> args = [];
+    List<String> conditions = [];
+
+    if (adminId != null) {
+      conditions.add('s.adminId = ?');
+      args.add(adminId);
+    }
+
+    if (startDate != null && endDate != null) {
+      conditions.add('s.saleDate BETWEEN ? AND ?');
+      args.add('$startDate 00:00:00');
+      args.add('$endDate 23:59:59');
+    } else if (period != null) {
+       // Existing period logic logic can be adapted but for simplicity let's handle custom range first
+       // or just filter for the last 30 days as default if period is "Monthly" etc.
+    }
+
+    if (conditions.isNotEmpty) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    query += ' ORDER BY s.saleDate DESC';
+
+    return await db.rawQuery(query, args);
+  }
+
+  Future<List<Map<String, dynamic>>> getSalesStatsForCustomPeriod(String startDate, String endDate, {String? adminId}) async {
+    Database db = await database;
+    String query = '''
+      SELECT strftime('%Y-%m-%d', saleDate) as date, SUM(totalAmount) as amount, COUNT(*) as count 
+      FROM sales 
+      WHERE saleDate BETWEEN ? AND ?
+    ''';
+    List<Object?> args = ['$startDate 00:00:00', '$endDate 23:59:59'];
+
+    if (adminId != null) {
+      query += ' AND adminId = ? ';
+      args.add(adminId);
+    }
+
+    query += ' GROUP BY date ORDER BY date ASC';
+
+    return await db.rawQuery(query, args);
+  }
+
   // Users
   Future<int> insertUser(Map<String, dynamic> user) async {
     Database db = await database;
