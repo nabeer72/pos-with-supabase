@@ -56,7 +56,6 @@ class BackupService {
     }
   }
 
-
   Future<void> performBackup({String? adminId}) async {
     try {
       final currentAdminId = adminId ?? Get.find<AuthController>().adminId;
@@ -91,12 +90,10 @@ class BackupService {
       print('Error during backup: $e');
     }
   }
-
   Future<bool> isAutoBackupEnabled(String adminId) async {
     String? val = await _dbHelper.getSetting('auto_backup_enabled', adminId: adminId);
     return val != 'false'; // Default to true
   }
-
   Future<void> setAutoBackupEnabled(String adminId, bool enabled) async {
     await _dbHelper.updateSetting('auto_backup_enabled', enabled.toString(), adminId: adminId);
   }
