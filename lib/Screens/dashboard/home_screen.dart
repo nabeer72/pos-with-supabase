@@ -24,6 +24,7 @@ import 'package:pos/Services/currency_service.dart';
 import 'package:pos/Screens/reports/loyalty_report_screen.dart';
 import 'package:pos/Screens/purchases/purchase_list_screen.dart';
 import 'package:pos/Screens/report/stock_report_screen.dart';
+import 'package:pos/Screens/analytics/analytics_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -267,16 +268,6 @@ class DashboardScreen extends StatelessWidget {
 }
 }
 
-class AnalyticsScreen extends StatelessWidget {
-  const AnalyticsScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Analytics', style: TextStyle(color: Colors.white)), backgroundColor: Colors.indigo[900]),
-      body: const Center(child: Text('Analytics Screen - Deep dive into your sales trends.')),
-    );
-  }
-}
 
 
 

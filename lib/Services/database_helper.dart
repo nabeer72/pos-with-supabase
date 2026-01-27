@@ -1187,4 +1187,62 @@ class DatabaseHelper {
       whereArgs: [id],
     );
   }
+
+  // Analytics
+  Future<List<Map<String, dynamic>>> getTopSellingProducts({String? adminId, int limit = 5}) async {
+    Database db = await database;
+    String query = '''
+      SELECT p.name, SUM(si.quantity) as totalQuantity, SUM(si.quantity * si.unitPrice) as totalSales
+      FROM sale_items si
+      JOIN products p ON si.productId = p.id
+    ''';
+    List<Object?> args = [];
+    if (adminId != null) {
+      query += ' WHERE si.adminId = ? ';
+      args.add(adminId);
+    }
+    query += '''
+      GROUP BY si.productId
+      ORDER BY totalQuantity DESC
+      LIMIT ?
+    ''';
+    args.add(limit);
+    return await db.rawQuery(query, args);
+  }
+
+  Future<List<Map<String, dynamic>>> getSalesByCategory({String? adminId}) async {
+    Database db = await database;
+    String query = '''
+      SELECT p.category, SUM(si.quantity * si.unitPrice) as totalSales
+      FROM sale_items si
+      JOIN products p ON si.productId = p.id
+    ''';
+    List<Object?> args = [];
+    if (adminId != null) {
+      query += ' WHERE si.adminId = ? ';
+      args.add(adminId);
+    }
+    query += ' GROUP BY p.category ORDER BY totalSales DESC ';
+    return await db.rawQuery(query, args);
+  }
+
+  Future<List<Map<String, dynamic>>> getMonthlyStats({String? adminId, int months = 6}) async {
+    Database db = await database;
+    String query = '''
+      SELECT strftime('%Y-%m', saleDate) as month, SUM(totalAmount) as sales
+      FROM sales
+    ''';
+    List<Object?> args = [];
+    if (adminId != null) {
+      query += ' WHERE adminId = ? ';
+      args.add(adminId);
+    }
+    query += '''
+      GROUP BY month
+      ORDER BY month DESC
+      LIMIT ?
+    ''';
+    args.add(months);
+    return await db.rawQuery(query, args);
+  }
 }
