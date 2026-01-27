@@ -23,6 +23,7 @@ import 'package:pos/Screens/settings/settings_screen.dart';
 import 'package:pos/Services/currency_service.dart';
 import 'package:pos/Screens/reports/loyalty_report_screen.dart';
 import 'package:pos/Screens/purchases/purchase_list_screen.dart';
+import 'package:pos/Screens/report/stock_report_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -279,16 +280,6 @@ class AnalyticsScreen extends StatelessWidget {
 
 
 
-class StockReportScreen extends StatelessWidget {
-  const StockReportScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Stock Report', style: TextStyle(color: Colors.white)), backgroundColor: Colors.green[900]),
-      body: const Center(child: Text('Stock Report - Real-time inventory status.')),
-    );
-  }
-}
 
 class LoyaltyProgramScreen extends StatelessWidget {
   const LoyaltyProgramScreen({super.key});
