@@ -106,9 +106,17 @@ class AuthController extends GetxController {
           if (localUser != null) {
             login(localUser);
             
-            // 5. Pull all remote data immediately after login
-            print("Syncing data before proceeding...");
-            await SupabaseService().pullRemoteData(); 
+            // 5. Pull remote data in background (non-blocking)
+            print("Starting background data sync...");
+            SupabaseService().pullRemoteData().then((_) {
+              Get.snackbar('Sync Complete', 'Your data has been synchronized',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                  duration: const Duration(seconds: 2));
+            }).catchError((e) {
+              print('Background sync error: $e');
+            });
             return;
           }
         }
@@ -152,9 +160,17 @@ class AuthController extends GetxController {
            final localUser = await _dbHelper.getUserByEmail(email);
            if (localUser != null) {
              login(localUser);
-             // 5. Pull remote data and WAIT for it to complete
-             print("Syncing data before proceeding...");
-             await SupabaseService().pullRemoteData(); 
+             // 5. Pull remote data in background (non-blocking)
+             print("Starting background data sync...");
+             SupabaseService().pullRemoteData().then((_) {
+               Get.snackbar('Sync Complete', 'Your data has been synchronized',
+                   snackPosition: SnackPosition.BOTTOM,
+                   backgroundColor: Colors.green,
+                   colorText: Colors.white,
+                   duration: const Duration(seconds: 2));
+             }).catchError((e) {
+               print('Background sync error: $e');
+             });
              return; // Success bypass
            }
         }
