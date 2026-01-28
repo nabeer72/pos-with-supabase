@@ -1,14 +1,18 @@
 import 'package:get/get.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
+import 'package:pos/Services/receipt_service.dart';
 
 class ReportController extends GetxController {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  final ReceiptService _receiptService = ReceiptService();
+  
   var selectedPeriod = 'Daily'.obs;
   var isLoading = true.obs;
   var salesData = <Map<String, dynamic>>[].obs;
   var detailedSales = <Map<String, dynamic>>[].obs;
   var summary = {'totalAmount': 0.0, 'totalCount': 0}.obs;
+  var storeName = 'My Store'.obs;
 
   var customStartDate = Rxn<DateTime>();
   var customEndDate = Rxn<DateTime>();
@@ -39,6 +43,10 @@ class ReportController extends GetxController {
     try {
       final authController = Get.find<AuthController>();
       final adminId = authController.adminId;
+
+      // Fetch store name from receipt settings
+      final receiptSettings = await _receiptService.getReceiptSettings();
+      storeName.value = receiptSettings['store_name'] ?? 'My Store';
 
       List<Map<String, dynamic>> stats;
       List<Map<String, dynamic>> detailed;

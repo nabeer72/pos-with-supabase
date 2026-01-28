@@ -402,12 +402,22 @@ class ReportScreen extends StatelessWidget {
             return [
               pw.Header(
                 level: 0,
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Detailed Sales Report',
-                        style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-                    pw.Text(DateTime.now().toString().split('.')[0]),
+                    pw.Text(
+                      controller.storeName.value,
+                      style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Detailed Sales Report',
+                            style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                        pw.Text(DateTime.now().toString().split('.')[0]),
+                      ],
+                    ),
                   ],
                 ),
               ),
