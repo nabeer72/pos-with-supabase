@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pos/Services/backup_service.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/database_helper.dart';
+import 'package:pos/widgets/custom_loader.dart';
 
 class BackupScreen extends StatefulWidget {
   const BackupScreen({super.key});
@@ -34,10 +35,21 @@ class _BackupScreenState extends State<BackupScreen> {
       _isBackingUp = true;
     });
     try {
-      await _backupService.performBackup();
+      final path = await _backupService.performManualBackupWithPicker();
       await _loadLastBackupDate();
       if (mounted) {
-        Get.snackbar('Success', 'Backup successful!', snackPosition: SnackPosition.TOP, backgroundColor: Colors.green, colorText: Colors.white);
+        if (path != null) {
+          Get.snackbar(
+            'Success', 
+            'CSV Backup saved to folder: $path', 
+            snackPosition: SnackPosition.TOP, 
+            backgroundColor: Colors.green, 
+            colorText: Colors.white,
+            duration: const Duration(seconds: 10)
+          );
+        } else {
+           // Canceled
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -79,7 +91,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     const Icon(Icons.cloud_upload, size: 64, color: Colors.blue),
                     const SizedBox(height: 16),
                     const Text(
-                      'Database Backup',
+                      'CSV Data Export',
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
@@ -98,8 +110,8 @@ class _BackupScreenState extends State<BackupScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         child: _isBackingUp
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text('Perform Manual Backup', style: TextStyle(color: Colors.white)),
+                            ? const LoadingWidget()
+                            : const Text('Export CSV Backup', style: TextStyle(color: Colors.white)),
                       ),
                     ),
                   ],

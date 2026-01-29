@@ -6,6 +6,11 @@ import 'package:pos/Services/database_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:csv/csv.dart';
+import 'package:pos/Services/currency_service.dart';
+import 'package:pos/Services/receipt_service.dart';
 
 class BackupService {
   static final BackupService _instance = BackupService._internal();
@@ -90,6 +95,124 @@ class BackupService {
       print('Error during backup: $e');
     }
   }
+  Future<String?> performManualBackupWithPicker({String? adminId}) async {
+    try {
+      final currentAdminId = adminId ?? Get.find<AuthController>().adminId;
+      if (currentAdminId == null) throw 'Admin ID not found';
+
+      // Request Permissions
+      if (Platform.isAndroid) {
+        if (await Permission.manageExternalStorage.status.isDenied) {
+           await Permission.manageExternalStorage.request();
+        }
+        if (await Permission.storage.status.isDenied) {
+           await Permission.storage.request();
+        }
+      }
+
+      // Pick Directory
+      String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'Select Folder to Save CSV Backup',
+      );
+
+      if (selectedDirectory == null) {
+        return null; // Canceled
+      }
+
+      // Create a timestamped folder
+      String timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+      String backupFolderName = 'POS_Backup_$timestamp';
+      String backupDirPath = join(selectedDirectory, backupFolderName);
+      Directory backupDir = Directory(backupDirPath);
+      await backupDir.create(recursive: true);
+
+      // Fetch Store Info
+      final storeSettings = await ReceiptService().getReceiptSettings();
+      
+      // Export functions
+      Future<void> exportToCsv(String fileName, List<Map<String, dynamic>> data) async {
+        if (data.isEmpty) {
+          // Create empty file with note
+          File(join(backupDirPath, fileName)).writeAsString('No data available');
+          return;
+        }
+        
+        List<List<dynamic>> rows = [];
+        
+        // Add Header
+        rows.add(data.first.keys.toList());
+        
+        // Add Data
+        for (var row in data) {
+          rows.add(row.values.toList());
+        }
+        
+        String csvData = const ListToCsvConverter().convert(rows);
+        await File(join(backupDirPath, fileName)).writeAsString(csvData);
+      }
+
+      // 1. Store Profile
+      await exportToCsv('Store_Profile.csv', [storeSettings]);
+
+      // 2. Products
+      final products = await _dbHelper.getProducts(adminId: currentAdminId);
+      await exportToCsv('Products.csv', products.map((p) => p.toMap()).toList());
+
+      // 3. Customers
+      final customers = await _dbHelper.getCustomers(adminId: currentAdminId);
+      await exportToCsv('Customers.csv', customers.map((c) => c.toMap()).toList());
+
+      // 4. Suppliers
+      final suppliers = await _dbHelper.getSuppliers(adminId: currentAdminId);
+      await exportToCsv('Suppliers.csv', suppliers);
+
+      // 5. Sales
+      final sales = await _dbHelper.getAllSales(currentAdminId);
+      await exportToCsv('Sales.csv', sales);
+
+      // 6. Sale Items
+      final saleItems = await _dbHelper.getAllSaleItems(currentAdminId);
+      await exportToCsv('Sale_Items.csv', saleItems);
+
+      // 7. Expenses
+      final expenses = await _dbHelper.getExpenses(adminId: currentAdminId);
+      await exportToCsv('Expenses.csv', expenses);
+
+      // 8. Categories
+      // (Categories getter returns strings, so we wrap it)
+      final categories = await _dbHelper.getCategories(adminId: currentAdminId);
+      await exportToCsv('Categories.csv', categories.map((c) => {'name': c}).toList());
+
+      // 9. Loyalty Accounts
+      final loyalty = await _dbHelper.getAllLoyaltyAccounts(currentAdminId);
+      await exportToCsv('Loyalty_Accounts.csv', loyalty);
+
+      // 10. Purchase Orders
+      final po = await _dbHelper.getAllPurchaseOrders(currentAdminId);
+      await exportToCsv('Purchase_Orders.csv', po);
+
+      // 11. Purchase Items
+      final pi = await _dbHelper.getAllPurchaseItems(currentAdminId);
+      await exportToCsv('Purchase_Items.csv', pi);
+
+      // 12. Settings
+      final settings = await _dbHelper.getAllSettings(currentAdminId);
+      await exportToCsv('User_Settings.csv', settings);
+
+      // 13. Team Members
+      final users = await _dbHelper.getUsers(adminId: currentAdminId);
+      await exportToCsv('Team_Members.csv', users);
+
+      // Update last backup date for THIS admin
+      await _dbHelper.updateSetting('last_backup_date', DateTime.now().toIso8601String(), adminId: currentAdminId);
+      
+      return backupDirPath; // Return folder path
+    } catch (e) {
+      print('Manual backup error: $e');
+      throw e;
+    }
+  }
+
   Future<bool> isAutoBackupEnabled(String adminId) async {
     String? val = await _dbHelper.getSetting('auto_backup_enabled', adminId: adminId);
     return val != 'false'; // Default to true

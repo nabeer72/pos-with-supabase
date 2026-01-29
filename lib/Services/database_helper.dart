@@ -794,6 +794,18 @@ class DatabaseHelper {
     return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
   }
 
+  Future<List<Map<String, dynamic>>> getRecentSales({required String adminId, int limit = 50}) async {
+    Database db = await database;
+    return await db.rawQuery('''
+      SELECT s.*, c.name as customerName 
+      FROM sales s 
+      LEFT JOIN customers c ON s.customerId = c.id 
+      WHERE s.adminId = ? 
+      ORDER BY s.saleDate DESC 
+      LIMIT ?
+    ''', [adminId, limit]);
+  }
+
   // Customers
   Future<int> insertCustomer(CustomerModel customer) async {
     Database db = await database;
@@ -1296,5 +1308,36 @@ class DatabaseHelper {
     ''';
     args.add(months);
     return await db.rawQuery(query, args);
+  }
+
+  // Backup/Export Helpers
+  Future<List<Map<String, dynamic>>> getAllSales(String adminId) async {
+    Database db = await database;
+    return await db.query('sales', where: 'adminId = ?', whereArgs: [adminId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllSaleItems(String adminId) async {
+    Database db = await database;
+    return await db.query('sale_items', where: 'adminId = ?', whereArgs: [adminId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllLoyaltyAccounts(String adminId) async {
+    Database db = await database;
+    return await db.query('loyalty_accounts', where: 'admin_id = ?', whereArgs: [adminId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllPurchaseOrders(String adminId) async {
+    Database db = await database;
+    return await db.query('purchase_orders', where: 'adminId = ?', whereArgs: [adminId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllPurchaseItems(String adminId) async {
+    Database db = await database;
+    return await db.query('purchase_items', where: 'adminId = ?', whereArgs: [adminId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllSettings(String adminId) async {
+    Database db = await database;
+    return await db.query('settings', where: 'adminId = ?', whereArgs: [adminId]);
   }
 }
