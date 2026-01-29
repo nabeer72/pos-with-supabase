@@ -225,9 +225,9 @@ class AuthController extends GetxController {
 
   String? get adminId {
     if (currentUser['role'] == 'Admin') {
-      return currentUser['adminId'] ?? currentUser['id'].toString();
+      return (currentUser['adminId'] ?? currentUser['id'])?.toString();
     } else {
-      return currentUser['adminId'];
+      return currentUser['adminId']?.toString();
     }
   }
 }
