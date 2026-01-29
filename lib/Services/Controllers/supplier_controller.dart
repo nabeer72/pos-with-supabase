@@ -27,7 +27,7 @@ class SupplierController extends GetxController {
       suppliers.value = data.map((e) => Supplier.fromMap(e)).toList();
     } catch (e) {
       print('Error loading suppliers: $e');
-      Get.snackbar('Error', 'Failed to load suppliers');
+      Get.snackbar('Error', 'Failed to load suppliers', snackPosition: SnackPosition.TOP);
     } finally {
       isLoading.value = false;
     }
@@ -48,13 +48,13 @@ class SupplierController extends GetxController {
       // Ideally update model with ID
       loadSuppliers();
       Get.back(); // Close dialog
-      Get.snackbar('Success', 'Supplier added');
+      Get.snackbar('Success', 'Supplier added', snackPosition: SnackPosition.TOP);
       
       // Trigger sync
       _supabaseService.pushUnsyncedData();
     } catch (e) {
       print('Error adding supplier: $e');
-      Get.snackbar('Error', 'Failed to add supplier');
+      Get.snackbar('Error', 'Failed to add supplier', snackPosition: SnackPosition.TOP);
     } finally {
       isLoading.value = false;
     }
@@ -67,12 +67,12 @@ class SupplierController extends GetxController {
        await _dbHelper.updateSupplier(supplier.id!, supplier.toMap());
        loadSuppliers();
        Get.back();
-       Get.snackbar('Success', 'Supplier updated');
+       Get.snackbar('Success', 'Supplier updated', snackPosition: SnackPosition.TOP);
        
        _supabaseService.pushUnsyncedData();
     } catch (e) {
       print('Error updating supplier: $e');
-      Get.snackbar('Error', 'Failed to update supplier');
+      Get.snackbar('Error', 'Failed to update supplier', snackPosition: SnackPosition.TOP);
     } finally {
       isLoading.value = false;
     }
@@ -82,10 +82,10 @@ class SupplierController extends GetxController {
     try {
       await _dbHelper.deleteSupplier(id);
       loadSuppliers();
-      Get.snackbar('Success', 'Supplier deleted');
+      Get.snackbar('Success', 'Supplier deleted', snackPosition: SnackPosition.TOP);
     } catch (e) {
       print('Error deleting supplier: $e');
-      Get.snackbar('Error', 'Failed to delete supplier');
+      Get.snackbar('Error', 'Failed to delete supplier', snackPosition: SnackPosition.TOP);
     }
   }
 }

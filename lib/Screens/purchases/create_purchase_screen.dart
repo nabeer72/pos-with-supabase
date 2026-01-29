@@ -149,11 +149,11 @@ class _CreatePurchaseScreenState extends State<CreatePurchaseScreen> {
 
   void _saveOrder(String status) {
     if (selectedSupplierId == null) {
-      Get.snackbar('Error', 'Please select a supplier');
+      Get.snackbar('Error', 'Please select a supplier', snackPosition: SnackPosition.TOP);
       return;
     }
     if (items.isEmpty) {
-      Get.snackbar('Error', 'Please add at least one item');
+      Get.snackbar('Error', 'Please add at least one item', snackPosition: SnackPosition.TOP);
       return;
     }
 

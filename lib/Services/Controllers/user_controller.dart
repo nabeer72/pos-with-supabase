@@ -25,7 +25,7 @@ class UserController extends GetxController {
     } catch (e) {
       print('Error loading users: $e');
       Get.snackbar('Error', 'Failed to load users', 
-        backgroundColor: Colors.red, colorText: Colors.white);
+        backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP);
     } finally {
       isLoading.value = false;
     }
@@ -36,7 +36,7 @@ class UserController extends GetxController {
       // Basic validation
       if (userData['name'].isEmpty || userData['email'].isEmpty) {
         Get.snackbar('Error', 'Name and Email are required',
-          backgroundColor: Colors.red, colorText: Colors.white);
+          backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP);
         return;
       }
 
@@ -59,7 +59,7 @@ class UserController extends GetxController {
         backgroundColor: Colors.green, colorText: Colors.white);
     } catch (e) {
       Get.snackbar('Error', 'Failed to add user: $e',
-        backgroundColor: Colors.red, colorText: Colors.white);
+        backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP);
     }
   }
 
@@ -67,7 +67,7 @@ class UserController extends GetxController {
     try {
       if (userData['name'].isEmpty || userData['email'].isEmpty) {
         Get.snackbar('Error', 'Name and Email are required',
-          backgroundColor: Colors.red, colorText: Colors.white);
+          backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP);
         return;
       }
 
@@ -89,7 +89,7 @@ class UserController extends GetxController {
         backgroundColor: Colors.green, colorText: Colors.white);
     } catch (e) {
       Get.snackbar('Error', 'Failed to update user: $e',
-        backgroundColor: Colors.red, colorText: Colors.white);
+        backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP);
     }
   }
 
@@ -111,7 +111,7 @@ class UserController extends GetxController {
         backgroundColor: Colors.green, colorText: Colors.white);
     } catch (e) {
       Get.snackbar('Error', 'Failed to delete user: $e',
-        backgroundColor: Colors.red, colorText: Colors.white);
+        backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP);
     }
   }
 }

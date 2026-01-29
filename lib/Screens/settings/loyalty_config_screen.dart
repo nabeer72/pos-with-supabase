@@ -55,7 +55,7 @@ class LoyaltyConfigController extends GetxController {
     await _dbHelper.updateLoyaltyRules(rule.toMap());
     await load();
     SupabaseService().syncData();
-    Get.snackbar('Success', 'Loyalty rules updated');
+    Get.snackbar('Success', 'Loyalty rules updated', snackPosition: SnackPosition.TOP);
   }
 
   Future<void> updateTier(LoyaltyTier tier) async {

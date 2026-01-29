@@ -164,11 +164,7 @@ class AuthController extends GetxController {
              // 5. Pull remote data in background (non-blocking)
              print("Starting background data sync...");
              SupabaseService().pullRemoteData().then((_) {
-               Get.snackbar('Sync Complete', 'Your data has been synchronized',
-                   snackPosition: SnackPosition.BOTTOM,
-                   backgroundColor: Colors.green,
-                   colorText: Colors.white,
-                   duration: const Duration(seconds: 2));
+              
              }).catchError((e) {
                print('Background sync error: $e');
              });

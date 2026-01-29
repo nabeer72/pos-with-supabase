@@ -239,6 +239,7 @@ class StockReportScreen extends StatelessWidget {
         e.toString(),
         backgroundColor: Colors.red,
         colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
       );
     }
   }

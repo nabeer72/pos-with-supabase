@@ -381,11 +381,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final quantity = int.tryParse(_quantityController.text.trim()) ?? 0;
 
     if (name.isEmpty) {
-      Get.snackbar('Error', 'Please enter product name', backgroundColor: Colors.redAccent, colorText: Colors.white);
+      Get.snackbar('Error', 'Please enter product name', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
       return;
     }
     if (selectedCategory == null) {
-      Get.snackbar('Error', 'Please select a category', backgroundColor: Colors.redAccent, colorText: Colors.white);
+      Get.snackbar('Error', 'Please select a category', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
       return;
     }
 
@@ -406,6 +406,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     await controller.addProduct(newProduct);
     Get.back();
-    Get.snackbar('Success', 'Product added successfully', backgroundColor: Colors.green, colorText: Colors.white);
+    Get.snackbar('Success', 'Product added successfully', backgroundColor: Colors.green, colorText: Colors.white, snackPosition: SnackPosition.TOP);
   }
 }

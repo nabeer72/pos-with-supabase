@@ -37,7 +37,7 @@ class LoginController extends GetxController {
 
     if (email.isEmpty || password.isEmpty) {
       Get.snackbar('Error', 'Please enter both email and password',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.redAccent, colorText: Colors.white);
+          snackPosition: SnackPosition.TOP, backgroundColor: Colors.redAccent, colorText: Colors.white);
       return;
     }
 
@@ -59,7 +59,7 @@ class LoginController extends GetxController {
          // CRITICAL FIX: If email is not confirmed, we MUST tell the user and STOP.
          if (e.message.contains("Email not confirmed")) {
            Get.snackbar('Verification Required', 'Please check your email to confirm your account before logging in.',
-               snackPosition: SnackPosition.BOTTOM, 
+               snackPosition: SnackPosition.TOP, 
                backgroundColor: Colors.orange, 
                colorText: Colors.white,
                duration: const Duration(seconds: 5));
@@ -87,12 +87,12 @@ class LoginController extends GetxController {
            // If local also fails, show generic error OR specific error if we had one from Supabase?
            // The user gets "Invalid email or password" which is correct if local is also missing.
           Get.snackbar('Error', 'Invalid email or password',
-              snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.redAccent, colorText: Colors.white);
+              snackPosition: SnackPosition.TOP, backgroundColor: Colors.redAccent, colorText: Colors.white);
         }
       }
     } catch (e) {
       Get.snackbar('Error', 'An error occurred during login: $e',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.redAccent, colorText: Colors.white);
+          snackPosition: SnackPosition.TOP, backgroundColor: Colors.redAccent, colorText: Colors.white);
     } finally {
       isLoading.value = false;
     }

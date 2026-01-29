@@ -54,7 +54,7 @@ class PurchaseController extends GetxController {
       purchaseOrders.value = maps.map((map) => PurchaseOrder.fromMap(map, supplierName: map['supplierName'])).toList();
     } catch (e) {
       print('Error loading POs: $e');
-      Get.snackbar('Error', 'Failed to load purchase orders');
+      Get.snackbar('Error', 'Failed to load purchase orders', snackPosition: SnackPosition.TOP);
     } finally {
       isLoading.value = false;
     }
@@ -80,7 +80,7 @@ class PurchaseController extends GetxController {
       });
       await loadPurchaseOrders();
       Get.back(); // Close form
-      Get.snackbar('Success', 'Purchase order created');
+      Get.snackbar('Success', 'Purchase order created', snackPosition: SnackPosition.TOP);
       
       _supabaseService.pushUnsyncedData();
     } finally {
@@ -142,12 +142,12 @@ class PurchaseController extends GetxController {
       });
       await loadPurchaseOrders();
       Get.back(); // Close form
-      Get.snackbar('Success', 'Direct purchase successful and inventory updated');
+      Get.snackbar('Success', 'Direct purchase successful and inventory updated', snackPosition: SnackPosition.TOP);
       
       _supabaseService.pushUnsyncedData();
     } catch (e) {
       print('Error creating direct purchase: $e');
-      Get.snackbar('Error', 'Failed to create direct purchase');
+      Get.snackbar('Error', 'Failed to create direct purchase', snackPosition: SnackPosition.TOP);
     } finally {
       isLoading.value = false;
     }
@@ -269,12 +269,12 @@ class PurchaseController extends GetxController {
 
       await loadPurchaseOrders();
       Get.back(); // Close receive screen
-      Get.snackbar('Success', 'Items received and inventory updated');
+      Get.snackbar('Success', 'Items received and inventory updated', snackPosition: SnackPosition.TOP);
       
       _supabaseService.pushUnsyncedData();
     } catch (e) {
       print('Error receiving items: $e');
-      Get.snackbar('Error', 'Failed to receive items');
+      Get.snackbar('Error', 'Failed to receive items', snackPosition: SnackPosition.TOP);
     }
   }
 

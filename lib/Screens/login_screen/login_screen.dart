@@ -69,7 +69,7 @@ class LoginScreen extends StatelessWidget {
 
                       if (confirm == true) {
                         await DatabaseHelper().clearAllData();
-                        Get.snackbar('Success', 'App data cleared. Please restart or sign up.');
+                        Get.snackbar('Success', 'App data cleared. Please restart or sign up.', snackPosition: SnackPosition.TOP);
                       }
                     },
                     child: Icon(

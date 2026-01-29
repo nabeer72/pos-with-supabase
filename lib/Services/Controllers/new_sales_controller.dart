@@ -107,7 +107,7 @@ class NewSaleController extends GetxController {
         Get.snackbar(
           'Error',
           message,
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -178,7 +178,7 @@ class NewSaleController extends GetxController {
         Get.snackbar(
           'Limit Reached',
           'Only ${product.quantity} items available in stock',
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
         );
@@ -196,7 +196,7 @@ class NewSaleController extends GetxController {
         Get.snackbar(
           'Updated',
           'Increased ${item['name']} quantity to $newQuantity',
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );

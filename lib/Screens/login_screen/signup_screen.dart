@@ -189,19 +189,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final confirm = confirmPasswordController.text.trim();
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      Get.snackbar('Error', 'Please fill all fields', backgroundColor: Colors.redAccent, colorText: Colors.white);
+      Get.snackbar('Error', 'Please fill all fields', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
       return;
     }
 
     if (password != confirm) {
-      Get.snackbar('Error', 'Passwords do not match', backgroundColor: Colors.redAccent, colorText: Colors.white);
+      Get.snackbar('Error', 'Passwords do not match', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
       return;
     }
 
     // Check connectivity
     final connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult.contains(ConnectivityResult.none)) {
-        Get.snackbar('Error', 'Internet connection required for Sign Up', backgroundColor: Colors.redAccent, colorText: Colors.white);
+        Get.snackbar('Error', 'Internet connection required for Sign Up', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
         return;
     }
 
@@ -223,15 +223,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
           'Your account has been created. Please log in to continue.', 
           backgroundColor: Colors.green, 
           colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM
+          snackPosition: SnackPosition.TOP
         );
         Get.offAll(() => const LoginScreen());
       } else {
-         Get.snackbar('Error', 'Account created remotely but failed locally (Email exists?)', backgroundColor: Colors.redAccent, colorText: Colors.white);
+         Get.snackbar('Error', 'Account created remotely but failed locally (Email exists?)', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      Get.snackbar('Error', 'Sign Up Failed: $e', backgroundColor: Colors.redAccent, colorText: Colors.white);
+      Get.snackbar('Error', 'Sign Up Failed: $e', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
     }
   }
 }
