@@ -11,6 +11,7 @@ import 'package:pos/Services/receipt_service.dart';
 import 'package:pos/Services/loyalty_service.dart';
 import 'package:pos/Services/models/loyalty_account_model.dart';
 import 'package:pos/Services/models/customer_model.dart';
+import 'package:pos/Services/audio_service.dart';
 
 // QR Scanner Service to handle QR scanning logic
 class QRScannerService {
@@ -34,6 +35,7 @@ class QRScannerService {
           final product = products.firstWhere(
             (p) => p['barcode'] == scannedCode || p['name'] == scannedCode,
           );
+          AudioService().playScanBeep();
           onProductFound(product);
         } catch (e) {
           onError('Product not found for code: $scannedCode');

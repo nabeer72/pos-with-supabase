@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:pos/Services/Controllers/inventory_controller.dart';
 import 'package:pos/Services/models/product_model.dart';
 import 'package:pos/widgets/custom_button.dart';
+import 'package:pos/Services/audio_service.dart';
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -321,6 +322,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       final List<Barcode> barcodes = capture.barcodes;
                       if (barcodes.isNotEmpty) {
                         _barcodeController.text = barcodes.first.rawValue ?? '';
+                        AudioService().playScanBeep();
                         isScanning.value = false;
                       }
                     },
