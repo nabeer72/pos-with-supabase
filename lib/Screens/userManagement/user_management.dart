@@ -332,7 +332,7 @@ class UserManagementScreen extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                final userData = {
+                final Map<String, dynamic> userData = {
                   'name': nameController.text,
                   'email': emailController.text,
                   'password': passwordController.text,
