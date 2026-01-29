@@ -7,6 +7,7 @@ import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/models/currency_model.dart';
 import 'package:pos/Screens/settings/loyalty_config_screen.dart';
+import 'package:pos/widgets/custom_loader.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -71,9 +72,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading settings: $e')),
-        );
+        Get.snackbar('Error', 'Error loading settings: $e', snackPosition: SnackPosition.TOP, backgroundColor: Colors.red, colorText: Colors.white);
       }
     }
   }
@@ -108,12 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await _backupService.performBackup();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Manual backup created successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        Get.snackbar('Success', 'Manual backup created successfully', snackPosition: SnackPosition.TOP, backgroundColor: Colors.green, colorText: Colors.white);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -134,23 +128,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       setState(() => _isSaving = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Settings saved successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        Get.snackbar('Success', 'Settings saved successfully', snackPosition: SnackPosition.TOP, backgroundColor: Colors.green, colorText: Colors.white);
         _clearFields();
       }
     } catch (e) {
       setState(() => _isSaving = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving settings: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        Get.snackbar('Error', 'Error saving settings: $e', snackPosition: SnackPosition.TOP, backgroundColor: Colors.red, colorText: Colors.white);
       }
     }
   }
@@ -178,22 +162,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isSaving = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Currency updated to ${currency.name}'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        Get.snackbar('Success', 'Currency updated to ${currency.name}', snackPosition: SnackPosition.TOP, backgroundColor: Colors.green, colorText: Colors.white);
       }
     } catch (e) {
       setState(() => _isSaving = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving currency: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        Get.snackbar('Error', 'Error saving currency: $e', snackPosition: SnackPosition.TOP, backgroundColor: Colors.red, colorText: Colors.white);
       }
     }
   }
@@ -325,7 +299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: LoadingWidget())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [

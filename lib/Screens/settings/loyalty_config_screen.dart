@@ -5,6 +5,7 @@ import 'package:pos/Services/models/loyalty_config_model.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/supabase_service.dart';
+import 'package:pos/widgets/custom_loader.dart';
 
 class LoyaltyConfigController extends GetxController {
   final LoyaltyService _loyaltyService = LoyaltyService.to;
@@ -95,7 +96,7 @@ class LoyaltyConfigScreen extends StatelessWidget {
       body: DefaultTabController(
         length: 2,
         child: Obx(() => controller.isLoading.value 
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: LoadingWidget())
           : TabBarView(
               children: [
                 _buildRulesTab(controller, primaryBlue),

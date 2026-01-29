@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/Controllers/add_customer_controller.dart';
+import 'package:pos/widgets/custom_loader.dart';
 import 'package:pos/widgets/customer_form.dart';
 
 class AddCustomerScreen extends StatefulWidget {
@@ -75,7 +76,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
             const SizedBox(height: 12),
             Obx(() {
               if (_controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: LoadingWidget());
               }
               
               if (_controller.customers.isEmpty) {

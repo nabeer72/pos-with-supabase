@@ -6,6 +6,7 @@ import 'package:pos/Screens/purchases/create_purchase_screen.dart';
 import 'package:pos/Screens/purchases/receive_purchase_screen.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/Services/currency_service.dart';
+import 'package:pos/widgets/custom_loader.dart';
 
 class PurchaseListScreen extends StatefulWidget {
   @override
@@ -75,7 +76,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: LoadingWidget());
               }
               if (controller.purchaseOrders.isEmpty) {
                  return Center(

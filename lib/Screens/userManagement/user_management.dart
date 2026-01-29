@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pos/widgets/custom_loader.dart';
 import 'package:pos/Services/Controllers/user_controller.dart';
 import 'dart:convert';
 
@@ -46,7 +47,7 @@ class UserManagementScreen extends StatelessWidget {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: LoadingWidget());
         }
 
         if (controller.users.isEmpty) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pos/Services/Controllers/supplier_controller.dart';
 import 'package:pos/Services/models/supplier_model.dart';
+import 'package:pos/widgets/custom_loader.dart';
 import 'package:intl/intl.dart';
 
 class SuppliersScreen extends StatelessWidget {
@@ -35,7 +36,7 @@ class SuppliersScreen extends StatelessWidget {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: LoadingWidget());
         }
         if (controller.suppliers.isEmpty) {
           return Center(

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/widgets/currency_text.dart';
+import 'package:pos/widgets/custom_loader.dart';
 
 class LoyaltyReportController extends GetxController {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -81,7 +82,7 @@ class LoyaltyReportScreen extends StatelessWidget {
         ),
       ),
       body: Obx(() => controller.isLoading.value 
-        ? const Center(child: CircularProgressIndicator())
+        ? const Center(child: LoadingWidget())
         : ListView(
             padding: const EdgeInsets.all(16),
             children: [

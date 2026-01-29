@@ -95,9 +95,9 @@ class HelpCenterScreen extends StatelessWidget {
               leadingIcon: Icon(Icons.contact_support, color:  Color(0xFF253746), size: iconSize),
               accent:  Color(0xFF253746),
               expandedChildren: [
-                _buildContactRow(Icons.email, "support@yourapp.com"),
+                _buildContactRow(Icons.email, "nabeerhussain7200@gmail.com"),
                 const SizedBox(height: 12),
-                _buildContactRow(Icons.phone, "+1 (800) 123-4567"),
+                _buildContactRow(Icons.phone, "03554255505"),
                 const SizedBox(height: 12),
                 _buildContactRow(Icons.access_time, "Mon–Fri: 9:00 AM – 6:00 PM"),
               ],

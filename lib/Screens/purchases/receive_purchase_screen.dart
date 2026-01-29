@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:pos/Services/Controllers/purchase_controller.dart';
 import 'package:pos/Services/models/purchase_model.dart';
 import 'package:pos/Services/models/product_model.dart';
+import 'package:pos/widgets/custom_loader.dart';
 
 class ReceivePurchaseScreen extends StatefulWidget {
   final int poId;
@@ -73,7 +74,7 @@ class _ReceivePurchaseScreenState extends State<ReceivePurchaseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (isLoading) return const Scaffold(body: Center(child: LoadingWidget()));
     if (po == null) return const Scaffold(body: Center(child: Text('Purchase Order not found')));
 
     return Scaffold(

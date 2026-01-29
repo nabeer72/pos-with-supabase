@@ -10,6 +10,7 @@ import 'package:pos/Services/Controllers/report_controller.dart';
 import 'package:pos/widgets/sales_card.dart';
 import 'package:pos/widgets/currency_text.dart';
 import 'package:pos/Services/currency_service.dart';
+import 'package:pos/widgets/custom_loader.dart';
 
 // COLORS
 class AppColors {
@@ -81,7 +82,7 @@ class ReportScreen extends StatelessWidget {
       // BODY
       body: SafeArea(
         child: Obx(() => controller.isLoading.value
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: LoadingWidget())
             : SingleChildScrollView(
                 padding: EdgeInsets.symmetric(
                   horizontal: screenWidth * 0.04,

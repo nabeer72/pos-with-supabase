@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import 'package:pos/Services/Controllers/stock_report_controller.dart';
 import 'package:pos/Services/currency_service.dart';
 import 'package:pos/widgets/currency_text.dart';
+import 'package:pos/widgets/custom_loader.dart';
 
 class AppColors {
   static const Color gradientStart = Color(0xFF1E3A8A);
@@ -65,7 +66,7 @@ class StockReportScreen extends StatelessWidget {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: LoadingWidget());
         }
 
         if (controller.stockItems.isEmpty) {

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:pos/Services/Controllers/analytics_controller.dart';
 import 'package:pos/widgets/currency_text.dart';
+import 'package:pos/widgets/custom_loader.dart';
 import 'package:pos/Services/currency_service.dart';
 
 class AppColors {
@@ -55,7 +56,7 @@ class AnalyticsScreen extends StatelessWidget {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: LoadingWidget());
         }
 
         return SingleChildScrollView(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pos/Services/backup_service.dart';
+import 'package:get/get.dart';
 import 'package:pos/Services/database_helper.dart';
 
 class BackupScreen extends StatefulWidget {
@@ -36,15 +37,11 @@ class _BackupScreenState extends State<BackupScreen> {
       await _backupService.performBackup();
       await _loadLastBackupDate();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Backup successful!')),
-        );
+        Get.snackbar('Success', 'Backup successful!', snackPosition: SnackPosition.TOP, backgroundColor: Colors.green, colorText: Colors.white);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Backup failed: $e')),
-        );
+        Get.snackbar('Error', 'Backup failed: $e', snackPosition: SnackPosition.TOP, backgroundColor: Colors.red, colorText: Colors.white);
       }
     } finally {
       if (mounted) {
