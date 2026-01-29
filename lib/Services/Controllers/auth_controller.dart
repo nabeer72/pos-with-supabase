@@ -45,7 +45,8 @@ class AuthController extends GetxController {
     userPermissions.value = [];
     
     // Clear local business data on logout to prevent sharing data on shared devices
-    await _dbHelper.clearLocalData();
+    // Commented out to allow local users (Cashiers) to see data on shared devices
+    // await _dbHelper.clearLocalData(); 
     
     // Reset currency service cache
     CurrencyService().resetCache();
