@@ -51,6 +51,7 @@ class LoyaltyRule {
   final double pointsPerCurrencyUnit;
   final double cashbackPercentage;
   final int pointsExpiryMonths;
+  final double redemptionValuePerPoint;
   final String? adminId;
   final String? supabaseId;
   final bool isSynced;
@@ -60,6 +61,7 @@ class LoyaltyRule {
     this.pointsPerCurrencyUnit = 1.0,
     this.cashbackPercentage = 0.0,
     this.pointsExpiryMonths = 12,
+    this.redemptionValuePerPoint = 0.5,
     this.adminId,
     this.supabaseId,
     this.isSynced = false,
@@ -71,6 +73,7 @@ class LoyaltyRule {
       'points_per_currency_unit': pointsPerCurrencyUnit,
       'cashback_percentage': cashbackPercentage,
       'points_expiry_months': pointsExpiryMonths,
+      'redemption_value_per_point': redemptionValuePerPoint,
       'admin_id': adminId,
       'supabase_id': supabaseId,
       'is_synced': isSynced ? 1 : 0,
@@ -83,6 +86,7 @@ class LoyaltyRule {
       pointsPerCurrencyUnit: (map['points_per_currency_unit'] as num?)?.toDouble() ?? 1.0,
       cashbackPercentage: (map['cashback_percentage'] as num?)?.toDouble() ?? 0.0,
       pointsExpiryMonths: map['points_expiry_months'] ?? 12,
+      redemptionValuePerPoint: (map['redemption_value_per_point'] as num?)?.toDouble() ?? 0.5,
       adminId: map['admin_id'],
       supabaseId: map['supabase_id'],
       isSynced: map['is_synced'] == 1,

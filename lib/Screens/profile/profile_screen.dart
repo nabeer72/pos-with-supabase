@@ -105,8 +105,8 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         _divider(),
                         _profileTile(
-                          icon: Icons.workspace_premium, // Changed icon for Role
-                          title: user['role'] ?? 'Cashier',
+                          icon: Icons.badge, 
+                          title: 'Role: ${user?['role'] ?? 'Cashier'}',
                           accent: accent,
                           screenWidth: screenWidth,
                           isTablet: isTablet

@@ -8,6 +8,7 @@ import 'package:pos/widgets/action_card.dart';
 import 'package:pos/widgets/customer_form.dart';
 import 'package:pos/Services/printing_service.dart';
 import 'package:pos/Services/models/sale_model.dart';
+import 'package:pos/Services/loyalty_service.dart';
 
 class NewSaleScreen extends StatefulWidget {
   const NewSaleScreen({super.key});
@@ -95,6 +96,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                         setState(() => selectedCustomer = val);
                         setDialogState(() => selectedCustomer = val);
                         await _controller.onCustomerSelected(val);
+                        final acc = _controller.loyaltyAccount.value;
+                        if (acc != null && acc.totalPoints >= 50) {
+                          _showLoyaltyAlert(context, acc.totalPoints);
+                        }
                         setDialogState(() {}); // Refresh with loyalty account info
                       },
                     )),
@@ -117,8 +122,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Tier: ${acc.currentTier}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
-                                Text('Spend: \$${acc.lifetimeSpend.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12)),
+                                Center(child: Text('Total Spend: \$${acc.lifetimeSpend.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue))),
                               ],
                             ),
                             const Divider(),
@@ -167,8 +171,14 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: TextField(
+                                  enabled: acc.totalPoints >= 50,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(labelText: 'Use Cashback', prefixText: '\$'),
+                                  decoration: InputDecoration(
+                                    labelText: 'Use Cashback', 
+                                    prefixText: '\$', 
+                                    helperText: acc.totalPoints < 50 ? 'Min 50 pts to redeem' : null,
+                                    helperStyle: const TextStyle(color: Colors.red, fontSize: 10),
+                                  ),
                                   onChanged: (v) {
                                     double val = double.tryParse(v) ?? 0.0;
                                     if (val > acc.cashbackBalance) val = acc.cashbackBalance;
@@ -187,12 +197,22 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                               children: [
                                 const Text('Total Savings:', style: TextStyle(fontSize: 12)),
                                 Obx(() {
-                                  double savings = (_controller.pointsToRedeem.value / 100) + _controller.cashbackToUse.value;
+                                  final rules = LoyaltyService.to.currentRules;
+                                  double ptsVal = rules != null ? rules.redemptionValuePerPoint : 0.5;
+                                  double savings = (_controller.pointsToRedeem.value * ptsVal) + _controller.cashbackToUse.value;
                                   return Text('-\$${savings.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green));
                                 }),
                               ],
                             ),
                           ),
+                          if (acc.totalPoints < 50)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Text(
+                                '* You need at least 50 points to start redeeming.',
+                                style: TextStyle(color: Colors.red, fontSize: 10, fontStyle: FontStyle.italic),
+                              ),
+                            ),
                         ],
                       );
                     }),
@@ -502,6 +522,54 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  void _showLoyaltyAlert(BuildContext context, double points) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.stars, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Loyalty Reward!'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('This customer has reached ${points.toStringAsFixed(0)} points!'),
+            const SizedBox(height: 12),
+            const Text('They are eligible for:'),
+            _bulletPoint('Discount on current purchase'),
+            _bulletPoint('Free items in exchange for points'),
+            _bulletPoint('Cash rewards / account credit'),
+            const SizedBox(height: 12),
+            const Text('You can redeem their points in the checkout section below.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bulletPoint(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
+        ],
+      ),
     );
   }
 }

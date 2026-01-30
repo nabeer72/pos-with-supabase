@@ -11,9 +11,8 @@ class LoyaltyService extends GetxService {
   
   static LoyaltyService get to => Get.find();
 
-  // Rules and Tiers cached
+  // Rules cached
   LoyaltyRule? _currentRules;
-  List<LoyaltyTier>? _currentTiers;
 
   Future<void> init() async {
     final adminId = Get.find<AuthController>().adminId;
@@ -30,22 +29,6 @@ class LoyaltyService extends GetxService {
       // Default rules
       _currentRules = LoyaltyRule(adminId: adminId);
       await _dbHelper.updateLoyaltyRules(_currentRules!.toMap());
-    }
-
-    final tiersMap = await _dbHelper.getLoyaltyTiers(adminId);
-    if (tiersMap.isNotEmpty) {
-      _currentTiers = tiersMap.map((m) => LoyaltyTier.fromMap(m)).toList();
-    } else {
-      // Seed default tiers
-      _currentTiers = [
-        LoyaltyTier(tierName: 'Bronze', spendRangeMin: 0, spendRangeMax: 1000, discountPercentage: 0, adminId: adminId),
-        LoyaltyTier(tierName: 'Silver', spendRangeMin: 1001, spendRangeMax: 5000, discountPercentage: 5, adminId: adminId),
-        LoyaltyTier(tierName: 'Gold', spendRangeMin: 5001, spendRangeMax: 15000, discountPercentage: 10, adminId: adminId),
-        LoyaltyTier(tierName: 'Platinum', spendRangeMin: 15001, spendRangeMax: double.infinity, discountPercentage: 15, adminId: adminId),
-      ];
-      for (var tier in _currentTiers!) {
-        await _dbHelper.insertLoyaltyTier(tier.toMap());
-      }
     }
   }
 
@@ -79,16 +62,6 @@ class LoyaltyService extends GetxService {
     return (amount * _currentRules!.cashbackPercentage) / 100;
   }
 
-  LoyaltyTier getTierForSpend(double spend) {
-    if (_currentTiers == null || _currentTiers!.isEmpty) {
-      return LoyaltyTier(tierName: 'Standard', discountPercentage: 0);
-    }
-    
-    return _currentTiers!.firstWhere(
-      (t) => spend >= t.spendRangeMin && spend <= t.spendRangeMax,
-      orElse: () => _currentTiers!.first,
-    );
-  }
 
   Future<void> processSaleLoyalty({
     required int customerId,
@@ -118,14 +91,12 @@ class LoyaltyService extends GetxService {
     
     // 2. Update Account
     double newLifetimeSpend = account.lifetimeSpend + billAmount;
-    final newTier = getTierForSpend(newLifetimeSpend);
     
     final updatedAccount = LoyaltyAccount(
       id: account.id,
       customerId: customerId,
       totalPoints: account.totalPoints + pointsEarned - pointsRedeemed,
       cashbackBalance: account.cashbackBalance + cashbackEarned - cashbackUsed,
-      currentTier: newTier.tierName,
       lifetimeSpend: newLifetimeSpend,
       adminId: adminId,
       isSynced: false,
@@ -138,5 +109,4 @@ class LoyaltyService extends GetxService {
   }
 
   LoyaltyRule? get currentRules => _currentRules;
-  List<LoyaltyTier>? get currentTiers => _currentTiers;
 }

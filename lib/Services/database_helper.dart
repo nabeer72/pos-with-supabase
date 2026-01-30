@@ -9,7 +9,7 @@ import 'package:pos/Services/models/sale_item_model.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
-  static const int _databaseVersion = 18;
+  static const int _databaseVersion = 21;
 
   factory DatabaseHelper() => _instance;
 
@@ -40,7 +40,6 @@ class DatabaseHelper {
           name TEXT NOT NULL UNIQUE
         )
       ''');
-      await _seedCategories(db, '1');
     }
     // ... items 3-15 omitted for brevity, assuming they are unchanged ... 
     // To minimize context, I will just append the new version check at the end of _onUpgrade 
@@ -80,28 +79,8 @@ class DatabaseHelper {
         whereArgs: ['admin@pos.com'],
       );
       
-      if (admins.isEmpty) {
-        // Insert the admin user and get its ID
-        final int adminUserId = await db.insert('users', {
-          'name': 'Admin',
-          'role': 'Admin',
-          'lastActive': DateTime.now().toString(),
-          'email': 'admin@pos.com',
-          'password': 'adminpassword',
-          'permissions': '["all"]'
-        });
-
-        // Update the adminId column for this user to be its own ID
-        final String adminId = adminUserId.toString();
-        await db.update(
-          'users',
-          {'adminId': adminId},
-          where: 'id = ?',
-          whereArgs: [adminUserId],
-        );
-        
-        // Seed default categories for this new admin
-        await _seedCategories(db, adminId);
+      if (admins.isNotEmpty) {
+        await db.delete('users', where: 'email = ?', whereArgs: ['admin@pos.com']);
       }
     }
     if (oldVersion < 4) {
@@ -347,7 +326,6 @@ class DatabaseHelper {
           customer_id INTEGER NOT NULL UNIQUE,
           total_points REAL DEFAULT 0.0,
           cashback_balance REAL DEFAULT 0.0,
-          current_tier TEXT DEFAULT 'Bronze',
           lifetime_spend REAL DEFAULT 0.0,
           admin_id TEXT,
           supabase_id TEXT,
@@ -367,26 +345,6 @@ class DatabaseHelper {
           cashback_used REAL DEFAULT 0.0,
           admin_id TEXT,
           supabase_id TEXT,
-          is_synced INTEGER DEFAULT 0,
-          created_at TEXT NOT NULL
-        )
-      ''');
-
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS loyalty_tier_settings (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          tier_name TEXT NOT NULL,
-          spend_range_min REAL DEFAULT 0.0,
-          spend_range_max REAL DEFAULT 0.0,
-          discount_percentage REAL DEFAULT 0.0,
-          admin_id TEXT,
-          supabase_id TEXT,
-          is_synced INTEGER DEFAULT 0,
-          UNIQUE(tier_name, admin_id)
-        )
-      ''');
-
-      await db.execute('''
         CREATE TABLE IF NOT EXISTS loyalty_rules (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           points_per_currency_unit REAL DEFAULT 1.0,
@@ -457,6 +415,25 @@ class DatabaseHelper {
 
     if (oldVersion < 18) {
       await db.execute('ALTER TABLE purchase_items ADD COLUMN selling_price REAL DEFAULT 0.0');
+    }
+
+    if (oldVersion < 19) {
+      // Add redemption_value_per_point to loyalty_rules
+      var tableInfo = await db.rawQuery('PRAGMA table_info(loyalty_rules)');
+      var columns = tableInfo.map((e) => e['name']).toList();
+      if (!columns.contains('redemption_value_per_point')) {
+        await db.execute('ALTER TABLE loyalty_rules ADD COLUMN redemption_value_per_point REAL DEFAULT 0.5');
+      }
+    }
+
+    if (oldVersion < 20) {
+      // Remove any remaining trial/demo concepts from the database
+      await db.delete('users', where: 'email = ?', whereArgs: ['admin@pos.com']);
+    }
+
+    if (oldVersion < 21) {
+      // Remove loyalty tiers (interpreted as trail settings)
+      await db.execute('DROP TABLE IF EXISTS loyalty_tier_settings');
     }
   }
 
@@ -653,6 +630,7 @@ class DatabaseHelper {
         points_per_currency_unit REAL DEFAULT 1.0,
         cashback_percentage REAL DEFAULT 0.0,
         points_expiry_months INTEGER DEFAULT 12,
+        redemption_value_per_point REAL DEFAULT 0.5,
         admin_id TEXT UNIQUE,
         supabase_id TEXT,
         is_synced INTEGER DEFAULT 0
@@ -710,16 +688,7 @@ class DatabaseHelper {
     ''');
     await db.execute('CREATE UNIQUE INDEX idx_purchase_items_supabase_id ON purchase_items (supabase_id) WHERE supabase_id IS NOT NULL');
 
-    // Seed initial users
-    await db.insert('users', {
-      'name': 'Admin', 
-      'role': 'Admin', 
-      'lastActive': 'Oct 18, 2025',
-      'email': 'admin@pos.com',
-      'password': 'adminpassword',
-      'permissions': '["all"]',
-      'adminId': '1'
-    });
+    // Initial setup complete. Seeding demo accounts is disabled.
   }
 
   Future<void> seedCategoriesForAdmin(String adminId) async {

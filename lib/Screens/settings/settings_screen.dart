@@ -303,7 +303,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const SizedBox(height: 8),
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text('Business Configuration', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                ),
                 // Currency Settings Section
                 Card(
                   color: Colors.white,
@@ -354,7 +357,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 ),
-
+                const SizedBox(height: 16),
                 // Loyalty Settings Section
                 Card(
                   color: Colors.white,

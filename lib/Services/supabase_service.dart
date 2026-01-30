@@ -42,6 +42,17 @@ class SupabaseService {
     await _supabase.auth.signOut();
   }
 
+  /// Removes the default trial account from Supabase
+  Future<void> cleanupTrialConcepts() async {
+    try {
+      // Attempt to delete the remote admin demo user if it exists
+      await _supabase.from('users').delete().eq('email', 'admin@pos.com');
+      print('Remote demo account cleanup attempted.');
+    } catch (e) {
+      print('Supabase cleanup error (Safe to ignore if admin@pos.com does not exist): $e');
+    }
+  }
+
 
   User? get currentUser => _supabase.auth.currentUser;
 
@@ -268,12 +279,11 @@ class SupabaseService {
     try {
       await _syncTable('loyalty_accounts', 'id', mapLocalToRemote: (localMap) {
         return {
-          'customer_id': null, 
-          'total_points': localMap['total_points'],
-          'cashback_balance': localMap['cashback_balance'],
-          'current_tier': localMap['current_tier'],
-          'lifetime_spend': localMap['lifetime_spend'],
-          'admin_id': localMap['admin_id'],
+          'customer_id': localMap['customerId'], 
+          'total_points': localMap['totalPoints'],
+          'cashback_balance': localMap['cashbackBalance'],
+          'lifetime_spend': localMap['lifetimeSpend'],
+          'admin_id': localMap['adminId'], // Fixed mapping
         };
       }, onConflict: 'customer_id,admin_id');
     } catch (e) {

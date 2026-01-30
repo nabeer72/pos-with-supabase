@@ -49,7 +49,7 @@ class LoyaltyReportController extends GetxController {
 
     // Top Customers by lifetime spend
     final customers = await db.rawQuery('''
-      SELECT c.name, la.current_tier, la.lifetime_spend
+      SELECT c.name, la.lifetime_spend
       FROM loyalty_accounts la
       JOIN customers c ON la.customer_id = c.id
       WHERE la.admin_id = ?
@@ -158,7 +158,6 @@ class LoyaltyReportScreen extends StatelessWidget {
               child: Text('${i + 1}', style: const TextStyle(color: Colors.white)),
             ),
             title: Text(c['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('Tier: ${c['current_tier']}'),
             trailing: CurrencyText(
               price: (c['lifetime_spend'] as num).toDouble(),
               style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent),

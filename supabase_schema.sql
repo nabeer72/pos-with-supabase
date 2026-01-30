@@ -114,7 +114,6 @@ create table public.loyalty_accounts (
   customer_id uuid references public.customers(id) not null unique,
   total_points numeric default 0.0,
   cashback_balance numeric default 0.0,
-  current_tier text default 'Bronze',
   lifetime_spend numeric default 0.0,
   admin_id text
 );
@@ -132,17 +131,6 @@ create table public.loyalty_transactions (
   admin_id text
 );
 
--- Loyalty Tier Settings Table
-create table public.loyalty_tier_settings (
-  id uuid default uuid_generate_v4() primary key,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  tier_name text not null,
-  spend_range_min numeric default 0.0,
-  spend_range_max numeric default 0.0,
-  discount_percentage numeric default 0.0,
-  admin_id text,
-  unique(tier_name, admin_id)
-);
 
 -- Loyalty Rules Table
 create table public.loyalty_rules (
@@ -205,7 +193,6 @@ alter table public.suppliers enable row level security;
 alter table public.settings enable row level security;
 alter table public.loyalty_accounts enable row level security;
 alter table public.loyalty_transactions enable row level security;
-alter table public.loyalty_tier_settings enable row level security;
 alter table public.loyalty_rules enable row level security;
 alter table public.expense_heads enable row level security;
 alter table public.purchase_orders enable row level security;
@@ -223,7 +210,6 @@ create policy "Allow all access" on public.suppliers for all using (true);
 create policy "Allow all access" on public.settings for all using (true);
 create policy "Allow all access" on public.loyalty_accounts for all using (true);
 create policy "Allow all access" on public.loyalty_transactions for all using (true);
-create policy "Allow all access" on public.loyalty_tier_settings for all using (true);
 create policy "Allow all access" on public.loyalty_rules for all using (true);
 create policy "Allow all access" on public.expense_heads for all using (true);
 create policy "Allow all access" on public.purchase_orders for all using (true);

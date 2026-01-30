@@ -36,10 +36,15 @@ void main() async {
     // Initialize Supabase
     print('Step 4: Initializing Supabase...');
     final supabaseService = SupabaseService();
-    await supabaseService.initialize().timeout(const Duration(seconds: 15), onTimeout: () {
-      print('Supabase initialization timed out (15s).');
-    });
-    print('Step 4: Supabase initialized.');
+    try {
+      await supabaseService.initialize().timeout(const Duration(seconds: 15), onTimeout: () {
+        print('Supabase initialization timed out');
+      });
+      // Perform one-time cleanup of trial concepts
+      await supabaseService.cleanupTrialConcepts();
+    } catch (e) {
+      print('Supabase initialization error: $e');
+    }
     
     // Start Sync Service
     print('Step 5: Starting Sync Service...');

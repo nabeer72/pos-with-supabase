@@ -232,8 +232,17 @@ class NewSaleController extends GetxController {
     double pointsValue = 0.0;
     final rules = LoyaltyService.to.currentRules;
     if (rules != null && pointsToRedeem.value > 0) {
-      // For now assume 100 points = 1 unit of currency if not configurable
-      pointsValue = pointsToRedeem.value / 100; 
+      if (pointsToRedeem.value < 50) {
+        Get.snackbar(
+          'Minimum Points',
+          'You need at least 50 points to redeem.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return null;
+      }
+      pointsValue = pointsToRedeem.value * rules.redemptionValuePerPoint; 
     }
     
     double finalTotal = subtotal - discountAmount - pointsValue - cashbackToUse.value;

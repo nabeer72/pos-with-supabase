@@ -6,6 +6,7 @@ import 'package:pos/Services/Controllers/auth_controller.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/widgets/custom_loader.dart';
+import 'package:pos/Services/currency_service.dart';
 
 class LoyaltyConfigController extends GetxController {
   final LoyaltyService _loyaltyService = LoyaltyService.to;
@@ -14,8 +15,8 @@ class LoyaltyConfigController extends GetxController {
   final pointsPerUnit = TextEditingController();
   final cashbackPercent = TextEditingController();
   final expiryMonths = TextEditingController();
+  final pointValue = TextEditingController();
 
-  final tiers = <LoyaltyTier>[].obs;
   final isLoading = true.obs;
 
   @override
@@ -36,9 +37,9 @@ class LoyaltyConfigController extends GetxController {
       pointsPerUnit.text = rules.pointsPerCurrencyUnit.toString();
       cashbackPercent.text = rules.cashbackPercentage.toString();
       expiryMonths.text = rules.pointsExpiryMonths.toString();
+      pointValue.text = rules.redemptionValuePerPoint.toString();
     }
 
-    tiers.assignAll(_loyaltyService.currentTiers ?? []);
     isLoading.value = false;
   }
 
@@ -50,6 +51,7 @@ class LoyaltyConfigController extends GetxController {
       pointsPerCurrencyUnit: double.tryParse(pointsPerUnit.text) ?? 1.0,
       cashbackPercentage: double.tryParse(cashbackPercent.text) ?? 0.0,
       pointsExpiryMonths: int.tryParse(expiryMonths.text) ?? 12,
+      redemptionValuePerPoint: double.tryParse(pointValue.text) ?? 0.5,
       adminId: adminId,
     );
 
@@ -57,12 +59,6 @@ class LoyaltyConfigController extends GetxController {
     await load();
     SupabaseService().syncData();
     Get.snackbar('Success', 'Loyalty rules updated', snackPosition: SnackPosition.TOP);
-  }
-
-  Future<void> updateTier(LoyaltyTier tier) async {
-    await _dbHelper.updateLoyaltyTier(tier.toMap());
-    await load();
-    SupabaseService().syncData();
   }
 }
 
@@ -84,37 +80,39 @@ class LoyaltyConfigScreen extends StatelessWidget {
             ),
           ),
         ),
-        bottom: const TabBar(
-          tabs: [
-            Tab(text: 'General Rules', icon: Icon(Icons.rule, color: Colors.white)),
-            Tab(text: 'Tier Levels', icon: Icon(Icons.layers, color: Colors.white)),
-          ],
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-        ),
       ),
-      body: DefaultTabController(
-        length: 2,
-        child: Obx(() => controller.isLoading.value 
-          ? const Center(child: LoadingWidget())
-          : TabBarView(
-              children: [
-                _buildRulesTab(controller, primaryBlue),
-                _buildTiersTab(controller, primaryBlue),
-              ],
-            )),
-      ),
+      body: Obx(() => controller.isLoading.value 
+        ? const Center(child: LoadingWidget())
+        : _buildRulesTab(controller, primaryBlue)),
     );
   }
 
   Widget _buildRulesTab(LoyaltyConfigController controller, Color primaryBlue) {
+    final currencySymbol = CurrencyService().getCurrencySymbolSync();
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           _buildFieldCard('Earnings Configuration', [
-            _buildInput('Points per 1.00 spent', controller.pointsPerUnit, Icons.stars),
-            _buildInput('Cashback Percentage (%)', controller.cashbackPercent, Icons.monetization_on),
+            _buildInput('Points per $currencySymbol 1.00 spent', controller.pointsPerUnit, Icons.stars),
+            _buildInput('Point Value (Redemption)', controller.pointValue, Icons.attach_money),
+            Row(
+              children: [
+                Expanded(child: _buildInput('Cashback Percentage (%)', controller.cashbackPercent, Icons.monetization_on)),
+                IconButton(
+                  icon: const Icon(Icons.help_outline, color: Colors.blueGrey),
+                  onPressed: () => Get.defaultDialog(
+                    title: 'Cashback Explanation',
+                    middleText: 'A percentage of the total purchase amount is returned to the customer as "Cashback" in their account. This balance can be used to pay for future purchases.',
+                    textConfirm: 'Got it',
+                    confirmTextColor: Colors.white,
+                    buttonColor: primaryBlue,
+                    onConfirm: () => Get.back(),
+                  ),
+                ),
+              ],
+            ),
           ]),
           const SizedBox(height: 16),
           _buildFieldCard('Expiry Configuration', [
@@ -132,70 +130,6 @@ class LoyaltyConfigScreen extends StatelessWidget {
               ),
               child: const Text('Save Rules', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTiersTab(LoyaltyConfigController controller, Color primaryBlue) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: controller.tiers.length,
-      itemBuilder: (context, index) {
-        final tier = controller.tiers[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: primaryBlue,
-              child: Text(tier.tierName[0], style: const TextStyle(color: Colors.white)),
-            ),
-            title: Text(tier.tierName, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('Spend: \$${tier.spendRangeMin} - \$${tier.spendRangeMax}\nDiscount: ${tier.discountPercentage}%'),
-            isThreeLine: true,
-            trailing: IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
-              onPressed: () => _showEditTierDialog(context, controller, tier),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showEditTierDialog(BuildContext context, LoyaltyConfigController controller, LoyaltyTier tier) {
-    final min = TextEditingController(text: tier.spendRangeMin.toString());
-    final max = TextEditingController(text: tier.spendRangeMax.toString());
-    final disc = TextEditingController(text: tier.discountPercentage.toString());
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Edit ${tier.tierName} Tier'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: min, decoration: const InputDecoration(labelText: 'Min Spend')),
-            TextField(controller: max, decoration: const InputDecoration(labelText: 'Max Spend')),
-            TextField(controller: disc, decoration: const InputDecoration(labelText: 'Discount (%)')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              controller.updateTier(LoyaltyTier(
-                id: tier.id,
-                tierName: tier.tierName,
-                spendRangeMin: double.tryParse(min.text) ?? tier.spendRangeMin,
-                spendRangeMax: double.tryParse(max.text) ?? tier.spendRangeMax,
-                discountPercentage: double.tryParse(disc.text) ?? tier.discountPercentage,
-                adminId: tier.adminId,
-              ));
-              Navigator.pop(ctx);
-            },
-            child: const Text('Save'),
           ),
         ],
       ),
