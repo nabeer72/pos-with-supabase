@@ -14,6 +14,9 @@ class PrintingService {
     double? subtotal,
     double? discountAmount,
     double? discountPercent,
+    double? pointsRedeemed,
+    double? pointsEarned,
+    double? cashbackUsed,
   }) async {
     final receiptService = ReceiptService();
     final settings = await receiptService.getReceiptSettings();
@@ -67,30 +70,52 @@ class PrintingService {
                  );
                }).toList(),
                pw.Divider(),
-               if (subtotal != null && discountAmount != null && (discountAmount > 0)) ...[
-                 pw.Row(
-                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                   children: [
-                     pw.Text('Subtotal:'),
-                     pw.Text('$currencySymbol ${subtotal.toStringAsFixed(2)}'),
-                   ],
-                 ),
-                 pw.Row(
-                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                   children: [
-                     pw.Text('Discount (${discountPercent?.toStringAsFixed(0)}%):'),
-                     pw.Text('- $currencySymbol ${discountAmount.toStringAsFixed(2)}'),
-                   ],
-                 ),
-                 pw.SizedBox(height: 5),
-               ],
-               pw.Row(
-                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                 children: [
-                   pw.Text('TOTAL:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                   pw.Text('$currencySymbol ${sale.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                 ],
-               ),
+                if (subtotal != null && discountAmount != null && (discountAmount > 0)) ...[
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Subtotal:'),
+                      pw.Text('$currencySymbol ${subtotal.toStringAsFixed(2)}'),
+                    ],
+                  ),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Discount (${discountPercent?.toStringAsFixed(0)}%):'),
+                      pw.Text('- $currencySymbol ${discountAmount.toStringAsFixed(2)}'),
+                    ],
+                  ),
+                ],
+                if (pointsRedeemed != null && pointsRedeemed > 0)
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Points Redeemed ($pointsRedeemed):'),
+                      pw.Text('- $currencySymbol ${(pointsRedeemed * (LoyaltyService.to.currentRules?.redemptionValuePerPoint ?? 0.5)).toStringAsFixed(2)}'),
+                    ],
+                  ),
+                if (cashbackUsed != null && cashbackUsed > 0)
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Cashback Used:'),
+                      pw.Text('- $currencySymbol ${cashbackUsed.toStringAsFixed(2)}'),
+                    ],
+                  ),
+                pw.SizedBox(height: 5),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('TOTAL:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('$currencySymbol ${sale.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                  ],
+                ),
+                if (pointsEarned != null && pointsEarned > 0) ...[
+                  pw.Divider(),
+                  pw.Center(
+                    child: pw.Text('Points Earned: ${pointsEarned.toStringAsFixed(0)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  ),
+                ],
               pw.SizedBox(height: 20),
               pw.Center(child: pw.Text(settings['receipt_footer'] ?? 'Thank you for your business!')),
             ],

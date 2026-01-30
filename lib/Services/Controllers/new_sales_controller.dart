@@ -311,7 +311,10 @@ class NewSaleController extends GetxController {
       'items': cartCopy, 
       'subtotal': subtotal,
       'discountAmount': discountAmount,
-      'discountPercent': discountPercent
+      'discountPercent': discountPercent,
+      'pointsRedeemed': pointsToRedeem.value,
+      'cashbackUsed': cashbackToUse.value,
+      'pointsEarned': LoyaltyService.to.calculatePoints(subtotal),
     };
   }
 

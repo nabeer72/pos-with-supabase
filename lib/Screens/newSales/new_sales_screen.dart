@@ -247,6 +247,9 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                                   subtotal: result['subtotal'],
                                   discountAmount: result['discountAmount'],
                                   discountPercent: result['discountPercent'],
+                                  pointsRedeemed: result['pointsRedeemed'],
+                                  cashbackUsed: result['cashbackUsed'],
+                                  pointsEarned: result['pointsEarned'],
                                 );
                               },
                               child: const Text('Print'),
