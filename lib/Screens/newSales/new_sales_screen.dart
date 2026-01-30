@@ -108,7 +108,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     Obx(() {
                       final acc = _controller.loyaltyAccount.value;
                       if (acc == null) return const SizedBox();
-                      
                       return Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
