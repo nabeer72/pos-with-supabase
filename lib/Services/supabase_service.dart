@@ -812,7 +812,6 @@ class SupabaseService {
     
     print('Remote data pull completed.');
   }
-
   Future<void> deleteRow(String tableName, String supabaseId) async {
     try {
       await _supabase.from(tableName).delete().eq('id', supabaseId);
