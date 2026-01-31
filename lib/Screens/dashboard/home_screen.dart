@@ -41,7 +41,6 @@ class DashboardScreen extends StatelessWidget {
     final cardSize = isTablet
         ? (isLandscape ? screenWidth / 6 : screenWidth / 4)
         : (isLandscape ? screenWidth / 5 : screenWidth / 3.5);
-
     final allQuickActions = [
       {'title': 'New Sale', 'icon': Icons.add_shopping_cart, 'permission': 'sales'},
       {'title': 'Inventory', 'icon': Icons.inventory, 'permission': 'inventory'},
@@ -63,7 +62,6 @@ class DashboardScreen extends StatelessWidget {
     final filteredActions = allQuickActions.where((action) {
       return authController.hasPermission(action['permission'] as String);
     }).toList();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       extendBodyBehindAppBar: false,
@@ -114,6 +112,7 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
       ),
+      
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
