@@ -423,7 +423,7 @@ class ReportScreen extends StatelessWidget {
       final pdf = pw.Document();
       final salesData = controller.detailedSales;
       final summary = controller.summary;
-      final currencySymbol = CurrencyService().getCurrencySymbolSync();
+      final currencyCode = await CurrencyService().getCurrencyCode();
 
       pdf.addPage(
         pw.MultiPage(
@@ -461,7 +461,7 @@ class ReportScreen extends StatelessWidget {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                    pw.Text('Total Transactions: ${summary['totalCount']}'),
-                   pw.Text('Total Amount: $currencySymbol ${summary['totalAmount']}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                   pw.Text('Total Amount: $currencyCode ${summary['totalAmount']}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 ],
               ),
               pw.SizedBox(height: 20),
@@ -481,7 +481,7 @@ class ReportScreen extends StatelessWidget {
                       children: [
                         _pdfCell(sale['saleDate']?.toString() ?? '-'),
                         _pdfCell(sale['customerName']?.toString() ?? 'Walk-in'),
-                        _pdfCell('$currencySymbol ${(sale['totalAmount'] as num).toStringAsFixed(2)}'),
+                        _pdfCell('$currencyCode ${(sale['totalAmount'] as num).toStringAsFixed(2)}'),
                       ],
                     );
                   }).toList(),
