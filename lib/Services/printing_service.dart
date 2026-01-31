@@ -66,7 +66,7 @@ class PrintingService {
                       pw.Expanded(child: pw.Text(item['name'])),
                        pw.Text('${item['quantity']}'),
                        pw.SizedBox(width: 20),
-                       pw.Text('${currency.symbol} ${(item['quantity'] * item['price']).toStringAsFixed(2)}'),
+                       pw.Text('${currency.code} ${(item['quantity'] * item['price']).toStringAsFixed(2)}'),
                      ],
                    ),
                  );
@@ -77,14 +77,14 @@ class PrintingService {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('Subtotal:'),
-                      pw.Text('${currency.symbol} ${subtotal.toStringAsFixed(2)}'),
+                      pw.Text('${currency.code} ${subtotal.toStringAsFixed(2)}'),
                     ],
                   ),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('Discount (${discountPercent?.toStringAsFixed(0)}%):'),
-                      pw.Text('- ${currency.symbol} ${discountAmount.toStringAsFixed(2)}'),
+                      pw.Text('- ${currency.code} ${discountAmount.toStringAsFixed(2)}'),
                     ],
                   ),
                 ],
@@ -93,7 +93,7 @@ class PrintingService {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('Points Redeemed ($pointsRedeemed):'),
-                      pw.Text('- ${currency.symbol} ${(pointsRedeemed * (LoyaltyService.to.currentRules?.redemptionValuePerPoint ?? 0.5)).toStringAsFixed(2)}'),
+                      pw.Text('- ${currency.code} ${(pointsRedeemed * (LoyaltyService.to.currentRules?.redemptionValuePerPoint ?? 0.5)).toStringAsFixed(2)}'),
                     ],
                   ),
                 if (cashbackUsed != null && cashbackUsed > 0)
@@ -101,15 +101,15 @@ class PrintingService {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('Cashback Used:'),
-                      pw.Text('- ${currency.symbol} ${cashbackUsed.toStringAsFixed(2)}'),
+                      pw.Text('- ${currency.code} ${cashbackUsed.toStringAsFixed(2)}'),
                     ],
                   ),
                 pw.SizedBox(height: 5),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('TOTAL (${currency.code}):', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                    pw.Text('${currency.symbol} ${sale.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('TOTAL:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('${currency.code} ${sale.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                   ],
                 ),
                 if (pointsEarned != null && pointsEarned > 0) ...[
