@@ -123,6 +123,7 @@ class DashboardScreen extends StatelessWidget {
             Obx(() => SalesAndTransactionsWidget(
               screenWidth: screenWidth,
               screenHeight: screenHeight,
+              title: "Today's Sales",
               salesData: {
                 'amount': dashboardController.salesSummary['totalAmount'] ?? 0.0,
                 'transactionCount': dashboardController.salesSummary['totalCount'] ?? 0,

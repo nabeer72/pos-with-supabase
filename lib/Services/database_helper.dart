@@ -1007,12 +1007,39 @@ class DatabaseHelper {
       args.add('$startDate 00:00:00');
       args.add('$endDate 23:59:59');
     } else if (period != null) {
-       // Existing period logic logic can be adapted but for simplicity let's handle custom range first
-       // or just filter for the last 30 days as default if period is "Monthly" etc.
+      DateTime now = DateTime.now();
+      String startDateStr;
+      
+      switch (period) {
+        case 'Daily':
+          startDateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+          conditions.add('s.saleDate LIKE ?');
+          args.add('$startDateStr%');
+          break;
+        case 'Weekly':
+          // Last 7 days
+          DateTime weekAgo = now.subtract(const Duration(days: 7));
+          startDateStr = "${weekAgo.year}-${weekAgo.month.toString().padLeft(2, '0')}-${weekAgo.day.toString().padLeft(2, '0')}";
+          conditions.add('s.saleDate >= ?');
+          args.add('$startDateStr 00:00:00');
+          break;
+        case 'Monthly':
+          // Current month
+          startDateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-01";
+          conditions.add('s.saleDate >= ?');
+          args.add('$startDateStr 00:00:00');
+          break;
+        case 'Yearly':
+          // Current year
+          startDateStr = "${now.year}-01-01";
+          conditions.add('s.saleDate >= ?');
+          args.add('$startDateStr 00:00:00');
+          break;
+      }
     }
 
     if (conditions.isNotEmpty) {
-      query += ' WHERE ' + conditions.join(' AND ');
+      query += ' WHERE ${conditions.join(' AND ')}';
     }
 
     query += ' ORDER BY s.saleDate DESC';

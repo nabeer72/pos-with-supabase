@@ -111,6 +111,7 @@ class ReportScreen extends StatelessWidget {
                     SalesAndTransactionsWidget(
                       screenWidth: screenWidth,
                       screenHeight: screenHeight,
+                      title: '${controller.selectedPeriod.value} Sales',
                       salesData: {
                         'amount': controller.summary['totalAmount'] ?? 0,
                         'transactionCount':
@@ -278,9 +279,38 @@ class ReportScreen extends StatelessWidget {
                 getTitlesWidget: (value, _) {
                   final i = value.toInt();
                   if (i < 0 || i >= data.length) return const SizedBox();
-                  return Text(
-                    data[i]['date']?.toString().substring(5) ?? '', // MM-DD
-                    style: const TextStyle(fontSize: 10),
+                  
+                  final dateStr = data[i]['date']?.toString() ?? '';
+                  String label = dateStr;
+
+                  // Safely format label based on period
+                  if (controller.selectedPeriod.value == 'Daily') {
+                    if (dateStr.length >= 10) {
+                       label = dateStr.substring(5, 10); // MM-DD
+                    }
+                  } else if (controller.selectedPeriod.value == 'Weekly') {
+                     // Weekly format is usually YYYY-WW
+                     if (dateStr.contains('-')) {
+                        label = 'W${dateStr.split('-').last}';
+                     }
+                  } else if (controller.selectedPeriod.value == 'Monthly') {
+                     if (dateStr.length >= 7) {
+                        final monthNum = int.tryParse(dateStr.substring(5, 7));
+                        final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        if (monthNum != null && monthNum >= 1 && monthNum <= 12) {
+                           label = monthNames[monthNum - 1];
+                        } else {
+                           label = dateStr.substring(5);
+                        }
+                     }
+                  }
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      label,
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+                    ),
                   );
                 },
               ),

@@ -4,12 +4,14 @@ import 'package:pos/widgets/currency_text.dart';
 class SalesAndTransactionsWidget extends StatelessWidget {
   final double screenWidth;
   final double screenHeight;
+  final String title;
   final Map<String, dynamic> salesData;
 
   const SalesAndTransactionsWidget({
     super.key,
     required this.screenWidth,
     required this.screenHeight,
+    required this.title,
     required this.salesData,
   });
 
@@ -37,9 +39,9 @@ class SalesAndTransactionsWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Today's Sales",
-          style: TextStyle(
+        Text(
+          title,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
