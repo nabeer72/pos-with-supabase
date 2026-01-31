@@ -1,32 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:pos/Screens/login_screen/login_screen.dart';
 import 'package:get/get.dart';
-import 'package:pos/Services/Controllers/auth_controller.dart';
+import 'package:pos/Services/Controllers/signup_controller.dart';
 import 'package:pos/widgets/custom_button.dart';
-import 'package:pos/Services/supabase_service.dart';
-import 'package:pos/Screens/button_bar.dart'; // BottomNavigation
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pos/widgets/custom_textfield.dart';
+import 'package:pos/widgets/custom_loader.dart';
 
-class SignUpScreen extends StatefulWidget {
+class SignUpScreen extends StatelessWidget {
   const SignUpScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
-}
-
-class _SignUpScreenState extends State<SignUpScreen> {
-  final AuthController authController = Get.find<AuthController>();
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
-
-  bool _isLoading = false;
-
-  @override
   Widget build(BuildContext context) {
-     return Scaffold(
+    final controller = Get.put(SignUpController());
+
+    return Scaffold(
       backgroundColor: Colors.white,
       body: Row(
         children: [
@@ -59,7 +45,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
 
-          // Right side - Login Form
+          // Right side - Signup Form
           Expanded(
             flex: 1,
             child: Center(
@@ -105,60 +91,47 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       const SizedBox(height: 40),
 
-                      TextField(
-                        controller: nameController,
-                        decoration: InputDecoration(
-                          labelText: 'Full Name',
-                          prefixIcon: const Icon(Icons.person_outline),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
+                      CustomTextField(
+                        controller: controller.nameController,
+                        hintText: 'Full Name',
+                        icon: Icons.person_outline,
                       ),
                       const SizedBox(height: 20),
 
-                      TextField(
-                        controller: emailController,
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
+                      CustomTextField(
+                        controller: controller.emailController,
+                        hintText: 'Email',
+                        icon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 20),
                       
-                      TextField(
-                        controller: passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                      ),
+                      Obx(() => CustomTextField(
+                        controller: controller.passwordController,
+                        hintText: 'Password',
+                        icon: Icons.lock_outline,
+                        obscureText: !controller.isPasswordVisible.value,
+                        showEyeIcon: true,
+                        onEyeTap: controller.togglePasswordVisibility,
+                      )),
                       const SizedBox(height: 20),
 
-                      TextField(
-                        controller: confirmPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Confirm Password',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                      ),
+                      Obx(() => CustomTextField(
+                        controller: controller.confirmPasswordController,
+                        hintText: 'Confirm Password',
+                        icon: Icons.lock_outline,
+                        obscureText: !controller.isConfirmPasswordVisible.value,
+                        showEyeIcon: true,
+                        onEyeTap: controller.toggleConfirmPasswordVisibility,
+                      )),
                       const SizedBox(height: 30),
 
-                      CustomButton(
-                        text: _isLoading ? 'Creating Account...' : 'Sign Up',
-                        onPressed: _isLoading ? () {} : _handleSignUp,
-                      ),
+                      Obx(() => controller.isLoading.value
+                          ? const LoadingWidget()
+                          : CustomButton(
+                              text: 'Sign Up',
+                              onPressed: controller.handleSignUp,
+                            )),
                       
                       const SizedBox(height: 20),
                       Row(
@@ -180,58 +153,5 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _handleSignUp() async {
-    final name = nameController.text.trim();
-    final email = emailController.text.trim();
-    final password = passwordController.text.trim();
-    final confirm = confirmPasswordController.text.trim();
-
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      Get.snackbar('Error', 'Please fill all fields', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
-      return;
-    }
-
-    if (password != confirm) {
-      Get.snackbar('Error', 'Passwords do not match', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
-      return;
-    }
-
-    // Check connectivity
-    final connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-        Get.snackbar('Error', 'Internet connection required for Sign Up', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
-        return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // 1. SignUp via Supabase (Remote)
-      final supabase = SupabaseService();
-      final response = await supabase.signUp(email, password);
-      
-      setState(() => _isLoading = false);
-
-      // 2. Create Local Account (Local)
-      final success = await authController.signUp(name, email, password);
-      
-      if (success) {
-        Get.snackbar(
-          'Account Created', 
-          'Your account has been created. Please log in to continue.', 
-          backgroundColor: Colors.green, 
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP
-        );
-        Get.offAll(() => const LoginScreen());
-      } else {
-         Get.snackbar('Error', 'Account created remotely but failed locally (Email exists?)', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      Get.snackbar('Error', 'Sign Up Failed: $e', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
-    }
   }
 }

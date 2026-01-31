@@ -8,8 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginController extends GetxController {
   final _dbHelper = DatabaseHelper();
-  final _authController = Get.put(AuthController());
-  
+  final _authController = Get.find<AuthController>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   var isPasswordVisible = false.obs;
@@ -26,10 +25,6 @@ class LoginController extends GetxController {
   void togglePasswordVisibility() {
     isPasswordVisible.toggle();
   }
-
-
-
-
 
   Future<void> login() async {
     final email = emailController.text.trim();
@@ -96,13 +91,5 @@ class LoginController extends GetxController {
     } finally {
       isLoading.value = false;
     }
-  }
-
-  @override
-  void onClose() {
-    emailController.dispose();
-    passwordController.dispose();
-
-    super.onClose();
   }
 }

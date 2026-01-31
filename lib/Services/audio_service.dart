@@ -15,7 +15,7 @@ class AudioService {
       
       // Play custom tune from assets
       await _player.stop(); // Stop any currently playing tune
-      await _player.play(AssetSource('mewo.mp3'));
+      await _player.play(AssetSource('tune.wav'));
     } catch (e) {
       print('Error playing custom scan tune: $e');
     }
