@@ -5,6 +5,7 @@ import 'package:pos/Services/models/sale_model.dart';
 import 'package:intl/intl.dart';
 import 'package:pos/Services/receipt_service.dart';
 import 'package:pos/Services/currency_service.dart';
+import 'package:pos/Services/loyalty_service.dart';
 
 class PrintingService {
   Future<void> printReceipt({
