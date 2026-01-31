@@ -28,7 +28,6 @@ import 'package:pos/Screens/analytics/analytics_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     final DashboardController dashboardController = Get.put(DashboardController());
@@ -39,7 +38,6 @@ class DashboardScreen extends StatelessWidget {
     final screenHeight = MediaQuery.of(context).size.height;
     final isTablet = screenWidth > 600;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-
     final cardSize = isTablet
         ? (isLandscape ? screenWidth / 6 : screenWidth / 4)
         : (isLandscape ? screenWidth / 5 : screenWidth / 3.5);
