@@ -23,12 +23,10 @@ class ProfileScreen extends StatelessWidget {
     final isLandscape = orientation == Orientation.landscape;
     final isTablet = screenWidth > 600;
     final isLargeScreen = screenWidth > 900;
-
     final double avatarRadius = (isLandscape ? screenHeight : screenWidth) * 0.1;
     final double cardTopMargin = avatarRadius * (isLandscape ? 2.0 : 2.5);
     final double avatarTopPosition = avatarRadius * (isLandscape ? 1.2 : 1.5);
     final double spacerHeight = avatarRadius;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: PreferredSize(
@@ -48,6 +46,7 @@ class ProfileScreen extends StatelessWidget {
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Get.offAll(() => BottomNavigation()),
             ),
+
             title: Text(
               'Profile',
               style: TextStyle(
