@@ -103,16 +103,15 @@ class SupabaseService {
       await _syncTable(
         'users', 
         'id', 
-        onConflict: 'email', 
+        onConflict: 'id', 
         mapLocalToRemote: (localMap) {
           return {
-            'id': localMap['supabase_id'], // Essential for RLS "insert_self" policy
+            'id': localMap['supabase_id'], // UUID
             'name': localMap['name'],
             'email': localMap['email'],
             'role': localMap['role'],
             'permissions': localMap['permissions'],
             'last_active': localMap['lastActive'],
-            'password': localMap['password'],
             'admin_id': localMap['adminId'],
           };
         }
