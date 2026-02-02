@@ -49,12 +49,22 @@ class SignUpController extends GetxController {
     isLoading.value = true;
 
     try {
+      print('=== DEBUG: Starting SignUp Process ===');
+      print('Name: $name, Email: $email');
+      
       // 1. SignUp via Supabase (Remote)
+      print('DEBUG: Calling Supabase Remote SignUp...');
       final supabase = SupabaseService();
-      await supabase.signUp(email, password);
+      final response = await supabase.signUp(email, password);
+      
+      print('DEBUG: Supabase Response Successful. User ID: ${response.user?.id}');
+      print('DEBUG: Confirmation Email should be sent to: ${response.user?.email}');
       
       // 2. Create Local Account (Local)
-      final success = await _authController.signUp(name, email, password);
+      print('DEBUG: Creating Local Account in SQLite...');
+      final success = await _authController.signUp(name, email, password, supabaseId: response.user?.id);
+      
+      print('DEBUG: Local SignUp Success: $success');
       
       if (success) {
         Get.snackbar(
@@ -70,6 +80,8 @@ class SignUpController extends GetxController {
              backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
       }
     } catch (e) {
+      print('=== DEBUG: SignUp FAILED ===');
+      print('Error detail: $e');
       Get.snackbar('Error', 'Sign Up Failed: $e', 
           backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
     } finally {

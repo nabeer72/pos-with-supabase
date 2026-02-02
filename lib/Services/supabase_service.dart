@@ -20,20 +20,28 @@ class SupabaseService {
 
   // Auth Methods
   Future<AuthResponse> signUp(String email, String password) async {
-    return await _supabase.auth.signUp(email: email, password: password);
+    print('DEBUG: SupabaseService.signUp called for $email');
+    return await _supabase.auth.signUp(
+      email: email, 
+      password: password,
+      emailRedirectTo: 'io.supabase.pos://login-callback',
+    );
   }
 
   Future<AuthResponse> signIn(String email, String password) async {
+    print('DEBUG: SupabaseService.signIn called for $email');
     return await _supabase.auth.signInWithPassword(email: email, password: password);
   }
 
 
   Future<Map<String, dynamic>?> getUserProfile(String email) async {
+    print('DEBUG: SupabaseService.getUserProfile called for $email');
     try {
-      final response = await _supabase.from('users').select().eq('email', email).single();
+      final response = await _supabase.from('users').select().eq('email', email).maybeSingle();
+      print('DEBUG: getUserProfile response: $response');
       return response;
     } catch (e) {
-      print('Error fetching user profile: $e');
+      print('DEBUG: getUserProfile ERROR: $e');
       return null;
     }
   }
@@ -70,6 +78,12 @@ class SupabaseService {
       return;
     }
 
+    // Don't try to sync if no user is logged in (RLS will block it anyway)
+    if (_supabase.auth.currentUser == null) {
+      print('Sync skipped: No authenticated user.');
+      return;
+    }
+
     try {
       await pushUnsyncedData();
     } catch (e) {
@@ -92,6 +106,7 @@ class SupabaseService {
         onConflict: 'email', 
         mapLocalToRemote: (localMap) {
           return {
+            'id': localMap['supabase_id'], // Essential for RLS "insert_self" policy
             'name': localMap['name'],
             'email': localMap['email'],
             'role': localMap['role'],
@@ -328,11 +343,13 @@ class SupabaseService {
         }
 
         dynamic response;
-        if (supabaseId != null) {
+        if (supabaseId != null && tableName != 'users') {
           response = await _supabase.from(tableName).update(dataToSync).eq('id', supabaseId).select().single();
         } else {
-          if (onConflict != null) {
-             response = await _supabase.from(tableName).upsert(dataToSync, onConflict: onConflict).select().single();
+          // For users, or when we don't have a supabaseId, we use upsert/insert.
+          // For users, supabaseId IS the Auth UUID, so we must upsert it.
+          if (onConflict != null || tableName == 'users') {
+             response = await _supabase.from(tableName).upsert(dataToSync, onConflict: onConflict ?? 'id').select().single();
           } else {
              response = await _supabase.from(tableName).insert(dataToSync).select().single();
           }

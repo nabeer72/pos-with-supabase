@@ -39,11 +39,15 @@ class LoginController extends GetxController {
     isLoading.value = true;
     
     try {
+      print('=== DEBUG: Starting Login Process ===');
+      print('Target Email: $email');
       bool loggedInStart = false;
       
       try {
          // Attempt Remote Login first
+         print('DEBUG: Attempting Remote Supabase Login...');
          await _authController.loginWithSupabase(email, password);
+         print('DEBUG: Remote Login SUCCESS');
          loggedInStart = true;
          
          // If successful, navigate
@@ -72,8 +76,9 @@ class LoginController extends GetxController {
 
       if (!loggedInStart) {
         // Fallback to Local Login
-        print("Attempting local login...");
+        print('DEBUG: Falling back to Local SQLite Login...');
         final user = await _dbHelper.getUserByEmail(email);
+        print('DEBUG: Local user found: ${user != null}');
         
         if (user != null && user['password'] == password) {
           _authController.login(user); // Store in global auth state

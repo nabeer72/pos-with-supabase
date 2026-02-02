@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/Services/currency_service.dart';
+import 'package:pos/Screens/button_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthController extends GetxController {
@@ -11,6 +12,78 @@ class AuthController extends GetxController {
   var currentUser = <String, dynamic>{}.obs;
   var userPermissions = <String>[].obs;
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  
+  @override
+  void onInit() {
+    super.onInit();
+    // Listen for Auth Changes (Deep Links, manual sign-ins, etc)
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+
+      print('=== DEBUG: AuthStateChange Detected ===');
+      print('Event: $event');
+      print('Session User ID: ${session?.user.id}');
+      print('Session Active: ${session != null}');
+
+      if ((event == AuthChangeEvent.signedIn || event == AuthChangeEvent.initialSession) && session != null) {
+        // If we have a session but aren't locally logged in, trigger "Late Sync" and Auto-Login
+        if (!isLoggedIn.value) {
+          final email = session.user.email;
+          if (email != null) {
+            print('DEBUG: Session detected for $email. Initiating Late Sync sequence...');
+            await _handleAutoLoginAfterConfirmation(email, session.user.id);
+          }
+        } else {
+          print('DEBUG: User already locally logged in. Skipping auto-sync.');
+        }
+      }
+    });
+  }
+
+  Future<void> _handleAutoLoginAfterConfirmation(String email, String supabaseUid) async {
+    print('=== DEBUG: _handleAutoLoginAfterConfirmation START ===');
+    try {
+      // 1. Try to fetch profile from remote
+      print('DEBUG: Fetching Remote Profile for $email...');
+      var profile = await SupabaseService().getUserProfile(email);
+
+      if (profile == null) {
+        print('DEBUG: Profile NOT FOUND on remote. Checking Local SQLite...');
+        // 2. If profile is missing on remote, check local
+        final localUser = await _dbHelper.getUserByEmail(email);
+        if (localUser != null) {
+          print('DEBUG: Local profile found. Syncing to Supabase with ID: $supabaseUid');
+          // Ensure local record has the correct Auth UUID
+          await _dbHelper.updateUser(localUser['id'], {'supabase_id': supabaseUid});
+          
+          // Trigger manual push sync for the user
+          print('DEBUG: Triggering pushUnsyncedData for user profile...');
+          await SupabaseService().pushUnsyncedData();
+          
+          // Try fetching again to confirm
+          profile = await SupabaseService().getUserProfile(email);
+          print('DEBUG: Fetched remote profile after sync: ${profile != null}');
+        } else {
+          print('DEBUG: Local profile NOT FOUND. Cannot proceed with late sync.');
+        }
+      } else {
+        print('DEBUG: Remote profile found immediately.');
+      }
+
+      if (profile != null) {
+         // 3. Sync local state and navigate
+         final localUser = await _dbHelper.getUserByEmail(email);
+         if (localUser != null) {
+           login(localUser);
+           // Auto-redirect to dashboard
+           Get.offAll(() => BottomNavigation());
+         }
+      }
+    } catch (e) {
+      print('Error during auto-login/sync: $e');
+    }
+  }
 
   void login(Map<String, dynamic> user) {
     isLoggedIn.value = true;
@@ -77,11 +150,25 @@ class AuthController extends GetxController {
       
       if (response.user != null) {
         // 2. Fetch User Profile
-        final userProfile = await SupabaseService().getUserProfile(email);
+        var userProfile = await SupabaseService().getUserProfile(email);
+        
+        if (userProfile == null) {
+          print('User profile not found on Supabase. Attempting to push local profile...');
+          final localUser = await _dbHelper.getUserByEmail(email);
+          if (localUser != null) {
+             // Link the Auth UID to the local user if not already set
+             await _dbHelper.updateUser(localUser['id'], {'supabase_id': response.user?.id});
+             
+             // Trigger a manual sync for this user
+             await SupabaseService().pushUnsyncedData();
+             
+             // Try fetching again
+             userProfile = await SupabaseService().getUserProfile(email);
+          }
+        }
         
         if (userProfile != null) {
           // 3. Sync to Local Database
-          // Check if user exists locally
           final existingUser = await _dbHelper.getUserByEmail(email);
           
           final userToSync = {
@@ -179,7 +266,7 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<bool> signUp(String name, String email, String password) async {
+  Future<bool> signUp(String name, String email, String password, {String? supabaseId}) async {
     try {
       final db = await _dbHelper.database;
       
@@ -197,14 +284,15 @@ class AuthController extends GetxController {
         'lastActive': DateTime.now().toString(),
         'permissions': jsonEncode(['all']), // Admin gets all permissions
         'is_synced': 0, // Flag for sync
+        'supabase_id': supabaseId,
         'adminId': null, // Will be set to own ID or handled by sync logic. Actually for Admin, adminId is their own ID. 
-                         // But we don't have ID yet. We can update it after insertion or use UUID. 
-                         // For simplicity, let's treat NULL adminId as "Root/Self" or update after insert.
       };
 
       final id = await _dbHelper.insertUser(newUser);
-      final String adminIdForNewUser = id.toString();
-      // Update adminId to be the same as the user ID for Admins so they are their own Tenant
+      
+      // Use the global Supabase UID as the Admin ID if available, otherwise fallback to local ID
+      final String adminIdForNewUser = supabaseId ?? id.toString();
+      
       await _dbHelper.updateUser(id, {'adminId': adminIdForNewUser});
       
       // Seed default categories for this new admin
@@ -222,7 +310,8 @@ class AuthController extends GetxController {
 
   String? get adminId {
     if (currentUser['role'] == 'Admin') {
-      return (currentUser['adminId'] ?? currentUser['id'])?.toString();
+      // For Admin, prefer adminId column, then supabase_id, then local id
+      return (currentUser['adminId'] ?? currentUser['supabase_id'] ?? currentUser['id'])?.toString();
     } else {
       return currentUser['adminId']?.toString();
     }

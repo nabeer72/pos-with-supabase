@@ -22,19 +22,8 @@ void main() async {
     await dbHelper.database;
     print('Step 1: Database initialized successfully.');
     
-    // Initialize AuthController globally
-    print('Step 2: Initializing AuthController...');
-    Get.put(AuthController());
-    print('Step 2: AuthController initialized.');
-    
-    // Check and perform backup if 15 days passed
-    print('Step 3: Checking backup status...');
-    final backupService = BackupService();
-    await backupService.checkAndPerformBackup();
-    print('Step 3: Backup check completed.');
-    
     // Initialize Supabase
-    print('Step 4: Initializing Supabase...');
+    print('Step 2: Initializing Supabase...');
     final supabaseService = SupabaseService();
     try {
       await supabaseService.initialize().timeout(const Duration(seconds: 15), onTimeout: () {
@@ -45,6 +34,17 @@ void main() async {
     } catch (e) {
       print('Supabase initialization error: $e');
     }
+
+    // Initialize AuthController globally
+    print('Step 3: Initializing AuthController...');
+    Get.put(AuthController());
+    print('Step 3: AuthController initialized.');
+    
+    // Check and perform backup if 15 days passed
+    print('Step 4: Checking backup status...');
+    final backupService = BackupService();
+    await backupService.checkAndPerformBackup();
+    print('Step 4: Backup check completed.');
     
     // Start Sync Service
     print('Step 5: Starting Sync Service...');
