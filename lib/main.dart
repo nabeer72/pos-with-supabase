@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import 'package:pos/Screens/Loader/loader.dart';
 import 'package:pos/Services/database_helper.dart';
 import 'package:pos/Services/backup_service.dart';
@@ -9,7 +8,6 @@ import 'package:pos/Services/supabase_service.dart';
 import 'package:pos/Services/sync_service.dart';
 import 'package:pos/Services/currency_service.dart';
 import 'package:pos/Services/loyalty_service.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   print('Application starting...');
@@ -43,18 +41,15 @@ void main() async {
     final backupService = BackupService();
     await backupService.checkAndPerformBackup();
     print('Step 4: Backup check completed.');
-    
     // Start Sync Service
     print('Step 5: Starting Sync Service...');
     final syncService = SyncService();
     syncService.startSyncMonitoring();
     print('Step 5: Sync Service started.');
-    
     // Initialize LoyaltyService
     print('Step 6: Initializing LoyaltyService...');
     Get.put(LoyaltyService());
     print('Step 6: LoyaltyService initialized.');
-    
     print('All initialization steps completed. Launching MyApp...');
     runApp(const MyApp());
   } catch (e, stack) {
