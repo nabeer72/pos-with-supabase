@@ -55,7 +55,7 @@ class SignUpController extends GetxController {
       // 1. SignUp via Supabase (Remote)
       print('DEBUG: Calling Supabase Remote SignUp...');
       final supabase = SupabaseService();
-      final response = await supabase.signUp(email, password);
+      final response = await supabase.signUp(email, password, name);
       
       print('DEBUG: Supabase Response Successful. User ID: ${response.user?.id}');
       print('DEBUG: Confirmation Email should be sent to: ${response.user?.email}');
@@ -82,7 +82,13 @@ class SignUpController extends GetxController {
     } catch (e) {
       print('=== DEBUG: SignUp FAILED ===');
       print('Error detail: $e');
-      Get.snackbar('Error', 'Sign Up Failed: $e', 
+      
+      String errorMessage = 'Sign Up Failed: $e';
+      if (e.toString().contains('already registered') || e.toString().contains('unique constraint')) {
+        errorMessage = 'This email is already registered. Please login instead.';
+      }
+      
+      Get.snackbar('Error', errorMessage, 
           backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.TOP);
     } finally {
       isLoading.value = false;

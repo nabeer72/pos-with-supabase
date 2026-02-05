@@ -13,7 +13,6 @@ import 'package:pos/Services/loyalty_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   print('Application starting...');
-  
   try {
     print('Starting initialization sequence...');
     // Initialize Database
@@ -21,7 +20,6 @@ void main() async {
     final dbHelper = DatabaseHelper();
     await dbHelper.database;
     print('Step 1: Database initialized successfully.');
-    
     // Initialize Supabase
     print('Step 2: Initializing Supabase...');
     final supabaseService = SupabaseService();
