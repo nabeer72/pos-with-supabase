@@ -44,7 +44,17 @@ class UserController extends GetxController {
       userData['adminId'] = Get.find<AuthController>().adminId;
       userData['lastActive'] = DateTime.now().toString();
 
-      await _dbHelper.insertUser(userData);
+      // Check if email already exists
+      final existingUser = users.firstWhereOrNull((u) => u['email'] == userData['email']);
+      if (existingUser != null) {
+        Get.snackbar('Error', 'A user with this email already exists',
+          backgroundColor: Colors.orange, colorText: Colors.white, snackPosition: SnackPosition.TOP);
+        return;
+      }
+
+      print('DEBUG: Inserting user locally: ${userData['email']}');
+      final id = await _dbHelper.insertUser(userData);
+      print('DEBUG: User inserted locally with ID: $id');
       
       // Trigger sync
       try {
@@ -73,6 +83,14 @@ class UserController extends GetxController {
 
       userData['is_synced'] = 0;
       userData['lastActive'] = DateTime.now().toString(); // Update last active? Maybe not necessary for edit.
+
+      // Check if email already exists for another user
+      final existingUser = users.firstWhereOrNull((u) => u['email'] == userData['email'] && u['id'] != id);
+      if (existingUser != null) {
+        Get.snackbar('Error', 'Another user with this email already exists',
+          backgroundColor: Colors.orange, colorText: Colors.white, snackPosition: SnackPosition.TOP);
+        return;
+      }
 
       await _dbHelper.updateUser(id, userData);
       

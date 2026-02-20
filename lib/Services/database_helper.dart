@@ -345,6 +345,12 @@ class DatabaseHelper {
           cashback_used REAL DEFAULT 0.0,
           admin_id TEXT,
           supabase_id TEXT,
+          is_synced INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL
+        )
+      ''');
+
+      await db.execute('''
         CREATE TABLE IF NOT EXISTS loyalty_rules (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           points_per_currency_unit REAL DEFAULT 1.0,
@@ -926,10 +932,12 @@ class DatabaseHelper {
   Future<Map<String, dynamic>> getSalesSummary({String? adminId}) async {
     Database db = await database;
     final now = DateTime.now();
-    final today = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final todayEnd = todayStart.add(const Duration(days: 1)).subtract(const Duration(seconds: 1));
     
-    String query = 'SELECT SUM(totalAmount) as totalAmount, COUNT(*) as totalCount FROM sales WHERE saleDate LIKE ?';
-    List<Object?> args = ['$today%'];
+    // Robust date filtering using BETWEEN
+    String query = 'SELECT SUM(totalAmount) as totalAmount, COUNT(*) as totalCount FROM sales WHERE saleDate BETWEEN ? AND ?';
+    List<Object?> args = [todayStart.toIso8601String(), todayEnd.toIso8601String()];
 
     if (adminId != null) {
       query += ' AND adminId = ?';
@@ -939,8 +947,8 @@ class DatabaseHelper {
     final result = await db.rawQuery(query, args);
     
     return {
-      'totalAmount': result.first['totalAmount'] ?? 0.0,
-      'totalCount': result.first['totalCount'] ?? 0,
+      'totalAmount': (result.first['totalAmount'] as num?)?.toDouble() ?? 0.0,
+      'totalCount': (result.first['totalCount'] as num?)?.toInt() ?? 0,
     };
   }
 

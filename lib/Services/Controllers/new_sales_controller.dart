@@ -12,6 +12,7 @@ import 'package:pos/Services/loyalty_service.dart';
 import 'package:pos/Services/models/loyalty_account_model.dart';
 import 'package:pos/Services/models/customer_model.dart';
 import 'package:pos/Services/audio_service.dart';
+import 'package:pos/Services/Controllers/dashboard_controller.dart';
 
 // QR Scanner Service to handle QR scanning logic
 class QRScannerService {
@@ -278,6 +279,15 @@ class NewSaleController extends GetxController {
 
     // Trigger sync to Supabase
     SupabaseService().syncData();
+
+    // Refresh Dashboard Data
+    try {
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().fetchDashboardData();
+      }
+    } catch (e) {
+      print("Error refreshing dashboard from NewSalesController: $e");
+    }
 
     // Refresh products to update quantities after deduction
     await _loadProducts();
